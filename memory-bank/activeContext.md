@@ -4,13 +4,22 @@
 
 ## Current Goals
 
-- Phase 0 (cadrage + bootstrap) shipped. PLAN.md merge shipped.
-- Wait for explicit "go Phase 1" before starting the deterministic-audit layer (ruff/mypy/pytest/Semgrep/CodeQL wrappers + SARIF + report surfaces).
+- Phase 0, merge, and **Phase 1 (deterministic audit)** all shipped.
+- Wait for explicit "go Phase 2" before starting the observation model + obligation graph.
 
 ## Current Blockers
 
-- None for Phase 0 or the merge. User confirmation on PLAN.md is the gate to Phase 1.
-- Phase 4 is blocked on the M.2 2 TB storage upgrade on the dev laptop (`infos.md` §3).
+- None. Awaiting user review of `PHASE1_AUDIT_REPORT.md`.
+- Phase 4 is blocked on the M.2 2 TB storage upgrade (`infos.md` §3).
+
+## [2026-04-24 14:30:00] - Phase 1 deterministic audit shipped
+
+- 8 Phase 1 chunks done: schema v1.1, 4 runners (+ CodeQL stub), blast_radius, verdict, 3 report formats, CLI wiring.
+- Gates: ruff ✓, mypy --strict ✓ (43 files), pytest **53/53** ✓, coverage **78%**.
+- Validation runs: self-audit, oida_framework subdir, oid_framework subdir, external `attrs` repo (cloned into `.oida/validation-external/`). Zero crashes.
+- 2 advisor calls consumed (pre-abstraction + pre-ship). Both acted on fully.
+- Carry-over to Phase 2: pytest/mypy Python-resolution bug (shutil.which picks wrong interpreter on systems with multiple Python installs), 10-repo exit criterion (ran 4), semgrep coverage gap (Windows).
+- ADR-13 + ADR-14 logged.
 
 ## [2026-04-24 07:45:00] - Merge of blueprint + roadmap into PLAN.md
 

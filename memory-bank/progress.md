@@ -19,27 +19,75 @@ The schedule below uses `PLAN.md` §14 Phase 0-7 numbering, not the original `pr
 
 ## Doing
 
-- [ ] Nothing. Waiting for user "go Phase 1" before starting the deterministic-audit layer.
+- [ ] Nothing. Awaiting user "go Phase 2" (observation model + obligation graph).
 
-## Next — Phase 1 (deterministic audit · 2-3 weeks, per `PLAN.md` §14)
+## Done — Phase 1 (deterministic audit · 2026-04-24)
 
-**Entry gate:** Phase 0 shipped (met).
+Shipped with advisor-vetted scope cuts (CodeQL stubbed, 3-repo validation with
+explicit 10-repo exit criterion deferred).
 
-**Scope:**
-- [ ] `verify/lint.py` — wrap `ruff check --output-format=json` (Python-only v0).
-- [ ] `verify/typing.py` — wrap `mypy --output-format=... ` (JSON or strict-mode stdout parse).
-- [ ] `verify/pytest_runner.py` — invoke `pytest --json-report` (or JUnit-XML), parse pass/fail/errors, feed the `regression` term of `tests_pass`.
-- [ ] `verify/semgrep_scan.py` — `semgrep --json` with a starter ruleset.
-- [ ] `verify/codeql_scan.py` — `codeql database analyze` CLI wrapper (Python pack first). Degraded-OK if CodeQL CLI missing.
-- [ ] `extract/blast_radius.py` — minimal heuristic (changed-modules × fan-out) to populate `AuditRequest.policy`-relative `blast_radius`.
-- [ ] `ingest/manifest.detect_commands` — pyproject / setup.py / requirements.txt / Pipfile auto-detection.
-- [ ] `report/json_report.py` — write a v1 `AuditReport`.
-- [ ] `report/markdown_report.py` — human-readable summary for PR comment body.
-- [ ] `report/sarif_export.py` — SARIF 2.1.0 for GitHub code-scanning.
-- [ ] `score/verdict.py` — deterministic-path verdict resolver (no LLM yet): `verified` if all evidence present + grounding ≥ threshold; `counterexample_found` on any failing test / surviving mutant / high-severity Semgrep; `insufficient_evidence` otherwise. `corrupt_success` stays dark until Phase 5.
-- [ ] `cli.py` — wire `oida-code normalize`, `verify`, and `audit` (deterministic path); add `--intent PATH`, `--format {json,sarif,markdown}`, `--fail-on {any_critical,corrupt,none}`.
+- [x] Schema v1.1: `Finding`, `ToolEvidence`, `ToolBudgets`, `VerdictLabel`
+      (Literal) added to `models/`. Example JSONs updated. ADR-13 (Optional
+      summary fields) + ADR-14 (verify accepts AuditRequest in Phase 1).
+- [x] `verify/_runner.py` — shared subprocess helper (UTF-8, timeout, never
+      raises). `probe_version` for lazy `tool_version` population.
+- [x] `verify/lint.py` — ruff JSON.
+- [x] `verify/typing.py` — mypy stdout parse with absolute-path regex.
+- [x] `verify/pytest_runner.py` — JUnit-XML via tempdir.
+- [x] `verify/semgrep_scan.py` — semgrep `scan --config=auto --json`.
+- [x] `verify/codeql_scan.py` — Phase 1 stub (`status="tool_missing"` /
+      `"skipped"`); full integration deferred to Phase 2.
+- [x] `extract/blast_radius.py` — weighted signals (modules 0.20 / api 0.20 /
+      data 0.35 / infra 0.25), bounded in ``[0, 1]``.
+- [x] `ingest/manifest.detect_commands` — pyproject + setup.cfg + marker
+      files. Falls back to stock Python defaults.
+- [x] `score/verdict.py` — deterministic resolver. `corrupt_success` stays
+      dark until Phase 5.
+- [x] `report/json_report.py`, `report/markdown_report.py`,
+      `report/sarif_export.py` — SARIF 2.1.0 minimal compliance (GitHub
+      code-scanning accepted fields).
+- [x] `cli.py` — `normalize` stays NotImplementedError (Phase 2). `verify`
+      + `audit` implemented. Added `--intent`, `--format`, `--fail-on`.
+- [x] Tests: 53 passing. Coverage **78%**. 6 new test modules.
+- [x] Validation: self-audit + oida_framework subdir + oid_framework subdir
+      + external `attrs` repo (clone to `.oida/validation-external/`). All
+      4 runs produced valid reports, no crashes.
 
-**Exit criterion:** Stable report on **10 Python repos without human intervention**. JSON + SARIF + Markdown outputs all validate against their schemas. No crashes. CodeQL may be optional (gated on CLI availability).
+## Phase 1 carry-over tickets (fix in early Phase 2)
+
+- [ ] **Pytest-subprocess Python resolution.** When `shutil.which("pytest")`
+      returns a pytest bound to a different Python than the one running
+      oida-code (e.g. miniforge3 global vs. our venv), collection fails with
+      `ModuleNotFoundError`. Same risk for `mypy`. Phase 2 fix: probe whether
+      `sys.executable -m pytest` is available and prefer it when the target
+      appears to be the oida-code repo itself, or when `shutil.which` resolves
+      to a Python different from `sys.executable`.
+- [ ] **`--fail-on corrupt` structurally unreachable in Phase 1** (requires
+      Phase 5 OIDA fusion). Wired but not testable end-to-end yet.
+- [ ] **10-repo validation exit criterion deferred.** PLAN.md §14 P1 exit
+      criterion is "Stable report on 10 Python repos without human
+      intervention". We ran 4 (3 in-workspace + 1 external attrs). Phase 2
+      gate will revisit after obligation graph ships.
+- [ ] **semgrep_scan coverage 24%** — dev env on Windows lacks semgrep. Add
+      a fixture-based JSON-parse unit test.
+- [ ] **warnings from ruff/mypy do not show up as critical_findings.** By
+      design (only `severity="error"` counts). The Markdown `counts` column
+      surfaces them. Double-check the shape when Phase 2 fusion lands.
+
+## Phase 2 — observation model + obligation graph (2 weeks)
+
+**Entry gate:** Phase 1 shipped (met once pushed).
+
+Deliverables: `models/trace.py`, `models/obligation.py`,
+`models/progress_event.py`, `extract/obligation_graph.py`,
+`extract/{claims,preconditions,dependencies}.py`, `score/mapper.py`,
+`verify/hypothesis_runner.py`, `verify/mutmut_runner.py`, **50-100
+hand-annotated PR traces** in `datasets/traces_v1/`, and `verify` CLI
+learns to accept `NormalizedScenario`.
+
+Exit criterion: can describe action-by-action where an agent explores /
+exploits / stagnates / loops on a real PR. Obligation-extraction recall
+≥ 60% on the annotated set.
 
 ## Phase 2 — observation model + obligation graph (2 weeks)
 
