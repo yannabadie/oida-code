@@ -653,10 +653,56 @@ def build_impact_cone(
     return entries[:max_files]
 
 
+# ---------------------------------------------------------------------------
+# D0 integration helper — derive the audit surface from a diff
+# ---------------------------------------------------------------------------
+
+
+def derive_audit_surface(
+    repo_path: Path | str,
+    changed_files: list[str],
+    *,
+    mode: Literal["changed", "impact"] = "impact",
+    max_files: int = 50,
+) -> list[str]:
+    """Return the surface the audit pipeline should operate on.
+
+    ADR-21 / Block D0: the raw diff (``AuditRequest.scope.changed_files``)
+    and the audit-surface are two different things. The diff is what the
+    commit touched; the surface is diff PLUS the bounded impact cone
+    (direct imports / importers / related tests / config / migration).
+    Callers that extract obligations or bound U(t) should use the
+    surface, not the raw diff.
+
+    * ``mode="changed"``: pass-through; returns the raw diff deduplicated
+      and normalized. Used by callers that explicitly want legacy
+      behaviour (``normalize --mode=changed``).
+    * ``mode="impact"``: returns ``[entry.path for entry in
+      build_impact_cone(...)]`` capped at ``max_files``. Default.
+
+    Does NOT mutate the input list. Does NOT modify
+    ``AuditRequest.scope.changed_files`` — that stays the raw diff so
+    downstream readers know what actually changed.
+    """
+    if mode == "changed":
+        seen: list[str] = []
+        for f in changed_files:
+            norm = _normalize(f)
+            if norm and norm not in seen:
+                seen.append(norm)
+                if len(seen) >= max_files:
+                    break
+        return seen
+    # mode == "impact"
+    cone = build_impact_cone(repo_path, changed_files, max_files=max_files)
+    return [entry.path for entry in cone]
+
+
 __all__ = [
     "DependencyEdge",
     "DependencyGraphResult",
     "ImpactConeEntry",
     "build_dependency_graph",
     "build_impact_cone",
+    "derive_audit_surface",
 ]

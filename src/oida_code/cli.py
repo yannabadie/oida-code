@@ -20,6 +20,7 @@ from typing import Annotated, NoReturn
 import typer
 
 from oida_code import __version__
+from oida_code.extract.dependencies import derive_audit_surface
 from oida_code.extract.obligations import extract_obligations
 from oida_code.ingest.claude_code_trace import parse_claude_code_transcript
 from oida_code.ingest.diff_parser import changed_files
@@ -366,18 +367,45 @@ def normalize_cmd(
         typer.Argument(exists=True, file_okay=True, dir_okay=False, readable=True),
     ],
     out: Annotated[Path | None, typer.Option("--out")] = None,
+    surface_mode: Annotated[
+        str,
+        typer.Option(
+            "--surface",
+            help="Audit surface derivation: 'impact' (default) or 'changed' (legacy).",
+        ),
+    ] = "impact",
+    max_surface_files: Annotated[
+        int,
+        typer.Option(
+            "--max-surface-files",
+            help="Cap on the audit surface size (default 50).",
+            min=1,
+            max=500,
+        ),
+    ] = 50,
 ) -> None:
-    """Map an ``AuditRequest`` into a ``NormalizedScenario`` (Phase 2).
+    """Map an ``AuditRequest`` into a ``NormalizedScenario`` (Phase 2 / D0).
 
-    Extracts obligations from the request's changed_files, synthesizes a
-    scenario via the mapper, and emits it as JSON. Does **not** run the
-    vendored analyzer or the deterministic verifiers — use ``verify`` /
-    ``audit`` for that.
+    Extracts obligations from the **audit surface** — ``changed_files``
+    PLUS the bounded impact cone (direct imports / importers / related
+    tests / config / migration) when ``--surface=impact``. Use
+    ``--surface=changed`` to restrict extraction to the raw diff only.
+    Does not run the vendored analyzer or the deterministic verifiers
+    — use ``verify`` / ``audit`` for that.
+
+    The emitted ``AuditRequest`` on scenario is the original — the
+    surface derivation does NOT mutate ``request.scope.changed_files``.
     """
+    if surface_mode not in ("impact", "changed"):
+        _fail(f"--surface must be 'impact' or 'changed', got {surface_mode!r}")
     request = _load_request(request_path)
-    obligations = extract_obligations(
-        Path(request.repo.path), list(request.scope.changed_files)
+    surface = derive_audit_surface(
+        Path(request.repo.path),
+        list(request.scope.changed_files),
+        mode=surface_mode,  # type: ignore[arg-type]
+        max_files=max_surface_files,
     )
+    obligations = extract_obligations(Path(request.repo.path), surface)
     scenario = obligations_to_scenario(
         obligations,
         request=request,
@@ -440,9 +468,17 @@ def score_trace_cmd(
     obligations: list[_Obligation] = []
     request_obj = None
     if request_path is not None:
-        request_obj = _load_request(request_path)
-        obligations = extract_obligations(
-            Path(request_obj.repo.path), list(request_obj.scope.changed_files)
+        raw_request = _load_request(request_path)
+        repo_path = Path(raw_request.repo.path)
+        raw_changed = list(raw_request.scope.changed_files)
+        # D0: obligation extraction and U(t) bounding both use the
+        # impact surface, not the raw diff. The public request's
+        # changed_files is preserved — we only swap the scope for the
+        # scorer's internal view.
+        surface = derive_audit_surface(repo_path, raw_changed, mode="impact")
+        obligations = extract_obligations(repo_path, surface)
+        request_obj = raw_request.model_copy(
+            update={"scope": raw_request.scope.model_copy(update={"changed_files": surface})}
         )
     metrics = score_trajectory(trace, obligations=obligations, request=request_obj)
     payload: dict[str, object] = json.loads(
