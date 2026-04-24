@@ -37,5 +37,18 @@
 **Why:** Required so that `oida-code --version` exits 0 without Typer complaining "Missing command." Without this flag, the subcommand-required check runs before the version callback's `typer.Exit(code=0)`.
 **Discovered:** empirically, fixing `tests/test_cli_smoke.py::test_version_flag`.
 
+[2026-04-24 07:45:00] - **ADR-10: `PLAN.md` is the active plan; blueprint §11 is superseded; `roadmap.md` is subsumed.**
+**Why:** The user authored `roadmap.md` post-Step-0 with an 8-phase realistic schedule (12-14 weeks) that refines the blueprint's aspirational 10-day plan (§11). The two documents are compatible: blueprint is the architectural spec + formulas (§1-10, §12-13), roadmap is the phasing + observation model + Explore/Exploit integration. A merged single source of truth prevents drift.
+**How applied:** Created `PLAN.md` merging both. New authority order: `PLAN.md > blueprint §1-10 §12-13 > roadmap > brainstorm2_improved > last > infos > brainstorm2`. Blueprint §11 "First 10 implementation days" explicitly superseded by `PLAN.md` §14. What was called "phase 1 bootstrap" in `PHASE1_REPORT.md` maps to `PLAN.md` Phase 0 (complete). Verdict labels finalized as machine identifiers: `verified / counterexample_found / insufficient_evidence / corrupt_success`.
+
+[2026-04-24 07:45:00] - **ADR-11: Observation model + obligation graph become first-class schema surface (Phase 2).**
+**Why:** Roadmap P2 (the "keystone" phase per the document) posits that Explore/Exploit cannot map cleanly to code without an explicit `Obligation` / `ProgressEvent` / `NoProgressSegment` triple. Without these, the bridge from grid→codebase is "an intuition, not a validated component" (roadmap ¶ on the hard point). The observation model is therefore promoted from "phase 2 extract/* stubs" to a dedicated `models/trace.py` + `models/obligation.py` + `models/progress_event.py` triple shipping in Phase 2.
+**How applied:** `PLAN.md` §8 defines the three types formally; `PLAN.md` §9 tracks them as schema v2; `extract/obligation_graph.py` becomes a new first-class module. Phase 2 exit gate requires a 50-100 hand-annotated trace dataset.
+
+[2026-04-24 07:45:00] - **ADR-12: Hardware treated as prototyping station; production-inference ADR deferred.**
+**Why:** Roadmap P0 explicitly flags: "R&D locale oui, vrai SaaS non" given RTX 3500 Ada Laptop (12 GB VRAM, 432 GB/s) vs Qwen3.6 model-card serving examples (tp-size 8). ADR-04 (default local Qwen3.6-35B-A3B) still holds for phase-4 development, but this ADR acknowledges that multi-tenant inference needs either managed API (Anthropic / OpenAI) or dedicated cloud GPU. Decision on that path is deferred to post-wedge validation (after Phase 5 shows real signal).
+**How applied:** `PLAN.md` §13 spells out the development-vs-production split. `infos.md` §3 (M.2 2 TB upgrade) now explicitly gates Phase 4.
+
 ---
 [2026-04-24 07:04:50] - Decision log initialized with the 5 ADRs required by prompt.md Step 4 (a–e) plus 4 further ADRs arising during phase-1 implementation (vendoring layout, Pydantic boundary, empty-diff gate, Typer callback flag).
+[2026-04-24 07:45:00] - Decision log extended with ADR-10 (merged PLAN.md supersedes blueprint §11), ADR-11 (observation model first-class), ADR-12 (laptop = prototyping only).

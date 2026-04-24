@@ -1,13 +1,26 @@
 # Active Context
 
+**Active plan: `PLAN.md`** (merged blueprint + roadmap, 2026-04-24). This file uses PLAN.md Phase 0-7 numbering going forward.
+
 ## Current Goals
 
-- Wrap phase 1 with `PHASE1_REPORT.md` and stop for user review.
-- Wait for explicit "go phase 2" before starting Semgrep / Hypothesis / LLM work.
+- Phase 0 (cadrage + bootstrap) shipped. PLAN.md merge shipped.
+- Wait for explicit "go Phase 1" before starting the deterministic-audit layer (ruff/mypy/pytest/Semgrep/CodeQL wrappers + SARIF + report surfaces).
 
 ## Current Blockers
 
-- None on phase 1. User review of `PHASE1_REPORT.md` is the gate to phase 2.
+- None for Phase 0 or the merge. User confirmation on PLAN.md is the gate to Phase 1.
+- Phase 4 is blocked on the M.2 2 TB storage upgrade on the dev laptop (`infos.md` §3).
+
+## [2026-04-24 07:45:00] - Merge of blueprint + roadmap into PLAN.md
+
+- Created `PLAN.md` (~340 lines) as the single source of truth going forward. Supersedes blueprint §11 and subsumes `roadmap.md`.
+- Finalized verdict labels as machine identifiers: `verified / counterexample_found / insufficient_evidence / corrupt_success`.
+- Promoted observation model (`Obligation`, `ProgressEvent`, `NoProgressSegment`) to first-class schema surface in Phase 2.
+- Adopted roadmap's 8-phase plan (P0-P7, ~12-14 weeks MVP). Old "phase 1 bootstrap" = new Phase 0 (done).
+- Logged ADR-10 (PLAN.md supersedes §11), ADR-11 (observation model first-class), ADR-12 (laptop = prototyping only).
+- Updated `progress.md` and `systemPatterns.md` to the merged scheme. `projectBrief.md` and `productContext.md` left intact (still accurate at higher level).
+- `PHASE1_REPORT.md` kept as historical artifact — retroactively describes Phase 0 output, not the new Phase 1.
 
 ## Recent Progress
 
