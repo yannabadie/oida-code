@@ -237,14 +237,15 @@ def target_set_size(case: CaseLabel, state_before: TrajectoryState) -> int:
 # ---------------------------------------------------------------------------
 
 
-def compute_gain(
+def is_progress_event(
     state_before: TrajectoryState,
     action: TraceEvent,
     state_after: TrajectoryState,
 ) -> bool:
-    """Narrow, paper-faithful gain: entered U(t) OR closed an obligation.
+    """Paper §4 progress event: entered unobserved cell OR closed a task.
 
-    This is the ``Gain(t → t+1)`` used in the err-equation branch.
+    Resets the no-progress segment. STRICTLY STRONGER than paper Gain —
+    progress_event implies paper_gain but not vice versa.
     """
     action_paths = {_normalize_path(p) for p in action.scope}
     if action_paths & state_before.unobserved:
@@ -253,18 +254,73 @@ def compute_gain(
     return bool(newly_closed)
 
 
-def is_progress_event(
+def _pending_obligation_scopes(
+    state_before: TrajectoryState,
+    obligations: list[Obligation],
+) -> set[str]:
+    """Path halves of the scopes of currently-pending obligations."""
+    out: set[str] = set()
+    for o in obligations:
+        if o.id in state_before.pending:
+            path_half = _normalize_path(o.scope.split("::", 1)[0])
+            if path_half:
+                out.add(path_half)
+    return out
+
+
+def compute_paper_gain(
     state_before: TrajectoryState,
     action: TraceEvent,
     state_after: TrajectoryState,
+    obligations: list[Obligation],
+    segment_events_before: list[TraceEvent],
 ) -> bool:
-    """Paper §4 progress event: entered unobserved cell OR closed a task.
+    """ADR-19 A2.4: the paper's ``Gain(t → t+1)``, the predicate err(t)
+    uses. Broader than ``is_progress_event`` but **bounded per no-
+    progress segment**: repeating a helpful move does not re-trigger.
 
-    Resets the no-progress segment. For Phase 3.5 Block A the predicate
-    coincides with ``compute_gain``; Block B extends it with verifier-
-    state-changed-to-passing and counterexample-found signals.
+    ``paper_gain = True`` iff any of:
+
+    * ``is_progress_event`` (entered U or closed obligation)
+    * action touches a pending-obligation resource AND that resource
+      was not already touched earlier in the current no-progress
+      segment
+    * action is ``kind="test_run"``, obligations are pending, AND no
+      test_run occurred earlier in the current segment
+
+    (Direct-dependency inspection — scientist's 4th sub-rule — is
+    Block C work, bound on the dependency graph.)
+
+    Keeping paper_gain bounded per segment is the specific correction
+    the OIDA author requested in Answer3.md: "sinon un agent peut
+    relancer le même test 20 fois sans jamais être pénalisé".
     """
-    return compute_gain(state_before, action, state_after)
+    if is_progress_event(state_before, action, state_after):
+        return True
+
+    pending_scopes = _pending_obligation_scopes(state_before, obligations)
+    if not pending_scopes:
+        return False
+
+    action_paths = {_normalize_path(p) for p in action.scope}
+    if not action_paths and action.kind != "test_run":
+        return False
+
+    already_touched_in_segment: set[str] = set()
+    segment_had_test_run = False
+    for ev in segment_events_before:
+        for p in ev.scope:
+            already_touched_in_segment.add(_normalize_path(p))
+        if ev.kind == "test_run":
+            segment_had_test_run = True
+
+    # (b) first touch of a pending-obligation resource in this segment.
+    first_pending_touches = (action_paths & pending_scopes) - already_touched_in_segment
+    if first_pending_touches:
+        return True
+
+    # (c) first relevant test_run in this segment.
+    return action.kind == "test_run" and not segment_had_test_run
 
 
 def compute_candidate_gain(
@@ -273,18 +329,13 @@ def compute_candidate_gain(
     state_after: TrajectoryState,
     obligations: list[Obligation],
 ) -> bool:
-    """A2.1 candidate_gain: weaker signal distinct from progress_event.
+    """A2.1 diagnostic (segment-UNBOUNDED). NOT used by err(t).
 
-    True when the action moved toward a target even if it did not yet
-    close one. Paper's intuition (author Answer2.md): a move in the
-    right direction should not be punished unless stale_score rises.
-
-    Implemented as the union of:
-
-    * ``is_progress_event``
-    * action touched a resource that scopes a pending obligation
-    * action is a ``test_run`` whose scope overlaps any pending
-      obligation's scope (ran-relevant-test proxy for Phase 3.5)
+    Paper_gain is the predicate err uses; candidate_gain is kept as a
+    broader diagnostic signal the Phase-4 verifier can consume.
+    Candidate fires on every action that could conceivably help —
+    repetitions included. The scientist (Answer3.md) explicitly said
+    this is fine, as long as candidate is not confused with paper Gain.
     """
     if is_progress_event(state_before, action, state_after):
         return True
@@ -293,17 +344,7 @@ def compute_candidate_gain(
     if not action_paths:
         return False
 
-    pending_scopes: set[str] = set()
-    for o in obligations:
-        if o.id in state_before.pending:
-            path_half = _normalize_path(o.scope.split("::", 1)[0])
-            if path_half:
-                pending_scopes.add(path_half)
-
-    # Touched a pending-obligation resource OR ran tests that cover one.
-    # Conservative test-run rule: any test_run while obligations are
-    # pending counts as "ran relevant test" for Phase 3.5; Block B
-    # tightens this via a test-to-source map.
+    pending_scopes = _pending_obligation_scopes(state_before, obligations)
     if action_paths & pending_scopes:
         return True
     return action.kind == "test_run" and bool(pending_scopes)
@@ -447,6 +488,7 @@ class _ScoringLoop:
                     is_error=False,
                     is_progress=False,
                     candidate_gain=candidate,
+                    paper_gain=False,
                     stale_score=0,
                     gain=False,
                     target_set_size=t_size,
@@ -458,11 +500,21 @@ class _ScoringLoop:
             self._emit_progress(t, case, t_size, candidate)
             return
 
-        gain = compute_gain(state_before, action, state_after)
+        # A2.4: err(t) uses paper_gain, bounded per no-progress segment.
+        segment_start = self.last_progress_t + 1
+        segment_events_before = self.events[segment_start:t]
+        paper_gain = compute_paper_gain(
+            state_before,
+            action,
+            state_after,
+            self.obligations,
+            segment_events_before,
+        )
+
         stale = self._stale_score_at(t)
         self.max_stale = max(self.max_stale, stale)
 
-        if not gain:
+        if not paper_gain:
             is_error = True
         elif t_size <= 1:
             is_error = False
@@ -478,8 +530,9 @@ class _ScoringLoop:
                 is_error=is_error,
                 is_progress=False,
                 candidate_gain=candidate,
+                paper_gain=paper_gain,
                 stale_score=stale,
-                gain=gain,
+                gain=paper_gain,  # deprecated alias, same value as paper_gain
                 target_set_size=t_size,
             )
         )
@@ -496,6 +549,7 @@ class _ScoringLoop:
                 is_error=False,
                 is_progress=True,
                 candidate_gain=candidate,
+                paper_gain=True,  # progress_event implies paper_gain
                 stale_score=0,
                 gain=True,
                 target_set_size=t_size,
@@ -609,7 +663,7 @@ __all__ = [
     "TrajectoryState",
     "classify_case",
     "compute_candidate_gain",
-    "compute_gain",
+    "compute_paper_gain",
     "is_progress_event",
     "score_trajectory",
     "target_set_size",

@@ -1,0 +1,18 @@
+{
+  "label": "repeated_action_eventually_error",
+  "description": "A2.4 repetition bound — paper_gain fires only on the FIRST relevant test in a no-progress segment. Rerunning the same test without evidence delta gives paper_gain=False → err=True. Scientist Answer3.md: 'un agent peut relancer le même test 20 fois sans jamais être pénalisé' is the failure mode to prevent. t=0 reads src/a.py (progress). t=1 first test_run in segment → paper_gain=True, no err (|T|=1). t=2-3 repeated identical test_runs → paper_gain=False → err=True each time.",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-pre-repeat0001", "kind": "precondition", "scope": "src/a.py::f", "description": "pending", "status": "open", "source": "intent", "weight": 3}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "discover a"},
+      {"t": 1, "kind": "test_run", "tool": "pytest", "scope": ["tests/test_a.py"], "intent": "first test run"},
+      {"t": 2, "kind": "test_run", "tool": "pytest", "scope": ["tests/test_a.py"], "intent": "SAME test, no evidence delta"},
+      {"t": 3, "kind": "test_run", "tool": "pytest", "scope": ["tests/test_a.py"], "intent": "SAME test, still no delta"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}

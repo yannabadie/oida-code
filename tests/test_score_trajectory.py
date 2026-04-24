@@ -252,6 +252,82 @@ def test_same_file_different_tools_share_stale_node() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# ADR-19 A2.4 — paper_gain vs progress: err(t) uses paper_gain
+# ---------------------------------------------------------------------------
+
+
+def test_paper_gain_can_fire_without_progress_event_and_no_error() -> None:
+    """A2.4: paper_gain=True AND is_progress=False AND stale not rising
+    → is_error=False. Proves err(t) uses paper_gain (segment-first
+    relevant-test-run) not progress_gain (strict progress)."""
+    trace, oblig, req, _ = _load("paper_gain_first_test_run.json")
+    m = score_trajectory(trace, oblig, req)
+    assert m.timesteps[0].is_progress is True  # t=0 reads src/a.py (in U)
+    t1 = m.timesteps[1]
+    assert t1.is_progress is False, "t=1 must not be a progress event"
+    assert t1.paper_gain is True, (
+        "A2.4 broken: first test_run while obligation pending should be "
+        "paper_gain=True even without a progress event"
+    )
+    assert t1.is_error is False, (
+        "paper_gain=True and |T|=1 (exploit_goal) must yield is_error=False"
+    )
+
+
+def test_repeated_test_run_eventually_errors() -> None:
+    """A2.4 repetition bound: paper_gain is segment-first, not segment-any.
+    Rerunning the same test without evidence delta must eventually trip
+    err=True. Answer3.md: without this, an agent could rerun a test 20
+    times with |T|≤1 and never be penalized."""
+    trace, oblig, req, _ = _load("paper_gain_repeated_action.json")
+    m = score_trajectory(trace, oblig, req)
+    # t=0 progress, t=1 first test_run → paper_gain=True, no err
+    assert m.timesteps[1].paper_gain is True
+    assert m.timesteps[1].is_error is False
+    # t=2 and t=3 repeat the same test_run → paper_gain=False → err=True
+    for t in (2, 3):
+        ts = m.timesteps[t]
+        assert ts.paper_gain is False, (
+            f"t={t}: repeated test_run must NOT re-trigger paper_gain; "
+            f"got paper_gain={ts.paper_gain}"
+        )
+        assert ts.is_error is True, (
+            f"t={t}: repeated test_run without evidence delta must be "
+            f"flagged as error; got is_error={ts.is_error}"
+        )
+    # candidate_gain stays True on repeats (diagnostic, segment-unbounded).
+    assert m.timesteps[2].candidate_gain is True
+    assert m.timesteps[3].candidate_gain is True
+
+
+def test_paper_gain_is_true_whenever_progress_event_is_true() -> None:
+    """Structural invariant: progress_event ⊆ paper_gain.
+
+    Every existing fixture where is_progress=True must also have
+    paper_gain=True on the same step. Prevents a future refactor from
+    accidentally making paper_gain narrower than progress."""
+    import json
+
+    fixtures_dir = Path(__file__).parent / "fixtures" / "traces"
+    violations: list[tuple[str, int]] = []
+    for fixture_path in sorted(fixtures_dir.glob("*.json")):
+        data = json.loads(fixture_path.read_text(encoding="utf-8"))
+        trace = Trace.model_validate(data["trace"])
+        obs = [Obligation.model_validate(o) for o in data["obligations"]]
+        req = AuditRequest(
+            repo=RepoSpec(path=".", revision="HEAD", base_revision="HEAD^"),
+            scope=ScopeSpec(changed_files=data["changed_files"]),
+        )
+        m = score_trajectory(trace, obs, req)
+        for ts in m.timesteps:
+            if ts.is_progress and not ts.paper_gain:
+                violations.append((fixture_path.name, ts.t))
+    assert not violations, (
+        f"progress_event must imply paper_gain; violations: {violations}"
+    )
+
+
 def test_metrics_are_json_serializable() -> None:
     trace, oblig, req, _ = _load("clean_success.json")
     m = score_trajectory(trace, oblig, req)

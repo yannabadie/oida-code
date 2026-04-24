@@ -48,13 +48,25 @@ class TimestepCase(BaseModel):
     is_error: bool
     is_progress: bool = False
     candidate_gain: bool = False
-    """ADR-19 A2.1: weaker-than-progress signal. True when the action
-    touched a pending-obligation resource, ran a relevant test, or
-    inspected a direct dependency — even if it did not itself close an
-    obligation or enter a new file. Enables the paper's "gain without
-    progress" branch where err depends on stale_score monotonicity."""
+    """ADR-19 A2.1 diagnostic: weaker, SEGMENT-UNBOUNDED signal. True on
+    every action that touched a pending-obligation resource or ran a
+    test while obligations pending, even if the same action was done
+    earlier in the segment. NOT used by err(t); kept for the Phase-4
+    verifier to inspect. See :attr:`paper_gain` for the predicate err
+    actually uses."""
+    paper_gain: bool = False
+    """ADR-19 A2.4: the paper's ``Gain(t → t+1)``. Equals True iff the
+    action is a progress event OR the **first occurrence in the current
+    no-progress segment** of: (a) touching a pending-obligation
+    resource, (b) running a relevant test, (c) inspecting a direct
+    dependency (Block C). Repeating an action that was already
+    paper_gain earlier in the segment is NOT paper_gain again — keeps
+    the scorer honest about rerunning the same test 20 times."""
     stale_score: int = Field(ge=0)
     gain: bool
+    """Deprecated alias for :attr:`paper_gain`. Same value; kept so
+    existing JSON consumers don't break. New code should read
+    :attr:`paper_gain`."""
     target_set_size: int = Field(ge=0)
 
 

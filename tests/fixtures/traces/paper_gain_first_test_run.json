@@ -1,0 +1,16 @@
+{
+  "label": "paper_gain_not_progress",
+  "description": "A2.4 — paper_gain=True, is_progress=False, stale not rising → is_error=False. Agent reads src/a.py (enters U → progress at t=0). Then at t=1 runs pytest on tests/test_a.py. No new file in U, no obligation closed → is_progress=False. But this is the FIRST test_run in the current no-progress segment while an obligation is pending → paper_gain=True → err=False (|T|=1, goal_pending so exploit_goal case).",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-pre-papergainA1", "kind": "precondition", "scope": "src/a.py::f", "description": "pending goal on src/a.py", "status": "open", "source": "intent", "weight": 3}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "discover a"},
+      {"t": 1, "kind": "test_run", "tool": "pytest", "scope": ["tests/test_a.py"], "intent": "first relevant test"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}

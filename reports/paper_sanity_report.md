@@ -1,6 +1,6 @@
 # D1 — Paper sanity check (2604.13151)
 
-**Date**: 2026-04-24 (Phase 3.5 Block A2).
+**Last updated**: 2026-04-24 (post Phase 3.5 A2.3 + A2.4).
 **Paper repo**: https://github.com/jjj-madison/measurable-explore-exploit
 **Pinned commit**: `be95ca2cc4325b26d22112da7c515dcc7cd2faba` (tag on `main`).
 **Reproduce**: `python scripts/paper_sanity_check.py` (from repo root).
@@ -13,9 +13,9 @@
 |---|---|
 | Author's `src/symbolic_environment/metrics.py` module installable in our venv | PASS |
 | Author's 10 built-in sanity tests (`python -m symbolic_environment.metrics`) | **ALL PASSED** locally |
-| Our `_stale_counters` reproduces the paper's stale-score direction on 7 ported explore-only tests | **4 / 7 match** |
-| Mismatches rooted in a single semantic choice | Directed vs undirected edge dedup (see §3) |
-| Sanity-check scoped to the math; mapping to code remains the Phase 3.5 Block A2 open problem | Expected |
+| Our `_stale_counters` reproduces the paper's stale-score direction on 7 ported explore-only tests | **7 / 7 match** (post-A2.3) |
+| History: 4/7 at v0.4.1 (pre-A2.3) → 7/7 after undirected-edge refactor | documented in §4 |
+| Sanity-check scoped to the math; mapping to code remains Phase 3.5 Block A2 / Block B / Block C | Expected |
 
 ---
 
@@ -39,86 +39,96 @@ and Case attribution table are verified against their released code.
 
 ## 3. Our implementation vs their reference, on 7 ported tests
 
-| Test | expected stale rises | our stale rises | our `S_final` | Match |
-|---|---|---|---|---|
-| 1 probe_backout | False | True | 2 | **NO** |
-| 2 gateway_revisit | False | True | 1 | **NO** |
-| 3 exhausted_branch | True | True | 3 | YES |
-| 4 cycle_closure | True | True | 1 | YES |
-| 5 repeated_cycle | True | True | 2 | YES |
-| 6 corridor_oscillation | True | True | 4 | YES |
-| 7 self_avoiding_walk | False | True | 6 | **NO** |
+Current status (post-A2.3 + A2.4, repo tip):
+
+```
+test                            expected    ours        S_final     match
+---------------------------------------------------------------------
+1_probe_backout                 no rise     no rise     0           YES
+2_gateway_revisit               no rise     no rise     0           YES
+3_exhausted_branch              rises       rises       3           YES
+4_cycle_closure                 rises       rises       1           YES
+5_repeated_cycle                rises       rises       2           YES
+6_corridor_oscillation          rises       rises       5           YES
+7_self_avoiding_walk            no rise     no rise     0           YES
+
+overall stale-behaviour match: PASS
+```
 
 Scenarios ported 1:1 (start cell + move sequence + pre-visited set). Our
 port prepends a synthetic `read` event on the start cell so the
-NoProgressSegment in our `_stale_counters` has the same initial node as
+`NoProgressSegment` in our `_stale_counters` has the same initial node as
 the author's `NoProgressSegment(start_pos)` constructor.
 
 ---
 
-## 4. Root cause of the 3 mismatches
+## 4. History — what changed between 4/7 and 7/7
 
-All three failing tests share a pattern: **the walk goes out then back
-along the same corridor**.
+### 4.1 At v0.4.1 (pre-A2.3): 4 / 7 matching
 
-| Test | walk pattern | paper sees | we see |
+The 3 failing tests all shared one root cause: **our edge representation
+was directed** where the paper's is undirected.
+
+| Test | walk pattern | paper sees | v0.4.1 saw |
 |---|---|---|---|
-| 1 probe_backout | A→B→C→B→A | 2 undirected edges, each at budget 2, cyc=0 | 4 directed edges unique, cyc=2 |
-| 2 gateway_revisit | A→B→C→B→D | 3 undirected edges at budget, cyc=0 | 4 directed edges, cyc=1 |
-| 7 self_avoiding_walk | 0→1→2→...→6→5→...→0 | each undirected edge at budget 2, cyc=0 | 12 directed edges unique, cyc=6 |
+| 1 probe_backout | A→B→C→B→A | 2 undirected edges, cyc=0 | 4 directed edges, cyc=2 |
+| 2 gateway_revisit | A→B→C→B→D | 3 undirected edges, cyc=0 | 4 directed edges, cyc=1 |
+| 7 self_avoiding_walk | 0→1→…→6→5→…→0 | each undirected edge at budget, cyc=0 | 12 directed edges, cyc=6 |
 
-Author's `NoProgressSegment` (metrics.py:230-259, pinned commit):
+Author's `NoProgressSegment._edge_key(a, b)` uses `(min(a, b), max(a, b))`,
+explicitly undirected. Our `_stale_counters` at v0.4.1 used a raw directed
+pair, so an A→B→A walk produced `(A,B)` and `(B,A)` — two *distinct*
+directed edges in our accounting, both at count 1.
 
-```python
-@staticmethod
-def _edge_key(a: Coord, b: Coord) -> tuple[Coord, Coord]:
-    return (min(a, b), max(a, b))
+### 4.2 A2.3 refactor (commit `741945d`): resource_id nodes + undirected edges
 
-def append(self, pos: Coord) -> tuple[int, int, int, int]:
-    prev = self.positions[-1]
-    ...
-    edge = self._edge_key(prev, pos)        # undirected by construction
-    self.edge_counts[edge] = self.edge_counts.get(edge, 0) + 1
-```
+Two coupled changes:
 
-Our `_stale_counters` (src/oida_code/score/trajectory.py pre-A2.3):
+1. **Node identity = resource_id** (file path / symbol id), not
+   `(kind, path)`. `Read src/a.py` and `Edit src/a.py` are the same node.
+2. **Edges are unordered pairs**:
+   ```python
+   lo, hi = (a, b) if a <= b else (b, a)
+   edge_visits[(lo, hi)] += 1
+   ```
 
-```python
-for a, b in pairwise(nodes):
-    edge_visits[(a, b)] += 1               # directed pair
-```
+With both, the back-and-forth walks in tests 1, 2, and 7 correctly
+register no cyclomatic growth, matching the paper.
 
-**Consequence**: a probe-and-return walk produces (A,B) and (B,A) — two
-*distinct* directed edges in our accounting, both at count 1. In the
-paper, they are the *same* undirected edge at count 2, still within
-the budget of 2 → no staleness error.
+### 4.3 A2.4 paper_gain split (commit pending): does not affect D1
+
+A2.4 splits `compute_gain` into `compute_paper_gain` (segment-first
+bounded) and keeps `compute_candidate_gain` as a diagnostic. The D1
+port uses `_stale_counters` directly and does not invoke the gain
+logic, so D1 results are unchanged by A2.4. Verified: 7/7 matching
+before and after the A2.4 refactor.
 
 ---
 
 ## 5. Verdict
 
-- **Math fidelity**: our `c_t / e_t / n_t` *formulas* are faithful
-  (tests 3-6 pass with identical staleness direction).
-- **Representation gap**: our edge representation is directed, which
-  disagrees with the paper's undirected edge accounting. This is a
-  **single-line change** in the scorer, not a formula bug.
-
-The mismatch is exactly what the OIDA v4.2 author's A2.3 directive
-anticipated: "stale node = resource_id, not (kind, path); same-territory
-regardless of action kind". Taking the A2.3 change to its logical
-extension — treating an edge as the unordered pair of resources —
-closes this gap.
+- **Math fidelity**: our `c_t / e_t / n_t` *formulas* are now faithful
+  on the paper's own explore-only regime (7/7 tests aligned).
+- **Representation**: our stale graph now uses resource-id nodes +
+  undirected edges, matching the paper's `_edge_key` semantics.
+- **Remaining gap**: the paper's Case attribution for mixed regimes
+  (tests 8-10) uses BFS-based gain on a 2D grid. Ours uses
+  set-membership gain on `changed_files` (ADR-18) — a domain
+  choice, not a formula check. Porting tests 8-10 would require a
+  richer shim that synthesizes fake obligations on fake cell
+  scopes and is scheduled for after Block C lands the minimal
+  dependency graph.
 
 ---
 
 ## 6. Action items
 
-1. **A2.3 scope expansion**: in addition to resource-id nodes,
-   `_stale_counters` must use unordered edge keys. Landing both together
-   in one commit keeps the stale-graph semantics coherent.
-2. **Re-run D1 after A2.3**: expect 7/7 matching.
-3. **D2 (code-domain mini)** remains unblocked; the paper-domain sanity
-   is a clean, isolatable sanity result.
+1. **Done**: A2.3 resource_id nodes + undirected edges → 7/7 on D1.
+2. **Done**: A2.4 paper_gain vs progress split (does not affect D1
+   numerically but keeps the scorer honest about repetition).
+3. **Next**: Block B — obligation → 1..N preconditions with weight
+   conservation. Unblocked once A2.4 is accepted.
+4. **Deferred**: port paper tests 8-10 after Block C minimal graph.
 
 ---
 
@@ -128,11 +138,14 @@ closes this gap.
   exploit_only, mixed_non_goal). Their case branch uses BFS-based
   gain on a 2D grid; ours uses set-membership gain on changed_files.
   Porting tests 8-10 would require a richer shim that synthesizes
-  fake obligations on fake cell scopes — deferred until A2 completes.
+  fake obligations on fake cell scopes — deferred to post-Block-C.
 - Our **bounded U(t)** adaptation (ADR-18). The paper bounds U by grid
   size intrinsically; we bound by `changed_files`. This is a domain
   choice, not a formula check.
 - Our **obligation ↔ precondition mapping** (Phase 3.5 Block B).
+- Our **paper_gain segment-first bound** (A2.4). This is an
+  extension of the paper's gain for the code domain; the paper's
+  grid tests don't exercise it (they have BFS-based gain instead).
 
-D1 validates **only** the stale-score math. The code-domain empirical
-gap is Phase 3.5 Block D2 + pre-Phase-4 D3.
+D1 validates **only** the stale-score math on the explore-only regime.
+The code-domain empirical gap is Phase 3.5 Block D2 + pre-Phase-4 D3.
