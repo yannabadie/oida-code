@@ -69,6 +69,17 @@ if TYPE_CHECKING:
 
 
 _CODE_EDIT_KINDS: frozenset[str] = frozenset({"edit", "write"})
+_OBSERVATION_KINDS: frozenset[str] = frozenset({"read", "grep", "tool_call"})
+"""ADR-19 A2.5: kinds that actually *observe* a resource.
+
+`read` and `grep` / `glob` (mapped to ``grep`` by our parser) are
+unambiguous observations. ``tool_call`` is admitted because the parser
+uses it as a fallback for Bash/PowerShell invocations that may be
+read-like (``cat``, ``ls``, ``rg``). An edit/write scope-entry does NOT
+count — the agent changed the file but has not proven they understood
+it. This is the semantic the OIDA author requires in Answer4.md so a
+blind edit cannot silently close U(t) without a prior read.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +248,18 @@ def target_set_size(case: CaseLabel, state_before: TrajectoryState) -> int:
 # ---------------------------------------------------------------------------
 
 
+def is_observation_action(action: TraceEvent) -> bool:
+    """ADR-19 A2.5: True iff the action actually observed a resource.
+
+    Observation kinds (``read``, ``grep``, ``tool_call``) are the only
+    actions that can move a file *out* of ``U(t)``. Edits and writes
+    modify without observing — they count as paper_gain when they
+    first-touch a pending obligation, but they do NOT shrink U(t) and
+    do NOT fire progress_event on their own.
+    """
+    return action.kind in _OBSERVATION_KINDS
+
+
 def is_progress_event(
     state_before: TrajectoryState,
     action: TraceEvent,
@@ -246,9 +269,14 @@ def is_progress_event(
 
     Resets the no-progress segment. STRICTLY STRONGER than paper Gain —
     progress_event implies paper_gain but not vice versa.
+
+    A2.5 tightening: "entered unobserved" requires the action to be an
+    :func:`is_observation_action`. A blind Edit on an unread file is no
+    longer considered entering U — the file remains unobserved until a
+    Read/Grep/Glob actually inspects it.
     """
     action_paths = {_normalize_path(p) for p in action.scope}
-    if action_paths & state_before.unobserved:
+    if is_observation_action(action) and action_paths & state_before.unobserved:
         return True
     newly_closed = state_after.closed - state_before.closed
     return bool(newly_closed)
@@ -664,6 +692,7 @@ __all__ = [
     "classify_case",
     "compute_candidate_gain",
     "compute_paper_gain",
+    "is_observation_action",
     "is_progress_event",
     "score_trajectory",
     "target_set_size",

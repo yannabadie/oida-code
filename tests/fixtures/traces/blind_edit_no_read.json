@@ -1,0 +1,15 @@
+{
+  "label": "blind_edit_not_progress",
+  "description": "A2.5 — an Edit on an unread file must NOT be a progress_event. The file stays in U(t) until a Read/Grep observes it. Pre-A2.5, the scope-intersects-unobserved check would fire progress on any edit scope overlap.",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-pre-blindedit01", "kind": "precondition", "scope": "src/a.py::f", "description": "pending goal", "status": "open", "source": "intent", "weight": 3}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "blind edit — no prior read"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}

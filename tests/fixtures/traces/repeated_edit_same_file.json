@@ -1,0 +1,17 @@
+{
+  "label": "repeated_edit_eventually_error",
+  "description": "A2.5 — first edit of a pending-obligation file after read = paper_gain=True (first-touch in segment). Second identical edit without closing anything = paper_gain=False → err=True. Prevents 'silent edit loop' where an agent re-edits the same file without moving the needle.",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-pre-repeatedit1", "kind": "precondition", "scope": "src/a.py::f", "description": "pending", "status": "open", "source": "intent", "weight": 3}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "observe a"},
+      {"t": 1, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "first edit (first-touch pending)"},
+      {"t": 2, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "repeated edit, no close — should err"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}

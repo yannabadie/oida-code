@@ -328,6 +328,53 @@ def test_paper_gain_is_true_whenever_progress_event_is_true() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# ADR-19 A2.5 — observation semantics: edit/write cannot close U(t) alone
+# ---------------------------------------------------------------------------
+
+
+def test_blind_edit_does_not_consume_unobserved_surface() -> None:
+    """A2.5 — an Edit on an unread file is NOT a progress_event. The
+    file remains in U(t) until a Read/Grep observes it.
+
+    Pre-A2.5, the scope-intersects-unobserved check fired progress on
+    any action whose scope overlapped U — so a blind edit "consumed"
+    the unobserved surface without the agent having actually inspected
+    the file."""
+    trace, oblig, req, _ = _load("blind_edit_no_read.json")
+    m = score_trajectory(trace, oblig, req)
+    t0 = m.timesteps[0]
+    assert t0.is_progress is False, (
+        "A2.5 broken: blind edit on unread file must not be a progress event"
+    )
+    # paper_gain may still fire (first-touch of pending-obligation
+    # resource), but progress must not.
+
+
+def test_repeated_edit_on_same_changed_file_errors_eventually() -> None:
+    """A2.5 regression: first edit of a pending-obligation file after
+    read = paper_gain (first-touch in segment). Second identical edit
+    without closing anything must NOT re-trigger paper_gain.
+
+    Without this bound, the scorer would happily watch an agent edit
+    the same file 20 times as long as an obligation stays pending."""
+    trace, oblig, req, _ = _load("repeated_edit_same_file.json")
+    m = score_trajectory(trace, oblig, req)
+    # t=0 read enters U → progress
+    assert m.timesteps[0].is_progress is True
+    # t=1 first edit of pending-obligation resource → paper_gain=True,
+    # not progress (no close), |T|=1 → no error
+    assert m.timesteps[1].paper_gain is True
+    assert m.timesteps[1].is_progress is False
+    assert m.timesteps[1].is_error is False
+    # t=2 repeated edit → paper_gain=False → err=True
+    assert m.timesteps[2].paper_gain is False, (
+        "A2.5 regression: repeated edit on same pending-obligation "
+        "resource must not re-fire paper_gain"
+    )
+    assert m.timesteps[2].is_error is True
+
+
 def test_metrics_are_json_serializable() -> None:
     trace, oblig, req, _ = _load("clean_success.json")
     m = score_trajectory(trace, oblig, req)
