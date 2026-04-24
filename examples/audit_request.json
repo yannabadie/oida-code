@@ -31,6 +31,8 @@
     "types": 60,
     "tests": 600,
     "semgrep": 120,
-    "codeql": 900
+    "codeql": 900,
+    "hypothesis": 300,
+    "mutmut": 600
   }
 }
