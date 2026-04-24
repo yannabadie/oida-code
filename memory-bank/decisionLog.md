@@ -2,3 +2,40 @@
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
+
+[2026-04-24 07:04:50] - **ADR-01: Repo and package name `oida-code`, NOT `unslop.ai`.**
+**Why:** `infos.md` §1 documented active collisions for `unslop` (github.com/mshumer/unslop, unslop.xyz, unslop.design, unslopsearch.com, theunslop.app, Unslop Code Cleaner on MCP Market, anti-slop skill on Smithery). The brand is saturated and the "anti-slop" framing conflicts with the OIDA-for-code positioning (blueprint §1). User confirmed public repo creation as `yannabadie/oida-code` on 2026-04-23.
+**Applies to:** package name (`oida-code` on PyPI, `oida_code` in Python), CLI binary (`oida-code`), GitHub repo, documentation.
+
+[2026-04-24 07:04:50] - **ADR-02: Reuse the existing OIDA core verbatim via vendoring.**
+**Why:** Blueprint §2 is explicit: "Keep the current OIDA core almost intact". The vendored package (`search/OIDA/oida_framework/oida/*.py`) already implements `grounding`, `Q_obs`, `μ`, `λ_bias`, `N_eff`, `Debt`, `V_dur`, `H_sys`, `V_net`, pattern state machine, and `double_loop_repair`. Reimplementing would risk formula drift and violate the plan rule "Reuse over rewrite" (prompt.md operating rules).
+**How applied:** Files copied verbatim to `src/oida_code/_vendor/oida_framework/`. SHA256 of each file pinned in `VENDORED_FROM.txt`. `ruff` and `mypy --strict` exclude `_vendor/**` via `pyproject.toml`. `score/analyzer.py` is a thin re-export shim.
+
+[2026-04-24 07:04:50] - **ADR-03: Python-only for v0.**
+**Why:** Blueprint §4. The user's existing codebase is Python; Hypothesis + mutmut give a strong verification wedge quickly; Semgrep and CodeQL both support Python as a first-class language. Adding JS/TS/Go/Rust before the wedge is proven would dilute focus.
+**How applied:** `pyproject.toml requires-python = ">=3.11"`; `ingest/manifest.default_python_commands` is the only language-aware helper shipped; `inspect` hard-codes `language = "python"` in the emitted `AuditRequest`.
+
+[2026-04-24 07:04:50] - **ADR-04: Qwen3.6-35B-A3B as default local verifier.**
+**Why:** Blueprint §10. Open-weight (Apache 2.0), official `transformers serve` + `llama.cpp` GGUF support, designed for agentic coding / repo-level reasoning. On the user's RTX 3500 Ada Laptop (12 GB VRAM), the MoE architecture (35B total, 3B active per token) makes Q4_K_M (~20 GB) tractable via partial offload at 20-30 tok/s. A smaller fallback model will handle extraction / cheap classification.
+**Status:** Decision recorded; zero implementation in phase 1 (no LLM code shipped). Implementation begins phase 3 (blueprint §13 day 9).
+
+[2026-04-24 07:04:50] - **ADR-05: CLI-first, GitHub Action second, SaaS last.**
+**Why:** Blueprint §4 deployment modes ordered: (1) `oida-code audit ./repo`, (2) GitHub Action (local / self-hosted), (3) GitHub App + SaaS. A CLI is trivially testable locally, has no hosting dependencies, and is what power users want first. GitHub Action adds CI integration without servers. SaaS adds auth / billing / multi-tenancy — all orthogonal to the core wedge.
+**How applied:** Phase 1 ships only the CLI entry point (`oida-code = oida_code.cli:app`). `src/oida_code/github/checks.py` and `annotations.py` exist as stubs but raise `NotImplementedError`.
+
+[2026-04-24 07:04:50] - **ADR-06: Typer over Click or argparse for the new CLI.**
+**Why:** Typer's `Annotated[T, typer.Option(...)]` style is mypy-strict-clean, produces rich Rich-rendered help, and has first-class subcommand ergonomics for the planned `inspect / normalize / verify / audit / repair` surface. argparse would work but loses type-safety on options; Click would require more boilerplate. Vendored `oida` CLI keeps argparse (untouched per ADR-02).
+**Cost:** +1 dep (`typer>=0.12`) and its `rich` transitive.
+
+[2026-04-24 07:04:50] - **ADR-07: Pydantic v2 at the public boundary; dataclasses in the vendored core.**
+**Why:** Blueprint §5 shows JSON-first schemas with strict validation semantics. Pydantic v2 gives `ConfigDict(extra="forbid")` for airtight APIs, deterministic `model_dump_json(indent=2)`, and is the community default for Python typed I/O. The vendored core uses `@dataclass(slots=True)` and must not be touched (ADR-02). A mapper bridges the two surfaces — phase 2.
+
+[2026-04-24 07:04:50] - **ADR-08: `--base HEAD` accepted as a valid (empty-diff) inspect target.**
+**Why:** Gate 4 of prompt.md Step 3 requires `oida-code inspect ./search/OIDA/oida_framework --base HEAD` to produce a valid `AuditRequest` JSON. After `git init`, the whole workspace is a single commit; `HEAD..HEAD` is an empty diff. Rather than staging a synthetic two-commit setup, the implementation treats `base == head` as "empty changed_files list" — still a deserializable `AuditRequest`. Real usage is always `--base origin/main` or similar.
+
+[2026-04-24 07:04:50] - **ADR-09: Typer callback uses `invoke_without_command=True`.**
+**Why:** Required so that `oida-code --version` exits 0 without Typer complaining "Missing command." Without this flag, the subcommand-required check runs before the version callback's `typer.Exit(code=0)`.
+**Discovered:** empirically, fixing `tests/test_cli_smoke.py::test_version_flag`.
+
+---
+[2026-04-24 07:04:50] - Decision log initialized with the 5 ADRs required by prompt.md Step 4 (a–e) plus 4 further ADRs arising during phase-1 implementation (vendoring layout, Pydantic boundary, empty-diff gate, Typer callback flag).
