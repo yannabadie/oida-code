@@ -220,7 +220,7 @@ def main() -> int:
         print(f"[{j}/{len(pairs)}] {transcript.name} @ {repo.name}", file=sys.stderr)
         try:
             row = score_one(transcript, repo)
-        except Exception as e:  # noqa: BLE001 — collect failures, keep going
+        except Exception as e:  # collect failures, keep going
             row = {"transcript": str(transcript), "error": str(e)}
         results.append(row)
 
