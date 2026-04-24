@@ -141,8 +141,25 @@ def _attribute_case(
     return "exploit_goal"
 
 
-def _is_progress(event: TraceEvent) -> bool:
-    return bool(event.new_facts or event.closed_obligations)
+def _is_progress_step(
+    event: TraceEvent,
+    prev_visited: set[str],
+    prev_closed: set[str],
+    prev_unobserved: set[str],
+) -> bool:
+    """Paper §4 progress event: entered an unobserved cell OR closed a task.
+
+    ADR-18 binds "unobserved cell" to the bounded audit surface (changed
+    files that haven't been read yet). An action that touches a file
+    OUTSIDE ``changed_files`` is NOT a progress event — it may be the
+    agent wandering.  Closing an obligation is always progress.
+    """
+    new_paths = {_normalize_path(p) for p in event.scope} - prev_visited
+    # Only in-surface discoveries count.
+    if new_paths & prev_unobserved:
+        return True
+    new_closed = set(event.closed_obligations) - prev_closed
+    return bool(new_closed)
 
 
 def _gain(
@@ -272,8 +289,18 @@ def score_trajectory(
         case = _attribute_case(unobserved, pending, goal)
         t_size = _target_set_size(case, unobserved, pending)
 
+        if t > 0:
+            prev_visited = _visited_paths_up_to(events, t - 1)
+            prev_unobserved = _unobserved_changed(changed_files, prev_visited)
+        else:
+            prev_visited = set()
+            prev_unobserved = {_normalize_path(f) for f in changed_files}
+        is_progress = _is_progress_step(
+            events[t], prev_visited, closed_before, prev_unobserved
+        )
+
         # Progress event — reset stale counters; err(t) is 0 per paper.
-        if _is_progress(events[t]):
+        if is_progress:
             last_progress_t = t
             prev_stale = 0
             timesteps.append(
@@ -363,7 +390,10 @@ def score_trajectory(
 
     classifications = [_classify_segment(timesteps, seg) for seg in segments]
 
-    progress_events_count = sum(1 for ev in events if _is_progress(ev))
+    # Count steps flagged as progress in the main loop (stored via is_error=False + gain=True).
+    progress_events_count = sum(
+        1 for ts in timesteps if not ts.is_error and ts.gain and ts.stale_score == 0
+    )
 
     return TrajectoryMetrics(
         exploration_error=round(exploration_error, 6),

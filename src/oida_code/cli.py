@@ -21,9 +21,11 @@ import typer
 
 from oida_code import __version__
 from oida_code.extract.obligations import extract_obligations
+from oida_code.ingest.claude_code_trace import parse_claude_code_transcript
 from oida_code.ingest.diff_parser import changed_files
 from oida_code.ingest.git_repo import GitRepoError, inspect_repo
 from oida_code.ingest.manifest import detect_commands
+from oida_code.ingest.session_outcome import compute_session_outcome
 from oida_code.models.audit_report import (
     AuditReport,
     RepairPlan,
@@ -41,6 +43,7 @@ from oida_code.report.json_report import write_json_report
 from oida_code.report.markdown_report import write_markdown_report
 from oida_code.report.sarif_export import export_sarif
 from oida_code.score.mapper import obligations_to_scenario
+from oida_code.score.trajectory import score_trajectory
 from oida_code.score.verdict import VerdictResolution, resolve_verdict
 from oida_code.verify.codeql_scan import run_codeql
 from oida_code.verify.hypothesis_runner import run_hypothesis
@@ -387,6 +390,79 @@ def normalize_cmd(
         return
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(payload + "\n", encoding="utf-8")
+    typer.echo(f"wrote {out}", err=True)
+
+
+@app.command("score-trace")
+def score_trace_cmd(
+    transcript: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+            help="Claude Code JSONL transcript to score.",
+        ),
+    ],
+    request_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--request",
+            help="Optional AuditRequest JSON to bound U(t) via changed_files.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+            readable=True,
+        ),
+    ] = None,
+    repo: Annotated[
+        Path | None,
+        typer.Option(
+            "--repo",
+            help="Optional repo path for outcome labeling (git log window).",
+            exists=True,
+            file_okay=False,
+            dir_okay=True,
+            readable=True,
+        ),
+    ] = None,
+    out: Annotated[Path | None, typer.Option("--out")] = None,
+) -> None:
+    """Score a Claude Code transcript — emit :class:`TrajectoryMetrics` JSON.
+
+    With ``--repo``, appends a ``session_outcome`` block (git-derived
+    non-circular validation signal, ADR-18).
+    """
+    from oida_code.models.obligation import Obligation as _Obligation
+
+    trace = parse_claude_code_transcript(transcript)
+    obligations: list[_Obligation] = []
+    request_obj = None
+    if request_path is not None:
+        request_obj = _load_request(request_path)
+        obligations = extract_obligations(
+            Path(request_obj.repo.path), list(request_obj.scope.changed_files)
+        )
+    metrics = score_trajectory(trace, obligations=obligations, request=request_obj)
+    payload: dict[str, object] = json.loads(
+        metrics.model_dump_json(exclude={"timesteps"})
+    )
+    if repo is not None:
+        outcome = compute_session_outcome(transcript, repo)
+        payload["session_outcome"] = {
+            "outcome": outcome.outcome,
+            "commits_in_window": outcome.commits_in_window,
+            "reachable_from_head": outcome.reachable_from_head,
+            "start_ts": outcome.start_ts.isoformat() if outcome.start_ts else None,
+            "end_ts": outcome.end_ts.isoformat() if outcome.end_ts else None,
+        }
+    text = json.dumps(payload, indent=2)
+    if out is None:
+        typer.echo(text)
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text + "\n", encoding="utf-8")
     typer.echo(f"wrote {out}", err=True)
 
 
