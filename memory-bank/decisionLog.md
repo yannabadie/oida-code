@@ -75,6 +75,85 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-24 21:30:00] - **ADR-19: Phase 3.5 — measurement before LLM. Scorer refactor + 7-criteria ship gate.**
+
+**Why:** OIDA v4.2 author's review of `CONSULTATION_OIDA.md` (response in
+`CONSULTATION_OIDA_RESPONSE.md` + `Answer.md`, 2026-04-24) identified two
+silent bugs in `score/trajectory.py` and one conceptual framing error that
+together made the Phase-3 empirical numbers artifactual beyond the known
+length confound:
+
+1. **State-before-action bug.** `score_trajectory` attributes `CaseLabel`
+   using `visited = _visited_paths_up_to(events, t)` which includes
+   `event[t]`. Paper 2604.13151 §4 attributes the case to `s_t` *before*
+   `a_t` is applied. Our code is computing the case on `s_{t+1}`.
+2. **`t=0` `closed_before` bug.** At `t=0`, `_closed_obligations_up_to(events,
+   max(t-1, 0))` returns `_closed_obligations_up_to(events, 0)` which
+   *includes* `event[0].closed_obligations`. A first-action obligation
+   close is therefore never counted as progress.
+3. **Conceptual framing.** The code conflates "state the agent was in"
+   with "state the agent produced" in the same `_visited_paths_up_to`
+   helper. The author insists the refactor make these structurally
+   distinct (`state_before = build_state(events[:t])`, not a patched
+   index), so the bug cannot be reintroduced by a future edit.
+
+**How applied (this commit window):**
+
+* New `TrajectoryState` dataclass in `score/trajectory.py` with `.visited`,
+  `.closed`, `.unobserved`, `.pending`. Built from `events[:t]`
+  (exclusive) → represents state *before* action `events[t]`.
+* `classify_case(state_before)`, `compute_gain(state_before, action,
+  state_after)`, `compute_error(case, gain, stale_before, stale_after)`
+  split out so the scorer's main loop reads as the state-before-action
+  flow the paper defines.
+* ADR-18's code mapping is kept; the **numerical** fixes are the
+  state-before patch + the t=0 fix. Larger structural items (bounded
+  ImpactCone, evidence-based Gain, per-kind preconditions, dependency
+  graph) are deferred to Phase 3.5 Blocks B-D and the Phase-4 LLM work
+  stays gated on Blocks A-D.
+
+**Phase 3.5 ship gate (7 criteria, author-specified):**
+
+1. state-before-action bug fixed
+2. t=0 edge case fixed
+3. paper sanity check passes on the original 2604.13151 metric/domain
+4. U(t) replaced by `changed_files ∪ bounded impact_cone` (max_depth=1,
+   max_files=50, every included file carries a `reason` label)
+5. `Gain()` is no longer only "file visited" — evidence/obligation/risk/
+   counterexample/discovery gains
+6. ≥ 6-10 hermetic code-domain traces pass expected classification (clean
+   success, exploration miss, exploitation miss, stale cycling, corrupt
+   plausible success, counterexample found)
+7. `V_net` / `debt_final` remain `null` / blocked if graph or fusion is
+   incomplete
+
+**Validation discipline (author-specified):**
+
+* **D1 paper sanity check** (mandatory): clone
+  `jjj-madison/measurable-explore-exploit`, reproduce paper's `c_t/e_t/
+  n_t/S_t` on their 2D grid traces → `paper_sanity_report.md`.
+* **D2 code-domain mini** (mandatory): 6-10 hermetic traces, labeled
+  dominant failure mode, no LLM judge, no `commits > 0` outcome.
+* **D3 30-trace F2P/P2P corpus** (deferred to pre-Phase-4): SWE-bench
+  style, format prepared as `datasets/code_traces_v1/` skeleton only.
+
+**Non-negotiables from the review (will land in follow-up commits):**
+
+* One `Obligation` → multiple `PreconditionSpec` (not the current 1:1
+  collapse).
+* Weighted preconditions: `weight = base_kind × intent × (1+blast) ×
+  data_security × external_surface`.
+* `fusion_status` block in reports; `V_net` / `debt_final` as
+  `{value, status, blocked_by}` objects rather than bare floats.
+* `corrupt_success` two-level: `suspected` (any B-event) vs `confirmed`
+  (sustained-B OR weighted_b_load ≥ 0.20 OR critical-B OR apparent-
+  success-with-counter-evidence).
+
+**This commit scope (Block A only, per author's stop-and-review order):**
+items 1-2 of the gate (bugs) + the conceptual refactor, plus tests
+proving Case 1/2/3/4 reachability on synthetic fixtures. Before/after
+numbers on the 5 existing fixtures recorded below.
+
 [2026-04-24 19:00:00] - **ADR-18: Grid→code adaptation for Explore/Exploit metric (paper 2604.13151 §4).**
 **Why:** The paper's formulas are defined on 2D grid + DAG: `U(t)` = unobserved cells (bounded by grid size), `P(t)` = pending task nodes with prerequisites satisfied, Gain(t→t+1) = 1 if the agent entered a target cell or reduced Manhattan distance to one. In code, "unobserved" is effectively infinite (thousands of files in any repo), so Case 3 of Table 1 never fires and the normalizers collapse. Without an explicit domain adaptation, the scorer would produce numbers that don't mean what the paper says they mean (advisor stress-test, 2026-04-24).
 **How applied:** Phase-3 `score/trajectory.py` adopts a **bounded** U(t) scoped to the audit surface:

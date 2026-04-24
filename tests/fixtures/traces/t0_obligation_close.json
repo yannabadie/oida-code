@@ -1,0 +1,17 @@
+{
+  "label": "first_action_close",
+  "description": "ADR-19 t=0 fix: a first-action obligation-close must count as a progress event. Before the fix, closed_before for t=0 included event[0].closed_obligations, so the progress-event predicate silently saw 'already closed' and returned False.",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-pre-t0close0001", "kind": "precondition", "scope": "src/a.py::f", "description": "close at t=0", "status": "open", "source": "intent", "weight": 3}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "first-action close", "closed_obligations": ["o-pre-t0close0001"]}
+    ],
+    "progress": [
+      {"t": 0, "kind": "obligation_closed", "obligation_id": "o-pre-t0close0001", "description": "t=0 close"}
+    ],
+    "no_progress_segments": []
+  }
+}

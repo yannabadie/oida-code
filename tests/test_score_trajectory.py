@@ -43,15 +43,16 @@ def test_empty_trace_returns_zeros() -> None:
 def test_clean_success_has_low_errors() -> None:
     trace, oblig, req, _ = _load("clean_success.json")
     m = score_trajectory(trace, oblig, req)
-    # Exploration stays at 0 (every Read targeted a changed file).
-    # Exploitation can go up to 0.5 because the post-close git commit
-    # doesn't itself close anything new — the paper's formula flags that
-    # as a structurally-wasteful step. That's signal, not a bug: a truly
-    # optimal trace would skip the redundant commit action.
+    # Post ADR-19 state-before-action fix: exploration stays at 0 (every
+    # Read targeted a changed file). Exploitation can go up to ~0.6 on
+    # this fixture — the two pre-close Edits + the post-close git commit
+    # don't themselves close an obligation or enter a new file, so the
+    # paper's err-when-Gain=0 branch flags them. That's signal, not a
+    # bug: a truly optimal trace would skip the redundant edit/commit.
     assert m.exploration_error <= 0.4, m.exploration_error
-    assert m.exploitation_error <= 0.55, m.exploitation_error
-    # Progress events registered for all three of: read-target, read-tests, close.
-    assert m.progress_events_count >= 2
+    assert m.exploitation_error <= 0.65, m.exploitation_error
+    # 3 progress events (read-target, read-tests, close-by-test-run).
+    assert m.progress_events_count >= 3
 
 
 def test_exploration_dominated_fixture_has_high_exploration_error() -> None:
@@ -113,7 +114,78 @@ def test_classification_matches_fixture_label(
     elif expected_dominant == "exploitation":
         assert m.exploitation_error >= m.exploration_error
     else:
-        assert max(m.exploration_error, m.exploitation_error) <= 0.5
+        # "Clean success" produces some exploitation err via the post-close
+        # commit step (see test_clean_success_has_low_errors for details).
+        assert max(m.exploration_error, m.exploitation_error) <= 0.65
+
+
+# ---------------------------------------------------------------------------
+# ADR-19 — state-before-action + t=0 edge cases + Case reachability proofs
+# ---------------------------------------------------------------------------
+
+
+def test_t0_obligation_close_counts_as_progress() -> None:
+    """ADR-19 item 2: a first-action (t=0) obligation close must register
+    as a progress event. Before the fix, closed_before for t=0 silently
+    included event[0].closed_obligations → progress never fired."""
+    trace, oblig, req, _ = _load("t0_obligation_close.json")
+    m = score_trajectory(trace, oblig, req)
+    assert m.total_steps == 1
+    assert m.progress_events_count == 1, (
+        "t=0 obligation close must count as progress; got "
+        f"{m.progress_events_count}"
+    )
+    assert m.timesteps[0].is_progress is True
+
+
+def test_t0_case_attributed_to_empty_state() -> None:
+    """ADR-19 item 1: at t=0, state_before.visited must be empty, so a
+    trace with at least one file in changed_files must have Case 1
+    (exploration) at t=0 when no obligation is pending at start."""
+    trace, oblig, req, _ = _load("exploration_dominated.json")
+    m = score_trajectory(trace, oblig, req)
+    assert m.timesteps[0].case == "exploration", (
+        f"t=0 with empty state must be exploration, got {m.timesteps[0].case}"
+    )
+
+
+def test_case_3_is_reachable_on_purpose_built_fixture() -> None:
+    """ADR-19 item 5 + author Q1.2: prove Case 3 (exploit_other) can fire
+    when U empties while P still has non-goal obligations."""
+    trace, oblig, req, _ = _load("case3_exploit_other_reachable.json")
+    m = score_trajectory(trace, oblig, req)
+    cases = {ts.case for ts in m.timesteps}
+    assert "exploit_other" in cases, (
+        f"Case 3 not reached on purpose-built fixture; observed {cases}"
+    )
+
+
+def test_state_before_action_state_after_are_distinct() -> None:
+    """ADR-19 discipline: TrajectoryState.build(events[:t]) and
+    TrajectoryState.build(events[:t+1]) must not share identity and must
+    differ for any action that touches scope OR closes an obligation."""
+    from oida_code.models.trace import TraceEvent
+    from oida_code.score.trajectory import TrajectoryState
+
+    events = [
+        TraceEvent(t=0, kind="read", tool="Read", scope=["src/a.py"], intent="read a"),
+        TraceEvent(
+            t=1,
+            kind="edit",
+            tool="Edit",
+            scope=["src/a.py"],
+            closed_obligations=["o-pre-test000001"],
+            intent="close",
+        ),
+    ]
+    before_t1 = TrajectoryState.build(events[:1], ["src/a.py"], [], goal=None)
+    after_t1 = TrajectoryState.build(events[:2], ["src/a.py"], [], goal=None)
+    # `before` has closed = ∅, `after` has closed = {the obligation id}.
+    assert before_t1.closed == frozenset()
+    assert after_t1.closed == frozenset({"o-pre-test000001"})
+    # Unobserved: t=0 read put src/a.py into visited.
+    assert before_t1.visited == frozenset({"src/a.py"})
+    assert before_t1.unobserved == frozenset()
 
 
 def test_metrics_are_json_serializable() -> None:
