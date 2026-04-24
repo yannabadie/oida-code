@@ -54,10 +54,16 @@ from oida_code.models.trace import (
     TraceEvent,
     TraceEventKind,
 )
+from oida_code.models.trajectory import (
+    CaseLabel,
+    TimestepCase,
+    TrajectoryMetrics,
+)
 
 __all__ = [
     "AuditReport",
     "AuditRequest",
+    "CaseLabel",
     "CommandsSpec",
     "CriticalFinding",
     "EvidenceKind",
@@ -82,11 +88,13 @@ __all__ = [
     "ScenarioConfig",
     "ScopeSpec",
     "Severity",
+    "TimestepCase",
     "ToolBudgets",
     "ToolEvidence",
     "ToolStatus",
     "Trace",
     "TraceEvent",
     "TraceEventKind",
+    "TrajectoryMetrics",
     "VerdictLabel",
 ]

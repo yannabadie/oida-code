@@ -1,0 +1,26 @@
+{
+  "label": "exploration_error",
+  "description": "Agent reads partially, makes one good edit, then wanders for many steps without progress. Exploration error dominant because it keeps reading unrelated files while changed_files still have unvisited members.",
+  "changed_files": ["src/a.py", "src/b.py", "src/c.py"],
+  "obligations": [
+    {"id": "o-pre-mixed00001", "kind": "precondition", "scope": "src/a.py::f", "description": "constraint a", "status": "open", "source": "extracted", "weight": 1},
+    {"id": "o-pre-mixed00002", "kind": "precondition", "scope": "src/b.py::g", "description": "GOAL constraint b", "status": "open", "source": "intent", "weight": 3},
+    {"id": "o-pre-mixed00003", "kind": "precondition", "scope": "src/c.py::h", "description": "constraint c", "status": "open", "source": "extracted", "weight": 1}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "read a", "new_facts": ["saw f"]},
+      {"t": 1, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "fix a", "closed_obligations": ["o-pre-mixed00001"]},
+      {"t": 2, "kind": "read", "tool": "Read", "scope": ["docs/random.md"], "intent": "unrelated"},
+      {"t": 3, "kind": "grep", "tool": "Grep", "scope": ["docs/random.md"], "intent": "unrelated grep"},
+      {"t": 4, "kind": "read", "tool": "Read", "scope": ["README.md"], "intent": "more unrelated"},
+      {"t": 5, "kind": "grep", "tool": "Grep", "scope": ["CHANGELOG.md"], "intent": "keep wandering"},
+      {"t": 6, "kind": "read", "tool": "Read", "scope": ["docs/random.md"], "intent": "re-read random"}
+    ],
+    "progress": [
+      {"t": 0, "kind": "bug_located", "description": "saw f"},
+      {"t": 1, "kind": "obligation_closed", "obligation_id": "o-pre-mixed00001", "description": "closed a"}
+    ],
+    "no_progress_segments": []
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "label": "exploration_error",
+  "description": "Agent never reads src/service.py despite it being the sole changed file; loops between 'grep' and 'glob' without touching the target. All steps are Case 1 (U=changed, P=empty).",
+  "changed_files": ["src/service.py"],
+  "obligations": [
+    {"id": "o-pre-abc1234567", "kind": "precondition", "scope": "src/service.py::pay", "description": "amount>0", "status": "open", "source": "extracted", "weight": 1}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "grep", "tool": "Grep", "scope": ["src/other.py"], "intent": "search unrelated"},
+      {"t": 1, "kind": "grep", "tool": "Grep", "scope": ["src/other.py"], "intent": "search again"},
+      {"t": 2, "kind": "read", "tool": "Read", "scope": ["README.md"], "intent": "read unrelated"},
+      {"t": 3, "kind": "grep", "tool": "Grep", "scope": ["src/other.py"], "intent": "search same"},
+      {"t": 4, "kind": "read", "tool": "Read", "scope": ["README.md"], "intent": "read same"},
+      {"t": 5, "kind": "grep", "tool": "Grep", "scope": ["src/other.py"], "intent": "looping"},
+      {"t": 6, "kind": "read", "tool": "Read", "scope": ["README.md"], "intent": "still looping"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}

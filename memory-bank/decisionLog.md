@@ -74,3 +74,21 @@
 **How applied:** `PLAN.md` §14 row 3 rewritten. New Phase-3 deliverable: `score/trajectory.py` with `score_trajectory(trace, obligations) -> TrajectoryMetrics`, 5-8 synthetic traces under `tests/fixtures/traces/*.json`, unit tests proving the scorer separates `exploration_error`-dominated / `exploitation_error`-dominated / `stale`-dominated traces by label. Exit gate: classification precision ≥ 2/3 on synthetic set (conservative; the hand-crafted labels are the ground truth by construction).
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
+
+[2026-04-24 19:00:00] - **ADR-18: Grid→code adaptation for Explore/Exploit metric (paper 2604.13151 §4).**
+**Why:** The paper's formulas are defined on 2D grid + DAG: `U(t)` = unobserved cells (bounded by grid size), `P(t)` = pending task nodes with prerequisites satisfied, Gain(t→t+1) = 1 if the agent entered a target cell or reduced Manhattan distance to one. In code, "unobserved" is effectively infinite (thousands of files in any repo), so Case 3 of Table 1 never fires and the normalizers collapse. Without an explicit domain adaptation, the scorer would produce numbers that don't mean what the paper says they mean (advisor stress-test, 2026-04-24).
+**How applied:** Phase-3 `score/trajectory.py` adopts a **bounded** U(t) scoped to the audit surface:
+
+* `U(t)` = `{f ∈ AuditRequest.scope.changed_files : f ∉ visited_paths(t)}` where a path is "visited" if any Read/Grep/Glob event in `trace.events[:t]` had it in `scope`. Finite, diff-scoped, eventually empties.
+* `P(t)` = `{o ∈ obligations : o.status = "open" ∧ all deps of o closed ∧ scope(o) ∈ visited_paths(t)}`. "Pending" = the agent can act on it now.
+* Goal `g` = the obligation with `source = "intent"` if present, else the highest-weight obligation; a proxy that works for Phase-3 smoke without an explicit "primary obligation" flag.
+* `Gain(t → t+1) = 1` iff one of:
+  - `trace.events[t+1].scope ∩ U(t) ≠ ∅` (read an unobserved changed file) — exploration gain
+  - `obligations(t+1).closed ⊋ obligations(t).closed` — exploitation gain
+* Progress event = any `t` where `event.new_facts ≠ ∅` OR `event.closed_obligations ≠ ∅`. Matches `Trace.progress` shape shipped in Phase 2.
+* Nodes of the no-progress graph = `(event.kind, event.scope[0] or "_none")` so "Read src/a.py" and "Read src/b.py" are distinct nodes, while two consecutive "Read src/a.py" share a node (edge-reuse catches it).
+* Edges = consecutive pairs `(node_t, node_{t+1})` inside the no-progress window.
+
+**Non-goals for Phase 3:** the paper's Manhattan-distance gain signal is replaced by set-membership (read/closed). The "symbolic-DAG vs semantic-DAG" ablation is out of scope. Phase 4 may introduce an LLM-backed gain oracle.
+
+**Risk acknowledgment:** this adaptation is *defensible*, not *validated*. The Phase-3 exit gate (ρ < −0.3 with outcome labels) is the empirical check that the adaptation preserves the paper's main finding (Figure 1a: low exploration error → high success).

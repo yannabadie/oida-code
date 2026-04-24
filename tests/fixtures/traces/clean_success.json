@@ -1,0 +1,25 @@
+{
+  "label": "success",
+  "description": "Clean run: read each changed file once, edit the target, tests pass, obligation closes. Low errors in both dimensions.",
+  "changed_files": ["src/service.py", "tests/test_service.py"],
+  "obligations": [
+    {"id": "o-pre-happy00001", "kind": "precondition", "scope": "src/service.py::pay", "description": "GOAL amount>0", "status": "open", "source": "intent", "weight": 5}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/service.py"], "intent": "read target", "new_facts": ["saw pay()"]},
+      {"t": 1, "kind": "read", "tool": "Read", "scope": ["tests/test_service.py"], "intent": "read tests", "new_facts": ["no precondition test"]},
+      {"t": 2, "kind": "edit", "tool": "Edit", "scope": ["src/service.py"], "intent": "add assert", "new_facts": ["added assert amount>0"]},
+      {"t": 3, "kind": "edit", "tool": "Edit", "scope": ["tests/test_service.py"], "intent": "add test"},
+      {"t": 4, "kind": "test_run", "tool": "pytest", "scope": ["tests/test_service.py"], "intent": "verify", "closed_obligations": ["o-pre-happy00001"]},
+      {"t": 5, "kind": "commit", "tool": "git", "scope": ["src/service.py", "tests/test_service.py"], "intent": "ship"}
+    ],
+    "progress": [
+      {"t": 0, "kind": "bug_located", "description": "target identified"},
+      {"t": 1, "kind": "bug_located", "description": "test gap found"},
+      {"t": 2, "kind": "obligation_closed", "obligation_id": "o-pre-happy00001", "description": "added guard"},
+      {"t": 4, "kind": "obligation_closed", "obligation_id": "o-pre-happy00001", "description": "tests pass"}
+    ],
+    "no_progress_segments": []
+  }
+}

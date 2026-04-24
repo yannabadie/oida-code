@@ -1,0 +1,20 @@
+{
+  "label": "stale",
+  "description": "Agent enters the target (Gain=True initially) but then repeats read/grep/read/grep on the same paths. Stale score grows via edge+node reuse > 2; Case attribution mixes 1 and 4 so both counters rise.",
+  "changed_files": ["src/a.py", "src/b.py"],
+  "obligations": [
+    {"id": "o-pre-stale00001", "kind": "precondition", "scope": "src/a.py::f", "description": "a constraint", "status": "open", "source": "extracted", "weight": 1}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "read a"},
+      {"t": 1, "kind": "grep", "tool": "Grep", "scope": ["src/a.py"], "intent": "grep a"},
+      {"t": 2, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "re-read a"},
+      {"t": 3, "kind": "grep", "tool": "Grep", "scope": ["src/a.py"], "intent": "re-grep a"},
+      {"t": 4, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "third time"},
+      {"t": 5, "kind": "grep", "tool": "Grep", "scope": ["src/a.py"], "intent": "third grep"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}
