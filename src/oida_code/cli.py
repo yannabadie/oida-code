@@ -20,6 +20,7 @@ from typing import Annotated, NoReturn
 import typer
 
 from oida_code import __version__
+from oida_code.extract.obligations import extract_obligations
 from oida_code.ingest.diff_parser import changed_files
 from oida_code.ingest.git_repo import GitRepoError, inspect_repo
 from oida_code.ingest.manifest import detect_commands
@@ -36,6 +37,7 @@ from oida_code.models.audit_request import (
     ScopeSpec,
 )
 from oida_code.models.evidence import ToolBudgets, ToolEvidence
+from oida_code.score.mapper import obligations_to_scenario
 from oida_code.report.json_report import write_json_report
 from oida_code.report.markdown_report import write_markdown_report
 from oida_code.report.sarif_export import export_sarif
@@ -299,14 +301,36 @@ def audit_cmd(
 
 @app.command("normalize")
 def normalize_cmd(
-    request_path: Annotated[Path, typer.Argument(help="AuditRequest JSON to normalize.")],
+    request_path: Annotated[
+        Path,
+        typer.Argument(exists=True, file_okay=True, dir_okay=False, readable=True),
+    ],
     out: Annotated[Path | None, typer.Option("--out")] = None,
 ) -> None:
-    """Map an ``AuditRequest`` into a ``NormalizedScenario`` (Phase 2)."""
-    del request_path, out
-    raise NotImplementedError(
-        "normalize: Phase 2 — needs the obligation graph (PLAN.md §8, §14 P2)."
+    """Map an ``AuditRequest`` into a ``NormalizedScenario`` (Phase 2).
+
+    Extracts obligations from the request's changed_files, synthesizes a
+    scenario via the mapper, and emits it as JSON. Does **not** run the
+    vendored analyzer or the deterministic verifiers — use ``verify`` /
+    ``audit`` for that.
+    """
+    request = _load_request(request_path)
+    obligations = extract_obligations(
+        Path(request.repo.path), list(request.scope.changed_files)
     )
+    scenario = obligations_to_scenario(
+        obligations,
+        request=request,
+        tool_evidence=None,
+        name=request.intent.summary[:80] if request.intent.summary else None,
+    )
+    payload = scenario.model_dump_json(indent=2)
+    if out is None:
+        typer.echo(payload)
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(payload + "\n", encoding="utf-8")
+    typer.echo(f"wrote {out}", err=True)
 
 
 @app.command("repair")
