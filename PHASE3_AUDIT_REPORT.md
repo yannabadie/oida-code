@@ -106,35 +106,42 @@ direction:
 
 Raw JSON at `.oida/phase3_validation.json` (gitignored; reproducible via `python scripts/validate_phase3.py --n 20`).
 
-**Gate decision (amended 2026-04-24 post-ship review):** the Phase-3
-validation gate is **not actually met** on a non-confounded signal.
-Three stacked artifacts push `ρ(progress_rate, outcome)` to −0.668
-without measuring what we claimed:
+**Gate decision (amended 2026-04-24 post-ship review):** the
+**empirical real-trace gate is NOT met** on this corpus. ADR-17's
+primary deliverable — the synthetic-fixtures gate — stands unchanged
+(§3.1). The empirical ρ was a nice-to-have beyond the re-spec, and
+attempting it on this mixed-language 20-repo corpus hit three
+artifacts:
 
-1. **Outcome ≈ session length.** `outcome = success` iff at least one
-   commit exists during the session window and is reachable from HEAD.
-   On this corpus `ρ(commits_in_window, total_steps) = +0.79` — long
-   sessions produce more commits. The outcome label is a length
-   proxy, not a length-independent signal.
-2. **`progress_events` has a hard ceiling at ~15** by construction of
-   the validation's bounded-U(t) heuristic (`_derive_changed_files` caps
-   at 15 paths). `progress_events ≤ 15` regardless of session depth; 12
-   of 18 rows saturate within 1-3 of the ceiling.
-3. **Mechanical `progress_rate = 15/N` decay.** Numerator saturates,
-   denominator grows linearly with total steps. `ρ(progress_rate, N) =
-   −0.86` is the arithmetic falling out, not a domain signal.
+1. **Outcome label is a length proxy.** `outcome = success` iff
+   `commits_in_window > 0`, which on this corpus has `ρ(commits,
+   total_steps) = +0.79`. Longer sessions commit more.
+2. **`progress_events` ceiling at ~15.** The validation's bounded-U(t)
+   heuristic caps at 15 paths; 12 of 18 rows saturate within 1-3 of
+   the ceiling.
+3. **Mechanical `progress_rate = 15/N` decay.** ρ(progress_rate,
+   length) = −0.86 — arithmetic, not domain signal.
 
-The ρ = −0.668 is therefore substantially `ρ(15/N, length > threshold)`,
-not a genuine validation of the paper's finding in the code domain. The
-gate as written is NOT met by this data. A genuine validation needs
-either a length-independent outcome signal (e.g. "did pytest pass at
-session end?") or a bounded-U(t) derived from the session's actual
-`inspect` snapshot rather than the top-N heuristic. See §6 carry-over 1
-and §7 for the honest version.
+**Attempted remediation (2026-04-24):**
 
-Non-confounded status of the synthetic-fixtures gate (§3.1) is
-unchanged: all 5 fixtures classify correctly and that ground truth is
-not session-length dependent.
+* `commits_per_step` as a length-normalized outcome: still
+  `ρ(cps, total_steps) = +0.52` (confounded), and the failure class
+  collapses to a constant (all-zero) because `commits = 0` for every
+  failure. The metric reduces to "commits happened," same tautology.
+* Pytest-pass at session-end commit (advisor's preferred signal): not
+  tractable on this mixed-language corpus (per-repo env setup required
+  for each of 15 distinct repos).
+* Narrowing to one repo: candidate single-repo sample sizes are 9-16,
+  marginal for Spearman and would need a repo-specific test runner.
+
+**Honest disposition:** the synthetic-fixtures gate (§3.1) is what ADR-17
+promised and what ships. The empirical ρ measurement moves to Phase 4,
+when the obligation-close detector (§6.2) and bounded-U-from-inspect
+(§6.1) will produce non-tautological data by construction.
+
+The ρ = −0.668 reported in the original v0.4.0 text was retracted in
+v0.4.1 (tag message: "honest Phase-3 report amendment"). Users should
+read the amended §3.2 + §7, not the original text.
 
 ---
 
