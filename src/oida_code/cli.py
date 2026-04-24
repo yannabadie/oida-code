@@ -122,25 +122,36 @@ def _build_request(
     )
 
 
-def _run_deterministic_pipeline(request: AuditRequest) -> list[ToolEvidence]:
+def _run_deterministic_pipeline(
+    request: AuditRequest,
+    *,
+    enable_property: bool = False,
+    enable_mutation: bool = False,
+) -> list[ToolEvidence]:
     """Run every deterministic verifier against ``request.repo.path``.
 
-    Phase 1: lint, types, semgrep, codeql, pytest.
-    Phase 2: hypothesis (marker-filtered pytest) + mutmut. Both runners
-    return ``tool_missing`` gracefully when the tool is not importable, so
-    pipeline wiring costs nothing on repos that don't use them.
+    Default pipeline (5 tools): lint, types, semgrep, codeql, pytest.
+
+    Phase 2 runners (hypothesis, mutmut) are **opt-in** behind flags. They
+    each spawn an additional ``pytest`` subprocess (hypothesis) or an
+    N-mutant subprocess tree (mutmut). On Windows / Cygwin-fork hosts, the
+    multiplicative subprocess cost can exhaust handles when auditing repos
+    whose tests themselves invoke the CLI. See PHASE2_AUDIT_REPORT §7.
     """
     repo_path = Path(request.repo.path)
     budgets = request.budgets
-    return [
+    evidence: list[ToolEvidence] = [
         run_lint(repo_path, budget_seconds=budgets.lint),
         run_type_check(repo_path, budget_seconds=budgets.types),
         run_semgrep(repo_path, budget_seconds=budgets.semgrep),
         run_codeql(repo_path, budget_seconds=budgets.codeql),
         run_pytest(repo_path, budget_seconds=budgets.tests),
-        run_hypothesis(repo_path, budget_seconds=budgets.hypothesis),
-        run_mutmut(repo_path, budget_seconds=budgets.mutmut),
     ]
+    if enable_property:
+        evidence.append(run_hypothesis(repo_path, budget_seconds=budgets.hypothesis))
+    if enable_mutation:
+        evidence.append(run_mutmut(repo_path, budget_seconds=budgets.mutmut))
+    return evidence
 
 
 def _build_report(
@@ -262,10 +273,28 @@ def verify_cmd(
         FailOn,
         typer.Option("--fail-on", help="Non-zero exit trigger."),
     ] = FailOn.none,
+    enable_property: Annotated[
+        bool,
+        typer.Option(
+            "--enable-property",
+            help="Run Hypothesis property-based tests (Phase 2, opt-in).",
+        ),
+    ] = False,
+    enable_mutation: Annotated[
+        bool,
+        typer.Option(
+            "--enable-mutation",
+            help="Run mutmut mutation testing (Phase 2, opt-in; can be slow).",
+        ),
+    ] = False,
 ) -> None:
     """Run the deterministic verifiers against an existing ``AuditRequest``."""
     request = _load_request(request_path)
-    evidence = _run_deterministic_pipeline(request)
+    evidence = _run_deterministic_pipeline(
+        request,
+        enable_property=enable_property,
+        enable_mutation=enable_mutation,
+    )
     resolution = resolve_verdict(evidence, request.policy)
     report = _build_report(request, evidence, resolution)
     _write_report(report, out, format_)
@@ -297,10 +326,28 @@ def audit_cmd(
         FailOn,
         typer.Option("--fail-on", help="Non-zero exit trigger."),
     ] = FailOn.none,
+    enable_property: Annotated[
+        bool,
+        typer.Option(
+            "--enable-property",
+            help="Run Hypothesis property-based tests (Phase 2, opt-in).",
+        ),
+    ] = False,
+    enable_mutation: Annotated[
+        bool,
+        typer.Option(
+            "--enable-mutation",
+            help="Run mutmut mutation testing (Phase 2, opt-in; can be slow).",
+        ),
+    ] = False,
 ) -> None:
     """End-to-end deterministic audit: inspect → verify → report (Phase 1 path)."""
     request = _build_request(repo_path, base, intent)
-    evidence = _run_deterministic_pipeline(request)
+    evidence = _run_deterministic_pipeline(
+        request,
+        enable_property=enable_property,
+        enable_mutation=enable_mutation,
+    )
     resolution = resolve_verdict(evidence, request.policy)
     report = _build_report(request, evidence, resolution)
     _write_report(report, out, format_)
