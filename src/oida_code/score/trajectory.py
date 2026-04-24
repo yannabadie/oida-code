@@ -308,6 +308,7 @@ def score_trajectory(
                     t=t,
                     case=case,
                     is_error=False,
+                    is_progress=True,
                     stale_score=0,
                     gain=True,
                     target_set_size=t_size,
@@ -390,10 +391,7 @@ def score_trajectory(
 
     classifications = [_classify_segment(timesteps, seg) for seg in segments]
 
-    # Count steps flagged as progress in the main loop (stored via is_error=False + gain=True).
-    progress_events_count = sum(
-        1 for ts in timesteps if not ts.is_error and ts.gain and ts.stale_score == 0
-    )
+    progress_events_count = sum(1 for ts in timesteps if ts.is_progress)
 
     return TrajectoryMetrics(
         exploration_error=round(exploration_error, 6),

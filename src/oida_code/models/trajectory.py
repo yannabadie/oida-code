@@ -36,6 +36,7 @@ class TimestepCase(BaseModel):
     t: int = Field(ge=0)
     case: CaseLabel
     is_error: bool
+    is_progress: bool = False
     stale_score: int = Field(ge=0)
     gain: bool
     target_set_size: int = Field(ge=0)

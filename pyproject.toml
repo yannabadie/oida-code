@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "oida-code"
-version = "0.4.0"
+version = "0.4.1"
 description = "AI code verifier: measures the gap between what AI-written code appears to do and what it actually guarantees."
 readme = "README.md"
 requires-python = ">=3.11"

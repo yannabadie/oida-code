@@ -106,10 +106,35 @@ direction:
 
 Raw JSON at `.oida/phase3_validation.json` (gitignored; reproducible via `python scripts/validate_phase3.py --n 20`).
 
-**Gate decision:** the paper's raw `exploration_error` DOES NOT transfer
-to code without length normalization (see §7). The length-independent
-`progress_rate` proxy achieves **ρ = −0.668**, exceeding the Phase-3
-threshold of ≤ −0.3.
+**Gate decision (amended 2026-04-24 post-ship review):** the Phase-3
+validation gate is **not actually met** on a non-confounded signal.
+Three stacked artifacts push `ρ(progress_rate, outcome)` to −0.668
+without measuring what we claimed:
+
+1. **Outcome ≈ session length.** `outcome = success` iff at least one
+   commit exists during the session window and is reachable from HEAD.
+   On this corpus `ρ(commits_in_window, total_steps) = +0.79` — long
+   sessions produce more commits. The outcome label is a length
+   proxy, not a length-independent signal.
+2. **`progress_events` has a hard ceiling at ~15** by construction of
+   the validation's bounded-U(t) heuristic (`_derive_changed_files` caps
+   at 15 paths). `progress_events ≤ 15` regardless of session depth; 12
+   of 18 rows saturate within 1-3 of the ceiling.
+3. **Mechanical `progress_rate = 15/N` decay.** Numerator saturates,
+   denominator grows linearly with total steps. `ρ(progress_rate, N) =
+   −0.86` is the arithmetic falling out, not a domain signal.
+
+The ρ = −0.668 is therefore substantially `ρ(15/N, length > threshold)`,
+not a genuine validation of the paper's finding in the code domain. The
+gate as written is NOT met by this data. A genuine validation needs
+either a length-independent outcome signal (e.g. "did pytest pass at
+session end?") or a bounded-U(t) derived from the session's actual
+`inspect` snapshot rather than the top-N heuristic. See §6 carry-over 1
+and §7 for the honest version.
+
+Non-confounded status of the synthetic-fixtures gate (§3.1) is
+unchanged: all 5 fixtures classify correctly and that ground truth is
+not session-length dependent.
 
 ---
 
@@ -150,7 +175,8 @@ None. Phase-4's entry criterion in PLAN.md §14 is "P3 ships + M.2 2TB installed
 
 ### Carry-over tickets (fix in early Phase 4)
 
-1. **Obligation-close detector.** The transcript parser sets `closed_obligations = []` for every event because there's no linkage from Edit/Write events to obligation IDs. Every real trace ends up with Case attribution collapsed to exploit_goal after U empties. A lightweight linker (re-run `extract_obligations` after each Edit/Write, diff the open set) would populate `closed_obligations` and unlock Case 2/3 distinction.
+1. **Re-run validation with a non-confounded outcome signal.** This is the **must-do**, not nice-to-have. Options: (a) `pytest --co` at the session's ending commit → length-independent boolean; (b) test-pass rate over the session's changed files; (c) user-hand-labeled sample. Remove the `limit=15` cap on `_derive_changed_files` and use `git diff` between the session's start/end HEADs for a real bounded U(t). Recompute ρ; honest Phase-3 success means ≤ −0.3 on *that* signal.
+2. **Obligation-close detector.** The transcript parser sets `closed_obligations = []` for every event because there's no linkage from Edit/Write events to obligation IDs. Every real trace ends up with Case attribution collapsed to exploit_goal after U empties. A lightweight linker (re-run `extract_obligations` after each Edit/Write, diff the open set) would populate `closed_obligations` and unlock Case 2/3 distinction.
 2. **Bounded U(t) from a real `AuditRequest`.** The validation used "first 15 paths touched" as a surface proxy. A proper pipeline captures `inspect` at session start and feeds the resulting `changed_files` into the scorer.
 3. **Paper-dataset sanity check (ADR-17 carry-over).** Run our `ct/et/nt` implementation on the authors' released 2D grid traces. If numbers diverge, fix the math; if they match, we've verified the implementation independently of the domain adaptation.
 4. **Session-length controlled metrics.** Document `progress_rate` as the primary trajectory health signal; keep `exploration_error` / `exploitation_error` as diagnostics but with a prominent "length-sensitive" note.
@@ -177,7 +203,8 @@ None. Phase-4's entry criterion in PLAN.md §14 is "P3 ships + M.2 2TB installed
 
 ### What is placeholder — DO NOT PRETEND OTHERWISE
 
-- **The paper's raw `exploration_error` does not work on real code traces.** ρ on 18 transcripts is **+0.36** (wrong sign). The Phase-3 gate is met via the length-normalized `progress_rate` secondary metric (ρ = −0.67). Surface this; do not report `exploration_error` in user-facing summaries without an accompanying length-normalization or disclaimer.
+- **The Phase-3 validation gate is NOT met on a non-confounded signal.** The original report text ("ρ = −0.67 passes the gate") was corrected in §3.2 post-ship. The −0.67 is driven by a mechanical `progress_rate = 15/N` ceiling combined with a length-tautological outcome label (`commits > 0`). Real validation requires either a pytest-pass outcome signal or git-derived actual changed_files (carry-over §6.1). Until then, the Phase-3 deliverable stands as **scorer + synthetic fixtures + ADR-18 mapping**, with real-trace validation deferred.
+- **The paper's raw `exploration_error` does not work on real code traces either.** ρ on 18 transcripts is **+0.36** (wrong sign). The length-independent rewrite is on the Phase-4 backlog.
 - **The transcript parser populates `closed_obligations = []` always.** Without an obligation-close linker, every real trace's Case attribution collapses once `U` empties — which dominates the trace-scale signal. Phase-4 should ship a minimal post-hoc linker (Edit on file containing obligation scope → close candidate, verified against pytest-run evidence).
 - **Bounded U(t) in the validation run is a heuristic** ("first 15 distinct scope paths"). Good enough to pass the gate with the right direction; not a ground-truth audit surface. Phase-4 must connect `inspect` → `score-trace` so the surface is the actual diff.
 - **n = 13 is small for Spearman.** The ρ = −0.67 signal is suggestive, not definitive. A proper validation needs n ≥ 30 with diverse outcomes (currently 9 success / 4 failure / 0 partial). Phase-4 should run on a larger corpus.
@@ -187,7 +214,7 @@ None. Phase-4's entry criterion in PLAN.md §14 is "P3 ships + M.2 2TB installed
 
 ### One-line verdict
 
-Phase 3 ships a faithful paper-adapter (`score/trajectory.py` + `models/trajectory.py`), a production transcript parser (1542 files tested), a git-derived outcome labeler (non-circular validation signal), and an `oida-code score-trace` CLI that wires them end-to-end. **The paper's raw metrics do not transfer directly to code without session-length normalization; the scorer ships with `progress_rate` as the primary gate signal (ρ = −0.668 on 13 real transcripts), and the paper's raw `exploration_error` / `exploitation_error` as diagnostics to be interpreted carefully.**
+Phase 3 ships a faithful paper-adapter (`score/trajectory.py` + `models/trajectory.py`), a production transcript parser (1542 files tested), a git-derived outcome labeler, and an `oida-code score-trace` CLI that wires them end-to-end. **Synthetic-fixtures gate: met. Real-trace validation gate: not met on a non-confounded signal — the ρ = −0.668 figure in §3.2 was revised after post-ship re-review (see amendment) to show it's driven by an arithmetic `15/N` ceiling + a length-tautological outcome label. Real validation is the first Phase-4 item.**
 
 ---
 
