@@ -1,0 +1,10 @@
+Vendored from: search/OIDA/oida_framework/oida/ (within this repo, commit 15138f3)
+Upstream: `oida-framework` v0.1.0, author Yann Abadie
+Reason: blueprint §2 — "Reuse, do not rewrite". This directory is kept verbatim.
+Do not edit files here. To pull updates, re-copy and bump the SHA256 list below.
+
+SHA256 at vendoring time:
+  __init__.py  b7c4fc53564805264de594aaa3513507e580fe6d56431f8caded3e8cb54ab6d7
+  analyzer.py  ae1d805669fa0195bee89ffe4e4361f485e78a22d7daecb2a3f4dea31d46a4b4
+  models.py    1d8ac478c2f218c47c45f17b14878fd8ec94d7ac9fe00a242712767558472713
+  io.py        7f08fc1a761d5867d6f14040e17eee4ed441990b650b5953a66bfece9f7b9758

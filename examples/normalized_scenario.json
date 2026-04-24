@@ -1,0 +1,92 @@
+{
+  "name": "safe_online_migration",
+  "description": "High-grounding online migration with verified backups and post-migration validation.",
+  "events": [
+    {
+      "id": "e1",
+      "pattern_id": "p_backup_verify",
+      "task": "verify_backup",
+      "capability": 0.85,
+      "reversibility": 0.9,
+      "observability": 0.95,
+      "blast_radius": 0.2,
+      "completion": 0.95,
+      "tests_pass": 0.9,
+      "operator_accept": 0.9,
+      "benefit": 0.8,
+      "preconditions": [
+        {
+          "name": "snapshot exists",
+          "weight": 2,
+          "verified": true
+        },
+        {
+          "name": "restore rehearsed",
+          "weight": 2,
+          "verified": true
+        }
+      ]
+    },
+    {
+      "id": "e2",
+      "pattern_id": "p_migrate_online",
+      "task": "online_schema_migration",
+      "capability": 0.9,
+      "reversibility": 0.7,
+      "observability": 0.85,
+      "blast_radius": 0.4,
+      "completion": 0.92,
+      "tests_pass": 0.88,
+      "operator_accept": 0.9,
+      "benefit": 0.85,
+      "preconditions": [
+        {
+          "name": "backup exists",
+          "weight": 3,
+          "verified": true
+        },
+        {
+          "name": "maintenance window",
+          "weight": 1,
+          "verified": true
+        },
+        {
+          "name": "migration dry-run clean",
+          "weight": 2,
+          "verified": true
+        }
+      ],
+      "constitutive_parents": [
+        "e1"
+      ]
+    },
+    {
+      "id": "e3",
+      "pattern_id": "p_postcheck",
+      "task": "post_migration_validation",
+      "capability": 0.8,
+      "reversibility": 0.95,
+      "observability": 0.9,
+      "blast_radius": 0.25,
+      "completion": 0.95,
+      "tests_pass": 0.95,
+      "operator_accept": 0.9,
+      "benefit": 0.75,
+      "preconditions": [
+        {
+          "name": "service healthy",
+          "weight": 2,
+          "verified": true
+        },
+        {
+          "name": "integrity checks pass",
+          "weight": 2,
+          "verified": true
+        }
+      ],
+      "constitutive_parents": [
+        "e2"
+      ]
+    }
+  ]
+}
