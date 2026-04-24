@@ -122,4 +122,31 @@ def detect_commands(repo_path: Path | str) -> CommandsSpec:
     )
 
 
-__all__ = ["default_python_commands", "detect_commands"]
+def project_name(repo_path: Path | str) -> str | None:
+    """Return ``[project].name`` from ``repo_path/pyproject.toml`` if present.
+
+    Used by the self-audit fork guard in :mod:`oida_code.cli`: when the
+    target's own distribution name is ``oida-code``, the audit would spawn
+    a subprocess ``pytest`` that re-enters the CLI via test fixtures, on
+    Windows/Cygwin this explodes into a fork bomb. See ADR-16.
+    """
+    data = _read_pyproject(Path(repo_path))
+    project = data.get("project")
+    if isinstance(project, dict):
+        name = project.get("name")
+        if isinstance(name, str) and name.strip():
+            return name.strip()
+    return None
+
+
+def is_self_audit(repo_path: Path | str) -> bool:
+    """True when ``repo_path`` is the oida-code distribution itself."""
+    return project_name(repo_path) == "oida-code"
+
+
+__all__ = [
+    "default_python_commands",
+    "detect_commands",
+    "is_self_audit",
+    "project_name",
+]

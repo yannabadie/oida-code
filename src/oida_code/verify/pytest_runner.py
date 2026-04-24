@@ -12,10 +12,19 @@ from collections import Counter
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from oida_code.ingest.manifest import is_self_audit
 from oida_code.models.evidence import Finding, ToolEvidence
 from oida_code.verify._runner import RunResult, probe_version, run_tool
 
 _PYTEST_TOOL = "pytest"
+
+# Tests that re-enter the oida-code CLI and therefore risk recursive
+# subprocess explosion under Cygwin/Windows fork emulation (ADR-16).
+_SELF_AUDIT_IGNORES = (
+    "tests/test_cli_audit.py",
+    "tests/test_verify_runners.py",
+    "tests/test_subprocess_python_resolution.py",
+)
 
 
 def _parse_junit(xml_path: Path) -> tuple[list[Finding], dict[str, int]]:
@@ -87,6 +96,13 @@ def run_pytest(repo_path: Path | str, *, budget_seconds: int = 600) -> ToolEvide
             "--no-header",
             "--disable-warnings",
         ]
+        if is_self_audit(root):
+            # ADR-16: auditing oida-code itself must skip tests that
+            # re-enter the CLI, otherwise Windows fork emulation exhausts
+            # handles when the audit pipeline runs pytest which runs tests
+            # that run CliRunner which runs the audit pipeline...
+            for ignore in _SELF_AUDIT_IGNORES:
+                argv.append(f"--ignore={root / ignore}")
         result: RunResult = run_tool(
             _PYTEST_TOOL,
             argv,

@@ -125,18 +125,18 @@ def _build_request(
 def _run_deterministic_pipeline(
     request: AuditRequest,
     *,
-    enable_property: bool = False,
+    enable_property: bool = True,
     enable_mutation: bool = False,
 ) -> list[ToolEvidence]:
     """Run every deterministic verifier against ``request.repo.path``.
 
-    Default pipeline (5 tools): lint, types, semgrep, codeql, pytest.
+    Default pipeline (6 tools): lint, types, semgrep, codeql, pytest,
+    hypothesis. ``mutmut`` stays opt-in because a full ``mutmut run`` can
+    cost >10 minutes even on small repos.
 
-    Phase 2 runners (hypothesis, mutmut) are **opt-in** behind flags. They
-    each spawn an additional ``pytest`` subprocess (hypothesis) or an
-    N-mutant subprocess tree (mutmut). On Windows / Cygwin-fork hosts, the
-    multiplicative subprocess cost can exhaust handles when auditing repos
-    whose tests themselves invoke the CLI. See PHASE2_AUDIT_REPORT §7.
+    The self-audit fork guard (ADR-16, :func:`oida_code.ingest.manifest.is_self_audit`)
+    protects ``pytest`` from recursive subprocess explosion when the audited
+    tree is the oida-code repo itself; the other runners are idempotent.
     """
     repo_path = Path(request.repo.path)
     budgets = request.budgets
@@ -276,15 +276,15 @@ def verify_cmd(
     enable_property: Annotated[
         bool,
         typer.Option(
-            "--enable-property",
-            help="Run Hypothesis property-based tests (Phase 2, opt-in).",
+            "--enable-property/--no-property",
+            help="Run Hypothesis property-based tests (default: on).",
         ),
-    ] = False,
+    ] = True,
     enable_mutation: Annotated[
         bool,
         typer.Option(
-            "--enable-mutation",
-            help="Run mutmut mutation testing (Phase 2, opt-in; can be slow).",
+            "--enable-mutation/--no-mutation",
+            help="Run mutmut mutation testing (default: off; can be slow).",
         ),
     ] = False,
 ) -> None:
@@ -329,15 +329,15 @@ def audit_cmd(
     enable_property: Annotated[
         bool,
         typer.Option(
-            "--enable-property",
-            help="Run Hypothesis property-based tests (Phase 2, opt-in).",
+            "--enable-property/--no-property",
+            help="Run Hypothesis property-based tests (default: on).",
         ),
-    ] = False,
+    ] = True,
     enable_mutation: Annotated[
         bool,
         typer.Option(
-            "--enable-mutation",
-            help="Run mutmut mutation testing (Phase 2, opt-in; can be slow).",
+            "--enable-mutation/--no-mutation",
+            help="Run mutmut mutation testing (default: off; can be slow).",
         ),
     ] = False,
 ) -> None:
