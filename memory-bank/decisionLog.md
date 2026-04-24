@@ -75,6 +75,88 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-24 23:15:00] - **ADR-21: Minimal dependency graph before graph-aware fusion.**
+
+**Why:** Phase 2's `extract/dependencies.py` returned `{ob.id:
+{"constitutive": [], "supportive": []}}` and the mapper emitted every
+`NormalizedEvent` with empty parent lists. That is an honest stub per
+ADR-15, but it disables the vendored `double_loop_repair(root_event_id)`
+entirely: with no edges, there are no descendants to reopen/audit. The
+OIDA author (QA/A6.md, 2026-04-24) scoped Block C precisely around
+fixing this repair-propagation gap — not around making `V_net`
+graph-aware, since `OIDAAnalyzer.analyze()` does not consume
+constitutive/supportive edges in its per-event `V_dur` / `V_net`
+computation.
+
+**Decision:** Block C builds a bounded, deterministic, explainable
+dependency graph between obligations. The graph answers a single
+question: "if this obligation is invalidated, which events must be
+reopened, and which must only be audited?" The graph feeds
+`NormalizedEvent.constitutive_parents / supportive_parents`, which the
+vendored `double_loop_repair()` consumes.
+
+**Definitions** (verbatim from A6.md):
+
+* `constitutive edge A → B`: B is not valid if A is invalid.
+* `supportive edge A → B`: A should be audited when B is suspicious,
+  or B should be audited when A changes, but B is not automatically
+  invalid.
+
+**Direction**: `A → B` means "B depends on A". If `src/service.py`
+imports `src/db.py`, then `db_event → service_event` (service depends
+on db). This matches the `double_loop_repair` dominator semantics:
+invalidating the root reopens dominated descendants.
+
+**Edge rules** (A6.md, minimal):
+
+1. **Same scope / same symbol** (same file, same function):
+   - `precondition → api_contract` = constitutive
+   - `invariant → api_contract` = constitutive
+   - `security_rule → api_contract` = constitutive
+   - `migration → api_contract` = supportive (unless direct data-path proof)
+   - `observability → api_contract` = supportive
+
+2. **Direct imports** via Python AST (`ast.Import` / `ast.ImportFrom`):
+   - `imported-module obligation → importing-module obligation` = supportive
+   - NOT constitutive by default (import presence doesn't prove the
+     specific imported symbol underpins the contract).
+
+3. **Related tests** (by convention `tests/test_foo.py ↔ src/foo.py`):
+   - `test obligation → source obligation` = supportive (not constitutive —
+     missing/failing test triggers audit, doesn't prove source invalid).
+
+4. **Config / migration** (minimal):
+   - `pyproject.toml / setup.cfg / tox.ini / pytest.ini → changed
+     Python obligation` = supportive.
+   - `migration file → data/API obligation in same changed set` = supportive.
+   - `migration file → migration obligation in same scope` = constitutive.
+
+5. **No invented edges**: every edge carries `reason`, `source`,
+   `confidence`. Every `parent_id` / `child_id` must reference an
+   existing obligation. Enforced by the vendored analyzer's `_validate_ids()`.
+
+**Bounds** (A6.md, non-negotiable for Block C):
+
+* `max_depth = 1`
+* `max_files = 50`
+* stdlib / site-packages / external imports IGNORED
+* unresolved imports RECORDED, not guessed
+
+**Rejected alternatives:**
+
+* Full transitive call graph (scope creep; max_depth = 1 stays).
+* Graph edges without evidence (`reason` + `source` + `confidence`
+  required).
+* Using graph presence to unlock official `V_net` / `debt`
+  emission (the vendored analyzer does not consume edges in its
+  fusion; claiming graph-aware V_net would be a silent lie).
+
+**Honesty statement for reports:** Block C improves repair propagation
+and audit planning. It does NOT make `V_net` graph-aware yet.
+Graph-aware `V_net` would require either a vendored-core change or a
+separate fusion layer that consumes graph diagnostics. The current
+report's `V_net` / `debt_final` remain `null` under ADR-13.
+
 [2026-04-24 22:30:00] - **ADR-20: Obligation is not isomorphic with PreconditionSpec.**
 
 **Why:** Phase 2's `_preconditions_for()` returned exactly one

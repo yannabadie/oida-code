@@ -43,6 +43,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from oida_code._vendor.oida_framework.models import (
@@ -55,6 +56,10 @@ from oida_code._vendor.oida_framework.models import (
     Scenario as VendoredScenario,
 )
 from oida_code.extract.blast_radius import estimate_blast_radius
+from oida_code.extract.dependencies import (
+    DependencyGraphResult,
+    build_dependency_graph,
+)
 from oida_code.models.audit_request import AuditRequest
 from oida_code.models.evidence import ToolEvidence
 from oida_code.models.normalized_event import (
@@ -649,6 +654,25 @@ def obligations_to_scenario(
 
     changed_files = list(request.scope.changed_files) if request else []
 
+    # ADR-21: build the bounded dependency graph over obligation IDs,
+    # then translate obligation IDs → event IDs for the vendored
+    # NormalizedEvent.constitutive_parents / supportive_parents fields.
+    repo_path = Path(request.repo.path) if request else Path(".")
+    graph: DependencyGraphResult = build_dependency_graph(
+        obligations, repo_path, changed_files
+    )
+    ob_id_to_event_id: dict[str, str] = {
+        ob.id: _event_id_for(idx, ob) for idx, ob in enumerate(obligations)
+    }
+
+    def _parent_event_ids(child_ob_id: str, kind: str) -> list[str]:
+        parent_obs = graph.parents_of(child_ob_id, kind)  # type: ignore[arg-type]
+        return sorted(
+            ob_id_to_event_id[pid]
+            for pid in parent_obs
+            if pid in ob_id_to_event_id
+        )
+
     # ADR-20 Option A: no automatic ``_link_evidence_to_obligations``.
     # Obligations enter with their declared status; per-child evidence
     # evaluation happens inside ``_preconditions_for``.
@@ -671,8 +695,8 @@ def obligations_to_scenario(
                 operator_accept=operator_value,
                 benefit=0.5,  # default — Phase 4 LLM from intent
                 preconditions=_preconditions_for(ob, tool_evidence, changed_files),
-                constitutive_parents=[],
-                supportive_parents=[],
+                constitutive_parents=_parent_event_ids(ob.id, "constitutive"),
+                supportive_parents=_parent_event_ids(ob.id, "supportive"),
                 invalidates_pattern=False,
             )
         )
