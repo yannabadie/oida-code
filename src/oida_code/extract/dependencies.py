@@ -589,12 +589,16 @@ def build_impact_cone(
     scanned = 0
     changed_modules: set[str] = set()
     for cf in changed_norm:
-        if cf.endswith(".py"):
-            module = cf.removesuffix(".py").replace("/", ".")
-            # Strip leading "src." if present so imports match.
-            if module.startswith("src."):
-                module = module[len("src.") :]
-            changed_modules.add(module)
+        if not cf.endswith(".py"):
+            continue
+        module_full = cf.removesuffix(".py").replace("/", ".")
+        changed_modules.add(module_full)
+        # Also add the src-stripped spelling so importers that write
+        # ``from src.pkg import mod`` (emitting ``src.pkg.mod``) AND
+        # importers that write ``import pkg.mod`` (no ``src.``) both
+        # resolve to the same changed file.
+        if module_full.startswith("src."):
+            changed_modules.add(module_full[len("src.") :])
 
     for root in candidate_roots:
         if len(entries) >= max_files:

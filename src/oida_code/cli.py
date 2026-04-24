@@ -406,9 +406,24 @@ def normalize_cmd(
         max_files=max_surface_files,
     )
     obligations = extract_obligations(Path(request.repo.path), surface)
+    # D0.1: obligations_to_scenario feeds changed_files into
+    # build_dependency_graph. Pass a shallow-copy of the request with
+    # the derived surface so the graph scans the full audit surface —
+    # otherwise the ``imported_by_changed`` branch (reverse direction:
+    # dependency changed, importers reached via impact cone) produces
+    # obligations without the corresponding direct_import edges. The
+    # PUBLIC request is preserved on disk so downstream readers still
+    # see the raw diff in ``scope.changed_files``.
+    surface_request = request.model_copy(
+        update={
+            "scope": request.scope.model_copy(
+                update={"changed_files": surface}
+            )
+        }
+    )
     scenario = obligations_to_scenario(
         obligations,
-        request=request,
+        request=surface_request,
         tool_evidence=None,
         name=request.intent.summary[:80] if request.intent.summary else None,
     )
@@ -456,6 +471,23 @@ def score_trace_cmd(
         ),
     ] = None,
     out: Annotated[Path | None, typer.Option("--out")] = None,
+    surface_mode: Annotated[
+        str,
+        typer.Option(
+            "--surface",
+            help="Audit surface derivation when --request is given: "
+            "'impact' (default) or 'changed' (raw diff only).",
+        ),
+    ] = "impact",
+    max_surface_files: Annotated[
+        int,
+        typer.Option(
+            "--max-surface-files",
+            help="Cap on the audit surface size (default 50).",
+            min=1,
+            max=500,
+        ),
+    ] = 50,
 ) -> None:
     """Score a Claude Code transcript — emit :class:`TrajectoryMetrics` JSON.
 
@@ -464,6 +496,9 @@ def score_trace_cmd(
     """
     from oida_code.models.obligation import Obligation as _Obligation
 
+    if surface_mode not in ("impact", "changed"):
+        _fail(f"--surface must be 'impact' or 'changed', got {surface_mode!r}")
+
     trace = parse_claude_code_transcript(transcript)
     obligations: list[_Obligation] = []
     request_obj = None
@@ -471,14 +506,23 @@ def score_trace_cmd(
         raw_request = _load_request(request_path)
         repo_path = Path(raw_request.repo.path)
         raw_changed = list(raw_request.scope.changed_files)
-        # D0: obligation extraction and U(t) bounding both use the
-        # impact surface, not the raw diff. The public request's
-        # changed_files is preserved — we only swap the scope for the
-        # scorer's internal view.
-        surface = derive_audit_surface(repo_path, raw_changed, mode="impact")
+        # D0/D0.1: obligation extraction and U(t) bounding both use the
+        # impact surface (or raw diff under --surface=changed). The
+        # public request's changed_files is preserved on disk; we only
+        # swap the scope of a shallow-copy passed downstream.
+        surface = derive_audit_surface(
+            repo_path,
+            raw_changed,
+            mode=surface_mode,  # type: ignore[arg-type]
+            max_files=max_surface_files,
+        )
         obligations = extract_obligations(repo_path, surface)
         request_obj = raw_request.model_copy(
-            update={"scope": raw_request.scope.model_copy(update={"changed_files": surface})}
+            update={
+                "scope": raw_request.scope.model_copy(
+                    update={"changed_files": surface}
+                )
+            }
         )
     metrics = score_trajectory(trace, obligations=obligations, request=request_obj)
     payload: dict[str, object] = json.loads(

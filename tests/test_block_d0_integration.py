@@ -333,3 +333,175 @@ def test_impact_surface_is_bounded_and_reasoned(tmp_path: Path) -> None:
         tmp_path, ["src/app.py"], mode="changed"
     )
     assert changed_only == ["src/app.py"]
+
+
+# ---------------------------------------------------------------------------
+# D0.1 — reverse direction: dependency changed, importer reached via cone
+# ---------------------------------------------------------------------------
+
+
+def test_changed_dependency_imported_by_app_creates_importer_surface(
+    tmp_path: Path,
+) -> None:
+    """A7.md reverse case: when ``src/db.py`` is the changed file and
+    ``src/app.py`` imports it, the impact surface must include app.py
+    as ``imported_by_changed``."""
+    _build_mini_repo(tmp_path)
+    cone = build_impact_cone(tmp_path, ["src/db.py"])
+    by_path = {e.path: e.reason for e in cone}
+    assert by_path.get("src/db.py") == "changed"
+    assert by_path.get("src/app.py") == "imported_by_changed", (
+        f"expected src/app.py as imported_by_changed; cone={by_path}"
+    )
+
+
+def test_normalize_graph_uses_impact_surface_for_importer_edges(
+    tmp_path: Path,
+) -> None:
+    """D0.1 crown jewel: when ``src/db.py`` is the changed file and
+    ``src/app.py`` imports it, the scenario must have a supportive
+    edge ``db_event → app_event`` with reason=direct_import. Pre-D0.1,
+    build_dependency_graph was called with the raw diff so it only
+    scanned db.py (which has no outgoing imports) and missed app.py
+    entirely — even though the extractor had already picked up
+    obligations on app.py via the impact surface."""
+    _build_mini_repo(tmp_path)
+    req_path = _write_request(tmp_path, changed=["src/db.py"])
+
+    result = runner.invoke(app, ["normalize", str(req_path)])
+    assert result.exit_code == 0, result.output
+    start = result.output.find("{")
+    end = result.output.rfind("}")
+    scenario = NormalizedScenario.model_validate_json(result.output[start : end + 1])
+
+    app_events = [e for e in scenario.events if "app" in e.pattern_id]
+    db_events = [e for e in scenario.events if "db" in e.pattern_id]
+    assert app_events, "D0 failure: no obligations extracted from src/app.py"
+    assert db_events, "no obligations extracted from src/db.py"
+
+    # The supportive edge must exist: db_event → app_event.
+    app_ids = {e.id for e in app_events}
+    db_ids = {e.id for e in db_events}
+    has_db_to_app_edge = any(
+        parent in db_ids and ev.id in app_ids
+        for ev in scenario.events
+        for parent in ev.supportive_parents
+    )
+    assert has_db_to_app_edge, (
+        "D0.1 violated: reverse-direction edge db → app missing. "
+        "build_dependency_graph must scan the impact surface, not the "
+        "raw changed_files."
+    )
+
+
+def test_normalize_changed_mode_does_not_create_importer_edge(
+    tmp_path: Path,
+) -> None:
+    """``--surface=changed`` must preserve the legacy behavior: when
+    only ``src/db.py`` is in the raw diff, no ``src/app.py`` obligation
+    is extracted and no importer edge is created."""
+    _build_mini_repo(tmp_path)
+    req_path = _write_request(tmp_path, changed=["src/db.py"])
+
+    result = runner.invoke(
+        app, ["normalize", str(req_path), "--surface", "changed"]
+    )
+    assert result.exit_code == 0, result.output
+    start = result.output.find("{")
+    end = result.output.rfind("}")
+    scenario = NormalizedScenario.model_validate_json(result.output[start : end + 1])
+
+    files = _scope_files(scenario)
+    assert "src/db.py" in files
+    assert "src/app.py" not in files, (
+        f"--surface=changed must NOT expand to importers; got {files}"
+    )
+    # No supportive edges from any db event to any app event
+    # (app events don't even exist in this mode).
+    for ev in scenario.events:
+        for parent in ev.supportive_parents:
+            assert parent in {e.id for e in scenario.events}, (
+                "every parent id must reference an existing event"
+            )
+
+
+def test_score_trace_surface_flag_accepts_both_modes(tmp_path: Path) -> None:
+    """D0.1: ``score-trace --surface {impact,changed}`` must both be
+    accepted and produce different U(t) bounds."""
+    _build_mini_repo(tmp_path)
+    req_path = _write_request(tmp_path, changed=["src/db.py"])
+    transcript = tmp_path / "t.jsonl"
+    # Minimal 1-event transcript touching src/app.py (which is in
+    # impact surface but NOT in changed diff).
+    records = [
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "u1",
+                        "name": "Read",
+                        "input": {"file_path": "src/app.py"},
+                    }
+                ]
+            },
+        },
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "u1",
+                        "content": "ok",
+                    }
+                ]
+            },
+        },
+    ]
+    transcript.write_text(
+        "\n".join(json.dumps(r) for r in records) + "\n",
+        encoding="utf-8",
+    )
+
+    # impact mode: src/app.py IS in U(t) → progress
+    impact_res = runner.invoke(
+        app,
+        [
+            "score-trace",
+            str(transcript),
+            "--request",
+            str(req_path),
+            "--surface",
+            "impact",
+        ],
+    )
+    assert impact_res.exit_code == 0, impact_res.output
+    impact_payload = json.loads(
+        impact_res.output[impact_res.output.find("{") : impact_res.output.rfind("}") + 1]
+    )
+    assert impact_payload["progress_events_count"] >= 1, (
+        "impact surface must include src/app.py so Read of it registers as progress"
+    )
+
+    # changed mode: src/app.py NOT in U(t) → no progress from reading it
+    changed_res = runner.invoke(
+        app,
+        [
+            "score-trace",
+            str(transcript),
+            "--request",
+            str(req_path),
+            "--surface",
+            "changed",
+        ],
+    )
+    assert changed_res.exit_code == 0, changed_res.output
+    changed_payload = json.loads(
+        changed_res.output[changed_res.output.find("{") : changed_res.output.rfind("}") + 1]
+    )
+    assert changed_payload["progress_events_count"] == 0, (
+        "changed mode bounds U(t) to raw diff; reading src/app.py "
+        "(outside the diff) must NOT register as progress"
+    )
