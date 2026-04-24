@@ -18,7 +18,7 @@ real signal vs. held at a fixed default until later phases.
 | ``pattern_id``         | synthesized from ``obligation.kind`` + scope hash |
 | ``task``               | ``obligation.description`` (truncated)           |
 | ``capability``         | **default 0.5** (Phase 4 LLM fills from intent)  |
-| ``reversibility``      | heuristic ``1 − data_signal(scope)``             |
+| ``reversibility``      | heuristic ``1 - data_signal(scope)``             |
 | ``observability``      | **default 0.5** (Phase 4 uses test-file presence)|
 | ``blast_radius``       | Phase 1 :func:`estimate_blast_radius`            |
 | ``completion``         | pytest pass-ratio from evidence, default 0.5     |
@@ -245,9 +245,7 @@ def _scope_matches_file(scope: str, file_path: str) -> bool:
         return True
     # module::symbol form — take the left half as the path hint.
     left = scope_norm.split("::", 1)[0]
-    if left and (file_norm.endswith("/" + left) or left == file_norm):
-        return True
-    return False
+    return bool(left and (file_norm.endswith("/" + left) or left == file_norm))
 
 
 def _pytest_is_green(ev: ToolEvidence | None) -> bool:
@@ -318,7 +316,13 @@ def _link_evidence_to_obligations(
         elif ob.kind == "api_contract" and ruff_ran and mypy_ran:
             # Find the file this obligation is scoped to; green = no error
             # findings for that path in either tool.
-            candidates = changed if changed else [ob.scope]
+            if changed:
+                candidates = changed
+            else:
+                # Fall back to the scope's path half (strip `::symbol` suffix
+                # so we compare paths against ruff/mypy findings, not symbols).
+                path_half = ob.scope.split("::", 1)[0].replace("\\", "/").lstrip("./")
+                candidates = [path_half] if path_half else []
             hit = next(
                 (cf for cf in candidates if _scope_matches_file(ob.scope, cf)),
                 None,

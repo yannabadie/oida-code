@@ -18,7 +18,7 @@ def test_assert_becomes_precondition(tmp_path: Path) -> None:
     obs = extract_obligations(tmp_path, ["mod.py"])
     assert len(obs) == 1
     assert obs[0].kind == "precondition"
-    assert "mod.py::f" == obs[0].scope
+    assert obs[0].scope == "mod.py::f"
 
 
 def test_if_not_raise_guard_becomes_precondition(tmp_path: Path) -> None:

@@ -16,7 +16,6 @@ from oida_code.verify import _runner as runner_mod
 from oida_code.verify import hypothesis_runner as hypo_mod
 from oida_code.verify import mutmut_runner as mut_mod
 
-
 # ---------------------------------------------------------------------------
 # hypothesis_runner
 # ---------------------------------------------------------------------------

@@ -84,6 +84,8 @@ class ToolBudgets(BaseModel):
     tests: int = Field(default=600, ge=1)
     semgrep: int = Field(default=120, ge=1)
     codeql: int = Field(default=900, ge=1)
+    hypothesis: int = Field(default=300, ge=1)
+    mutmut: int = Field(default=600, ge=1)
 
 
 __all__ = [

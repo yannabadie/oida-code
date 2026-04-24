@@ -37,13 +37,15 @@ from oida_code.models.audit_request import (
     ScopeSpec,
 )
 from oida_code.models.evidence import ToolBudgets, ToolEvidence
-from oida_code.score.mapper import obligations_to_scenario
 from oida_code.report.json_report import write_json_report
 from oida_code.report.markdown_report import write_markdown_report
 from oida_code.report.sarif_export import export_sarif
+from oida_code.score.mapper import obligations_to_scenario
 from oida_code.score.verdict import VerdictResolution, resolve_verdict
 from oida_code.verify.codeql_scan import run_codeql
+from oida_code.verify.hypothesis_runner import run_hypothesis
 from oida_code.verify.lint import run_lint
+from oida_code.verify.mutmut_runner import run_mutmut
 from oida_code.verify.pytest_runner import run_pytest
 from oida_code.verify.semgrep_scan import run_semgrep
 from oida_code.verify.typing import run_type_check
@@ -121,7 +123,13 @@ def _build_request(
 
 
 def _run_deterministic_pipeline(request: AuditRequest) -> list[ToolEvidence]:
-    """Run every Phase 1 deterministic verifier against ``request.repo.path``."""
+    """Run every deterministic verifier against ``request.repo.path``.
+
+    Phase 1: lint, types, semgrep, codeql, pytest.
+    Phase 2: hypothesis (marker-filtered pytest) + mutmut. Both runners
+    return ``tool_missing`` gracefully when the tool is not importable, so
+    pipeline wiring costs nothing on repos that don't use them.
+    """
     repo_path = Path(request.repo.path)
     budgets = request.budgets
     return [
@@ -130,6 +138,8 @@ def _run_deterministic_pipeline(request: AuditRequest) -> list[ToolEvidence]:
         run_semgrep(repo_path, budget_seconds=budgets.semgrep),
         run_codeql(repo_path, budget_seconds=budgets.codeql),
         run_pytest(repo_path, budget_seconds=budgets.tests),
+        run_hypothesis(repo_path, budget_seconds=budgets.hypothesis),
+        run_mutmut(repo_path, budget_seconds=budgets.mutmut),
     ]
 
 

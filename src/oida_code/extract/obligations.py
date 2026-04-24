@@ -35,7 +35,7 @@ _VALIDATOR_NAMES = frozenset({"field_validator", "validator", "validates", "mode
 
 def _oid(kind: str, scope: str, marker: str) -> str:
     """Deterministic obligation ID. Safe for the ``^o-[0-9A-Za-z_-]+$`` regex."""
-    raw = f"{kind}|{scope}|{marker}".encode("utf-8")
+    raw = f"{kind}|{scope}|{marker}".encode()
     digest = hashlib.sha1(raw).hexdigest()[:10]
     return f"o-{kind[:3]}-{digest}"
 
@@ -85,7 +85,10 @@ def _extract_from_function(
                     evidence_required=[
                         EvidenceRequirement(
                             kind="regression",
-                            description="Integration test hits the route and asserts status + shape",
+                            description=(
+                                "Integration test hits the route and "
+                                "asserts status + shape"
+                            ),
                         )
                     ],
                     source="extracted",
@@ -124,7 +127,10 @@ def _extract_from_function(
                     evidence_required=[
                         EvidenceRequirement(
                             kind="regression",
-                            description="A test exercises this path without triggering AssertionError",
+                            description=(
+                                "A test exercises this path without "
+                                "triggering AssertionError"
+                            ),
                         )
                     ],
                     source="extracted",

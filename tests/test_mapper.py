@@ -239,6 +239,21 @@ def test_linker_leaves_api_contract_open_when_mypy_has_error_on_file() -> None:
     assert linked[0].status == "open"
 
 
+def test_linker_api_contract_falls_back_to_scope_path_when_no_changed_files() -> None:
+    """When ``changed_files`` is empty the linker strips ``::symbol`` from the
+    scope and uses the path half to match ruff/mypy findings."""
+    ob = Obligation(
+        id="o-1",
+        kind="api_contract",
+        scope="src/app.py::list_items",
+        description="GET /items",
+    )
+    ruff = ToolEvidence(tool="ruff", status="ok", duration_ms=5, findings=[], counts={})
+    mypy = ToolEvidence(tool="mypy", status="ok", duration_ms=5, findings=[], counts={})
+    linked = _link_evidence_to_obligations([ob], [ruff, mypy], changed_files=None)
+    assert linked[0].status == "closed"
+
+
 def test_linker_preserves_violated_status() -> None:
     ob = Obligation(
         id="o-1",

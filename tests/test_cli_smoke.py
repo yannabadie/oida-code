@@ -66,9 +66,8 @@ def test_unimplemented_phase5_subcommand_raises() -> None:
 
 def test_normalize_emits_valid_scenario(tmp_path, tmp_path_factory: object) -> None:
     """``normalize`` consumes an AuditRequest and emits a NormalizedScenario."""
-    from tests.conftest import REPO_ROOT
-
     from oida_code.models.normalized_event import NormalizedScenario
+    from tests.conftest import REPO_ROOT
 
     # Produce a request against the self-repo (base=HEAD yields empty diff,
     # so the scenario will have zero events — that's a valid shape).
