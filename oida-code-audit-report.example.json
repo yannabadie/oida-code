@@ -1,0 +1,28 @@
+{
+  "summary": {
+    "verdict": "yellow",
+    "mean_q_obs": 0.83,
+    "mean_grounding": 0.58,
+    "total_v_net": -0.21,
+    "debt_final": 0.63,
+    "corrupt_success_ratio": 0.5
+  },
+  "critical_findings": [
+    {
+      "id": "f1",
+      "title": "Validator exists but one API path bypasses it",
+      "kind": "missing_precondition",
+      "evidence": ["call graph", "tests", "forward verifier"],
+      "path": "app/api/admin_signup.py",
+      "line": 44
+    }
+  ],
+  "repair": {
+    "reopen": ["e2"],
+    "audit": [],
+    "next_prompts": [
+      "Update every signup entrypoint so email normalization is applied before persistence. Return a unified 400 contract and add regression tests for bypass paths.",
+      "Write Hypothesis tests for empty, whitespace-only, Unicode-normalized, and mixed-case emails."
+    ]
+  }
+}

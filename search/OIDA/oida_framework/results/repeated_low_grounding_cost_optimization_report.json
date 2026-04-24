@@ -1,0 +1,121 @@
+{
+  "scenario": "repeated_low_grounding_cost_optimization",
+  "description": "A weakly grounded cost-optimization pattern is reused until it accumulates debt.",
+  "config": {
+    "alpha_b": 1.15,
+    "confirm_threshold": 0.8,
+    "bias_threshold": 0.45,
+    "tau_ref": 3.0,
+    "weight_completion": 0.4,
+    "weight_tests": 0.4,
+    "weight_accept": 0.2,
+    "corrupt_success_q_threshold": 0.8
+  },
+  "summary": {
+    "event_count": 4,
+    "mean_q_obs": 0.8745,
+    "mean_grounding": 0.125,
+    "total_v_net": -0.274064,
+    "max_h_sys": 0.295086,
+    "debt_final": 1.071608,
+    "corrupt_success_ratio": 0.5,
+    "bias_pattern_count": 1,
+    "bias_patterns": [
+      "p_scale_down_after_green_checks"
+    ]
+  },
+  "patterns": {
+    "p_autoscale_alarm_suppression": {
+      "state": "H",
+      "value": 0.05,
+      "reuse_count": 1,
+      "damage": 0.0,
+      "b_age": 0
+    },
+    "p_scale_down_after_green_checks": {
+      "state": "B",
+      "value": -0.727333,
+      "reuse_count": 3,
+      "damage": 1.121608,
+      "b_age": 1
+    }
+  },
+  "events": [
+    {
+      "tick": 1,
+      "event": "e1",
+      "task": "reduce_replicas_for_cost",
+      "pattern": "p_scale_down_after_green_checks",
+      "grounding": 0.166667,
+      "q_obs": 0.86,
+      "mu": 0.324037,
+      "lambda_bias": 0.339955,
+      "pattern_state": "H",
+      "n_stock": 0.05,
+      "b_load": 0.0,
+      "n_eff": 0.05,
+      "debt": 0.0,
+      "v_dur": 0.096386,
+      "h_sys": 0.0,
+      "v_net": 0.096386,
+      "corrupt_success": false
+    },
+    {
+      "tick": 2,
+      "event": "e2",
+      "task": "reduce_replicas_for_cost",
+      "pattern": "p_scale_down_after_green_checks",
+      "grounding": 0.166667,
+      "q_obs": 0.88,
+      "mu": 0.324037,
+      "lambda_bias": 0.404621,
+      "pattern_state": "H",
+      "n_stock": 0.071365,
+      "b_load": 0.0,
+      "n_eff": 0.071365,
+      "debt": 0.0,
+      "v_dur": 0.096386,
+      "h_sys": 0.0,
+      "v_net": 0.096386,
+      "corrupt_success": false
+    },
+    {
+      "tick": 3,
+      "event": "e3",
+      "task": "reduce_replicas_for_cost",
+      "pattern": "p_scale_down_after_green_checks",
+      "grounding": 0.166667,
+      "q_obs": 0.894,
+      "mu": 0.324037,
+      "lambda_bias": 0.451972,
+      "pattern_state": "B",
+      "n_stock": 0,
+      "b_load": 1.121608,
+      "n_eff": -1.121608,
+      "debt": 1.121608,
+      "v_dur": 0.031398,
+      "h_sys": 0.295086,
+      "v_net": -0.263688,
+      "corrupt_success": true
+    },
+    {
+      "tick": 4,
+      "event": "e4",
+      "task": "suppress_noisy_alerts",
+      "pattern": "p_autoscale_alarm_suppression",
+      "grounding": 0.0,
+      "q_obs": 0.864,
+      "mu": 0.316228,
+      "lambda_bias": 0.400445,
+      "pattern_state": "H",
+      "n_stock": 0.05,
+      "b_load": 1.121608,
+      "n_eff": -1.071608,
+      "debt": 1.071608,
+      "v_dur": 0.0,
+      "h_sys": 0.203148,
+      "v_net": -0.203148,
+      "corrupt_success": true
+    }
+  ]
+}

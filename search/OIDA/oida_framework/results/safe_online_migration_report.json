@@ -1,0 +1,107 @@
+{
+  "scenario": "safe_online_migration",
+  "description": "High-grounding online migration with verified backups and post-migration validation.",
+  "config": {
+    "alpha_b": 1.15,
+    "confirm_threshold": 0.8,
+    "bias_threshold": 0.45,
+    "tau_ref": 3.0,
+    "weight_completion": 0.4,
+    "weight_tests": 0.4,
+    "weight_accept": 0.2,
+    "corrupt_success_q_threshold": 0.8
+  },
+  "summary": {
+    "event_count": 3,
+    "mean_q_obs": 0.92,
+    "mean_grounding": 1.0,
+    "total_v_net": 4.173659,
+    "max_h_sys": 0.0,
+    "debt_final": 0.0,
+    "corrupt_success_ratio": 0.0,
+    "bias_pattern_count": 0,
+    "bias_patterns": []
+  },
+  "patterns": {
+    "p_backup_verify": {
+      "state": "C+",
+      "value": 1.0,
+      "reuse_count": 1,
+      "damage": 0.0,
+      "b_age": 0
+    },
+    "p_migrate_online": {
+      "state": "C+",
+      "value": 1.0,
+      "reuse_count": 1,
+      "damage": 0.0,
+      "b_age": 0
+    },
+    "p_postcheck": {
+      "state": "C+",
+      "value": 1.0,
+      "reuse_count": 1,
+      "damage": 0.0,
+      "b_age": 0
+    }
+  },
+  "events": [
+    {
+      "tick": 1,
+      "event": "e1",
+      "task": "verify_backup",
+      "pattern": "p_backup_verify",
+      "grounding": 1.0,
+      "q_obs": 0.92,
+      "mu": 0.924662,
+      "lambda_bias": 0.0,
+      "pattern_state": "C+",
+      "n_stock": 1.0,
+      "b_load": 0.0,
+      "n_eff": 1.0,
+      "debt": 0.0,
+      "v_dur": 1.42877,
+      "h_sys": 0.0,
+      "v_net": 1.42877,
+      "corrupt_success": false
+    },
+    {
+      "tick": 2,
+      "event": "e2",
+      "task": "online_schema_migration",
+      "pattern": "p_migrate_online",
+      "grounding": 1.0,
+      "q_obs": 0.9,
+      "mu": 0.771362,
+      "lambda_bias": 0.0,
+      "pattern_state": "C+",
+      "n_stock": 2.0,
+      "b_load": 0.0,
+      "n_eff": 2.0,
+      "debt": 0.0,
+      "v_dur": 1.440092,
+      "h_sys": 0.0,
+      "v_net": 1.440092,
+      "corrupt_success": false
+    },
+    {
+      "tick": 3,
+      "event": "e3",
+      "task": "post_migration_validation",
+      "pattern": "p_postcheck",
+      "grounding": 1.0,
+      "q_obs": 0.94,
+      "mu": 0.924662,
+      "lambda_bias": 0.0,
+      "pattern_state": "C+",
+      "n_stock": 3.0,
+      "b_load": 0.0,
+      "n_eff": 3.0,
+      "debt": 0.0,
+      "v_dur": 1.304797,
+      "h_sys": 0.0,
+      "v_net": 1.304797,
+      "corrupt_success": false
+    }
+  ]
+}

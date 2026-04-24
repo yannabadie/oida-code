@@ -1,0 +1,10 @@
+{
+  "root_event": "e1",
+  "reopen": [
+    "e2",
+    "e3"
+  ],
+  "audit": [
+    "e4"
+  ]
+}

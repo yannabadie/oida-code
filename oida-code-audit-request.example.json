@@ -1,0 +1,29 @@
+{
+  "repo": {
+    "path": "/workspace/repo",
+    "revision": "HEAD",
+    "base_revision": "origin/main"
+  },
+  "intent": {
+    "summary": "Add email validation to signup endpoint",
+    "sources": ["ticket.md", "prompt.txt"]
+  },
+  "scope": {
+    "changed_files": [
+      "app/api/signup.py",
+      "app/validators.py",
+      "tests/test_signup.py"
+    ],
+    "language": "python"
+  },
+  "commands": {
+    "lint": "ruff check .",
+    "types": "mypy app",
+    "tests": "pytest -q"
+  },
+  "policy": {
+    "max_critical_findings": 0,
+    "min_mutation_score": 0.65,
+    "min_property_checks": 50
+  }
+}

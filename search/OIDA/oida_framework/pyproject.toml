@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oida-framework"
+version = "0.1.0"
+description = "Operational Integrity and Debt Analysis for tool-using AI agents"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["networkx>=3.1"]
+
+[project.scripts]
+oida = "oida.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["oida*"]

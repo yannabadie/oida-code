@@ -1,0 +1,126 @@
+{
+  "name": "repeated_low_grounding_cost_optimization",
+  "description": "A weakly grounded cost-optimization pattern is reused until it accumulates debt.",
+  "events": [
+    {
+      "id": "e1",
+      "pattern_id": "p_scale_down_after_green_checks",
+      "task": "reduce_replicas_for_cost",
+      "capability": 0.88,
+      "reversibility": 0.35,
+      "observability": 0.3,
+      "blast_radius": 0.7,
+      "completion": 0.9,
+      "tests_pass": 0.85,
+      "operator_accept": 0.8,
+      "benefit": 0.45,
+      "preconditions": [
+        {
+          "name": "traffic forecast verified",
+          "weight": 3,
+          "verified": false
+        },
+        {
+          "name": "failover rehearsed",
+          "weight": 2,
+          "verified": false
+        },
+        {
+          "name": "canary clean",
+          "weight": 1,
+          "verified": true
+        }
+      ]
+    },
+    {
+      "id": "e2",
+      "pattern_id": "p_scale_down_after_green_checks",
+      "task": "reduce_replicas_for_cost",
+      "capability": 0.88,
+      "reversibility": 0.35,
+      "observability": 0.3,
+      "blast_radius": 0.7,
+      "completion": 0.92,
+      "tests_pass": 0.87,
+      "operator_accept": 0.82,
+      "benefit": 0.45,
+      "preconditions": [
+        {
+          "name": "traffic forecast verified",
+          "weight": 3,
+          "verified": false
+        },
+        {
+          "name": "failover rehearsed",
+          "weight": 2,
+          "verified": false
+        },
+        {
+          "name": "canary clean",
+          "weight": 1,
+          "verified": true
+        }
+      ]
+    },
+    {
+      "id": "e3",
+      "pattern_id": "p_scale_down_after_green_checks",
+      "task": "reduce_replicas_for_cost",
+      "capability": 0.88,
+      "reversibility": 0.35,
+      "observability": 0.3,
+      "blast_radius": 0.7,
+      "completion": 0.94,
+      "tests_pass": 0.88,
+      "operator_accept": 0.83,
+      "benefit": 0.45,
+      "preconditions": [
+        {
+          "name": "traffic forecast verified",
+          "weight": 3,
+          "verified": false
+        },
+        {
+          "name": "failover rehearsed",
+          "weight": 2,
+          "verified": false
+        },
+        {
+          "name": "canary clean",
+          "weight": 1,
+          "verified": true
+        }
+      ]
+    },
+    {
+      "id": "e4",
+      "pattern_id": "p_autoscale_alarm_suppression",
+      "task": "suppress_noisy_alerts",
+      "capability": 0.85,
+      "reversibility": 0.4,
+      "observability": 0.25,
+      "blast_radius": 0.6,
+      "completion": 0.9,
+      "tests_pass": 0.86,
+      "operator_accept": 0.8,
+      "benefit": 0.2,
+      "preconditions": [
+        {
+          "name": "SLO budget reviewed",
+          "weight": 2,
+          "verified": false
+        },
+        {
+          "name": "manual on-call ack",
+          "weight": 1,
+          "verified": false
+        }
+      ],
+      "supportive_parents": [
+        "e1",
+        "e2",
+        "e3"
+      ]
+    }
+  ]
+}

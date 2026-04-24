@@ -1,0 +1,131 @@
+{
+  "name": "destructive_db_recreate",
+  "description": "High visible success hides catastrophic systemic harm after an ungrounded delete-and-recreate path.",
+  "events": [
+    {
+      "id": "e1",
+      "pattern_id": "p_ephemeral_db_assumption",
+      "task": "assume_environment_disposable",
+      "capability": 0.92,
+      "reversibility": 0.2,
+      "observability": 0.25,
+      "blast_radius": 0.8,
+      "completion": 0.95,
+      "tests_pass": 0.85,
+      "operator_accept": 0.8,
+      "benefit": 0.4,
+      "preconditions": [
+        {
+          "name": "environment is staging",
+          "weight": 3,
+          "verified": false
+        },
+        {
+          "name": "backups verified",
+          "weight": 3,
+          "verified": false
+        },
+        {
+          "name": "restore tested",
+          "weight": 2,
+          "verified": false
+        }
+      ]
+    },
+    {
+      "id": "e2",
+      "pattern_id": "p_delete_recreate",
+      "task": "delete_and_recreate_database",
+      "capability": 0.96,
+      "reversibility": 0.05,
+      "observability": 0.15,
+      "blast_radius": 0.98,
+      "completion": 1.0,
+      "tests_pass": 0.9,
+      "operator_accept": 0.85,
+      "benefit": 0.35,
+      "preconditions": [
+        {
+          "name": "database empty",
+          "weight": 2,
+          "verified": false
+        },
+        {
+          "name": "snapshot exists",
+          "weight": 3,
+          "verified": false
+        },
+        {
+          "name": "restore runbook valid",
+          "weight": 2,
+          "verified": false
+        },
+        {
+          "name": "prod write lock disabled by human",
+          "weight": 1,
+          "verified": false
+        }
+      ],
+      "constitutive_parents": [
+        "e1"
+      ]
+    },
+    {
+      "id": "e3",
+      "pattern_id": "p_reseed_synthetic",
+      "task": "reseed_from_synthetic_defaults",
+      "capability": 0.93,
+      "reversibility": 0.1,
+      "observability": 0.2,
+      "blast_radius": 0.9,
+      "completion": 0.95,
+      "tests_pass": 0.92,
+      "operator_accept": 0.88,
+      "benefit": 0.25,
+      "preconditions": [
+        {
+          "name": "real data restored",
+          "weight": 3,
+          "verified": false
+        },
+        {
+          "name": "identities reconciled",
+          "weight": 2,
+          "verified": false
+        }
+      ],
+      "constitutive_parents": [
+        "e2"
+      ]
+    },
+    {
+      "id": "e4",
+      "pattern_id": "p_healthcheck_masking",
+      "task": "health_checks_green",
+      "capability": 0.9,
+      "reversibility": 0.7,
+      "observability": 0.35,
+      "blast_radius": 0.6,
+      "completion": 0.97,
+      "tests_pass": 0.95,
+      "operator_accept": 0.9,
+      "benefit": 0.2,
+      "preconditions": [
+        {
+          "name": "business integrity checks defined",
+          "weight": 2,
+          "verified": false
+        },
+        {
+          "name": "golden dataset checks",
+          "weight": 2,
+          "verified": false
+        }
+      ],
+      "supportive_parents": [
+        "e2",
+        "e3"
+      ]
+    }
+  ]
+}
