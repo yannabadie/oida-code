@@ -25,8 +25,9 @@ real signal vs. held at a fixed default until later phases.
 | ``tests_pass``         | ``0.50·regression + 0.25·property + 0.25·mutation`` |
 | ``operator_accept``    | lint + types green from evidence                 |
 | ``benefit``            | **default 0.5** (Phase 4 LLM from intent)        |
-| ``preconditions``      | from obligation graph (one ``PreconditionSpec``  |
-|                        | per Obligation)                                  |
+| ``preconditions``      | ADR-20: 1..N ``PreconditionSpec`` per Obligation |
+|                        | chosen by kind, weight-conserved, each verified  |
+|                        | independently against evidence                   |
 | ``constitutive_parents`` | empty in P2 (dependency extractor is P2 too,   |
 |                        | but graph topology becomes real in Phase 3)      |
 +------------------------+--------------------------------------------------+
@@ -41,6 +42,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from typing import Any
 
 from oida_code._vendor.oida_framework.models import (
@@ -213,12 +215,276 @@ def _operator_accept_from_evidence(tool_evidence: list[ToolEvidence] | None) -> 
     return round(score / checked, 6)
 
 
-def _preconditions_for(obligation: Obligation) -> list[PreconditionSpec]:
+# ---------------------------------------------------------------------------
+# Block B (ADR-20) — obligation → 1..N PreconditionSpec, weight conserving
+# ---------------------------------------------------------------------------
+
+
+def _weighted_children(
+    obligation: Obligation,
+    parts: list[tuple[str, bool]],
+) -> list[PreconditionSpec]:
+    """Return N PreconditionSpec whose weights sum EXACTLY to ``obligation.weight``.
+
+    Equal split with last-child drift correction so float sums match
+    parent weight under ``pytest.approx(rel=1e-9)``. ``parts`` is a list
+    of ``(name, verified)`` pairs.
+    """
+    if not parts:
+        return []
+    parent_weight = float(obligation.weight)
+    base = parent_weight / len(parts)
+    children: list[PreconditionSpec] = [
+        PreconditionSpec(name=name, weight=base, verified=verified)
+        for name, verified in parts
+    ]
+    total = sum(c.weight for c in children)
+    drift = parent_weight - total
+    if abs(drift) > 1e-12:
+        last = children[-1]
+        children[-1] = PreconditionSpec(
+            name=last.name,
+            weight=last.weight + drift,
+            verified=last.verified,
+        )
+    return children
+
+
+class _EvidenceView:
+    """Per-scope accessor on a ToolEvidence bundle. Pure, no I/O.
+
+    All predicates are scope-aware: a green pytest + clean static scan
+    matter only insofar as they cover the obligation's scope file. This
+    is the foundation that lets Block B split grounding across N
+    sub-preconditions rather than collapsing on the parent status.
+    """
+
+    __slots__ = (
+        "_changed",
+        "_codeql",
+        "_evidence",
+        "_hypothesis",
+        "_mypy",
+        "_pytest",
+        "_ruff",
+        "_semgrep",
+    )
+
+    def __init__(
+        self,
+        tool_evidence: list[ToolEvidence] | None,
+        changed_files: list[str] | None,
+    ) -> None:
+        self._evidence = tool_evidence or []
+        self._changed = frozenset(
+            f.replace("\\", "/").lstrip("./") for f in (changed_files or [])
+        )
+        self._pytest = _find_evidence(self._evidence, "pytest")
+        self._ruff = _find_evidence(self._evidence, "ruff")
+        self._mypy = _find_evidence(self._evidence, "mypy")
+        self._semgrep = _find_evidence(self._evidence, "semgrep")
+        self._codeql = _find_evidence(self._evidence, "codeql")
+        self._hypothesis = _find_evidence(self._evidence, "hypothesis")
+
+    @staticmethod
+    def _scope_file(scope: str) -> str:
+        return scope.split("::", 1)[0].replace("\\", "/").lstrip("./")
+
+    def scope_in_changed(self, scope: str) -> bool:
+        path = self._scope_file(scope)
+        if not path:
+            return False
+        if path in self._changed:
+            return True
+        # Suffix match to tolerate relative paths.
+        return any(c.endswith("/" + path) or path.endswith("/" + c) for c in self._changed)
+
+    def pytest_green_on_scope(self, scope: str) -> bool:
+        if self._pytest is None or self._pytest.status != "ok":
+            return False
+        counts = self._pytest.counts
+        if int(counts.get("total", 0)) <= 0:
+            return False
+        if int(counts.get("failure", 0)) or int(counts.get("error", 0)):
+            return False
+        return self.scope_in_changed(scope)
+
+    def _tool_clean_on_scope(self, ev: ToolEvidence | None, scope: str) -> bool:
+        if ev is None or ev.status != "ok":
+            return False
+        target = self._scope_file(scope)
+        for f in ev.findings:
+            if f.severity != "error":
+                continue
+            fp = f.path.replace("\\", "/").lstrip("./")
+            if fp == target or fp.endswith("/" + target) or target.endswith("/" + fp):
+                return False
+        return True
+
+    def ruff_clean_on_scope(self, scope: str) -> bool:
+        return self._tool_clean_on_scope(self._ruff, scope)
+
+    def mypy_clean_on_scope(self, scope: str) -> bool:
+        return self._tool_clean_on_scope(self._mypy, scope)
+
+    def static_clean_on_scope(self, scope: str) -> bool:
+        """Ruff AND mypy both ran AND both clean on this scope."""
+        return self.ruff_clean_on_scope(scope) and self.mypy_clean_on_scope(scope)
+
+    def security_static_clean_on_scope(self, scope: str) -> bool:
+        """Semgrep AND CodeQL — whichever ran must be clean on scope."""
+        any_ran = False
+        for ev in (self._semgrep, self._codeql):
+            if ev is not None and ev.status == "ok":
+                any_ran = True
+                if not self._tool_clean_on_scope(ev, scope):
+                    return False
+        return any_ran
+
+    def hypothesis_ran_green(self) -> bool:
+        if self._hypothesis is None or self._hypothesis.status != "ok":
+            return False
+        counts = self._hypothesis.counts
+        total = int(counts.get("total", 0))
+        if total <= 0:
+            return False
+        return int(counts.get("failure", 0)) == 0 and int(counts.get("error", 0)) == 0
+
+
+# ---------------------------------------------------------------------------
+# Per-kind expanders — ADR-20 mapping verbatim from QA/A5.md
+# ---------------------------------------------------------------------------
+
+
+def _expand_precondition(
+    ob: Obligation, ev: _EvidenceView
+) -> list[PreconditionSpec]:
+    extracted = ob.source == "extracted"
+    return _weighted_children(
+        ob,
+        [
+            ("guard_detected", extracted),
+            ("static_scope_clean", ev.static_clean_on_scope(ob.scope)),
+            ("regression_green_on_scope", ev.pytest_green_on_scope(ob.scope)),
+            # negative_path_tested needs LLM/test-code analysis (Phase 4).
+            ("negative_path_tested", False),
+        ],
+    )
+
+
+def _expand_api_contract(
+    ob: Obligation, ev: _EvidenceView
+) -> list[PreconditionSpec]:
+    extracted = ob.source == "extracted"
+    return _weighted_children(
+        ob,
+        [
+            ("endpoint_or_function_declared", extracted),
+            ("static_shape_clean", ev.static_clean_on_scope(ob.scope)),
+            ("regression_green_on_scope", ev.pytest_green_on_scope(ob.scope)),
+            # error_or_auth_path_checked needs LLM route inspection (Phase 4).
+            ("error_or_auth_path_checked", False),
+        ],
+    )
+
+
+def _expand_migration(
+    ob: Obligation, ev: _EvidenceView
+) -> list[PreconditionSpec]:
+    extracted = ob.source == "extracted"
+    return _weighted_children(
+        ob,
+        [
+            ("migration_marker_detected", extracted),
+            # data_preservation / rollback_or_idempotency need specific tests
+            # + fixtures; Phase 4 LLM identifies these via test-code analysis.
+            ("data_preservation_checked", False),
+            ("rollback_or_idempotency_checked", False),
+            ("migration_test_evidence", ev.pytest_green_on_scope(ob.scope)),
+        ],
+    )
+
+
+def _expand_security_rule(
+    ob: Obligation, ev: _EvidenceView
+) -> list[PreconditionSpec]:
+    extracted = ob.source == "extracted"
+    return _weighted_children(
+        ob,
+        [
+            ("rule_declared_or_detected", extracted),
+            ("static_scan_clean", ev.security_static_clean_on_scope(ob.scope)),
+            # taint/access-path checks need dedicated LLM or dataflow pass.
+            ("taint_or_access_path_checked", False),
+        ],
+    )
+
+
+def _expand_observability(
+    ob: Obligation, ev: _EvidenceView
+) -> list[PreconditionSpec]:
+    del ev  # kept for symmetry; no automatic observability signal yet
+    # All three need code inspection the Phase-3.5 evidence stream
+    # doesn't surface; verified=False everywhere until Phase 4.
+    return _weighted_children(
+        ob,
+        [
+            ("failure_mode_logged", False),
+            ("metric_or_trace_available", False),
+            ("alert_or_surface_defined", False),
+        ],
+    )
+
+
+def _expand_invariant(
+    ob: Obligation, ev: _EvidenceView
+) -> list[PreconditionSpec]:
+    extracted = ob.source == "extracted"
+    return _weighted_children(
+        ob,
+        [
+            ("invariant_declared", extracted),
+            ("invariant_checked_by_test_or_property", ev.hypothesis_ran_green()),
+            ("regression_guard_present", ev.pytest_green_on_scope(ob.scope)),
+        ],
+    )
+
+
+_KindExpander = Callable[[Obligation, _EvidenceView], list[PreconditionSpec]]
+
+_KIND_EXPANDERS: dict[str, _KindExpander] = {
+    "precondition": _expand_precondition,
+    "api_contract": _expand_api_contract,
+    "migration": _expand_migration,
+    "security_rule": _expand_security_rule,
+    "observability": _expand_observability,
+    "invariant": _expand_invariant,
+}
+
+
+def _preconditions_for(
+    obligation: Obligation,
+    tool_evidence: list[ToolEvidence] | None = None,
+    changed_files: list[str] | None = None,
+) -> list[PreconditionSpec]:
+    """Expand an ``Obligation`` into 1..N ``PreconditionSpec`` (ADR-20).
+
+    Weight-conserving: ``sum(child.weight) == obligation.weight``. Each
+    child is verified independently against ``tool_evidence`` + scope
+    membership in ``changed_files`` — no blind inheritance from the
+    parent's ``status``. If the kind has no registered expander (future
+    enum values), returns a single ``unexpanded_<kind>`` stub with
+    ``verified=False``.
+    """
+    ev = _EvidenceView(tool_evidence, changed_files)
+    expander = _KIND_EXPANDERS.get(obligation.kind)
+    if expander is not None:
+        return expander(obligation, ev)
     return [
         PreconditionSpec(
-            name=obligation.description[:120] or f"{obligation.kind}:{obligation.scope}",
+            name=f"unexpanded_{obligation.kind}",
             weight=float(obligation.weight),
-            verified=obligation.status == "closed",
+            verified=False,
         )
     ]
 
@@ -272,7 +538,14 @@ def _link_evidence_to_obligations(
     tool_evidence: list[ToolEvidence] | None,
     changed_files: list[str] | None,
 ) -> list[Obligation]:
-    """Close obligations whose required evidence is green in ``tool_evidence``.
+    """**Legacy** Phase-2 linker — NOT called by the mapper main path.
+
+    Closing an entire obligation on coarse evidence (pytest-green,
+    ruff+mypy clean) is the collapse ADR-20 eliminates. The per-child
+    expansion in ``_preconditions_for`` replaced this helper in
+    ``obligations_to_scenario``. The function is retained so legacy unit
+    tests that exercise the old flow still run; new code should not call
+    it.
 
     Rules (advisor-approved, deliberately crude in Phase 2):
 
@@ -375,12 +648,12 @@ def obligations_to_scenario(
     operator_value = _operator_accept_from_evidence(tool_evidence)
 
     changed_files = list(request.scope.changed_files) if request else []
-    linked_obligations = _link_evidence_to_obligations(
-        obligations, tool_evidence, changed_files
-    )
 
+    # ADR-20 Option A: no automatic ``_link_evidence_to_obligations``.
+    # Obligations enter with their declared status; per-child evidence
+    # evaluation happens inside ``_preconditions_for``.
     events: list[NormalizedEvent] = []
-    for idx, ob in enumerate(linked_obligations):
+    for idx, ob in enumerate(obligations):
         data_signal = _data_signal_for_scope(ob.scope)
         reversibility = round(max(0.0, min(1.0, 1.0 - data_signal)), 6)
         blast = round(data_signal, 6)  # scope-local blast; aggregate is elsewhere.
@@ -397,7 +670,7 @@ def obligations_to_scenario(
                 tests_pass=tests_pass_value,
                 operator_accept=operator_value,
                 benefit=0.5,  # default — Phase 4 LLM from intent
-                preconditions=_preconditions_for(ob),
+                preconditions=_preconditions_for(ob, tool_evidence, changed_files),
                 constitutive_parents=[],
                 supportive_parents=[],
                 invalidates_pattern=False,

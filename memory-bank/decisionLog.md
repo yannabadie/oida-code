@@ -75,6 +75,71 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-24 22:30:00] - **ADR-20: Obligation is not isomorphic with PreconditionSpec.**
+
+**Why:** Phase 2's `_preconditions_for()` returned exactly one
+`PreconditionSpec` per `Obligation` with the parent weight and
+`verified = (obligation.status == "closed")`. Combined with
+`_link_evidence_to_obligations()` which closed obligations wholesale on
+pytest-green, this produced binary grounding: either the whole
+obligation was "verified" or none of it was. The OIDA author (QA/A5.md,
+2026-04-24) flagged this as structurally wrong:
+
+> One obligation may entail multiple preconditions. Green pytest is not
+> proof that the negative path was tested, that the migration rollback
+> was checked, that the auth path was checked, or that observability
+> is present.
+
+**Decision:** An `Obligation` is a high-level testable commitment. A
+`PreconditionSpec` is one atomic support condition consumed by the
+vendored OIDA `grounding()` formula. One obligation expands to **1..N**
+preconditions, chosen per `kind`. Child weights **conserve** the parent
+weight (`sum(child.weight) == obligation.weight`). Each child is
+verified **independently** against available evidence — no blind
+inheritance from parent status.
+
+**How applied:** `src/oida_code/score/mapper.py` gains
+`_weighted_children(obligation, parts)` for exact float-conserving
+splits, an `EvidenceView` bundle of tool-evidence queries, and
+kind-dispatched expanders emitting the minimal child set per
+`ObligationKind` value (Answer5.md mapping verbatim):
+
+* ``precondition`` — guard_detected, static_scope_clean,
+  regression_green_on_scope, negative_path_tested
+* ``api_contract`` — endpoint_or_function_declared, static_shape_clean,
+  regression_green_on_scope, error_or_auth_path_checked
+* ``migration`` — migration_marker_detected, data_preservation_checked,
+  rollback_or_idempotency_checked, migration_test_evidence
+* ``security_rule`` — rule_declared_or_detected, static_scan_clean,
+  taint_or_access_path_checked
+* ``observability`` — failure_mode_logged, metric_or_trace_available,
+  alert_or_surface_defined
+* ``invariant`` — invariant_declared, invariant_checked_by_test_or_property,
+  regression_guard_present
+* unknown kind — single ``unexpanded_<kind>``, ``verified=False``, full
+  parent weight.
+
+Evidence matchers are conservative: only sub-preconditions with explicit
+automatic signal from Phase-1/Phase-2 evidence (extractor source tag,
+ruff/mypy findings, pytest green, semgrep/codeql clean, hypothesis
+runs) are auto-verified. Sub-preconditions needing LLM or richer
+evidence default to ``verified=False``; Phase-4 LLM closes them later.
+
+**Rejected alternatives:**
+
+* Keep 1 obligation = 1 PreconditionSpec (collapses grounding to binary).
+* Auto-close parent obligations before expansion:
+  `_link_evidence_to_obligations()` is **removed** from the mapper main
+  path (Option A per Answer5.md). The function is retained for existing
+  unit tests that exercise the legacy linker directly, but is no longer
+  called by `obligations_to_scenario()`.
+* Treat pytest-green as proof of all sub-conditions.
+
+**Acceptance criteria met (tests):** multiplicity, weight conservation
+via ``pytest.approx``, partial grounding (strictly between 0 and 1),
+pytest-green-alone does not close every sub-precondition, Pydantic ↔
+vendored round-trip preserved, A2.5 trajectory tests unchanged.
+
 [2026-04-24 21:30:00] - **ADR-19: Phase 3.5 — measurement before LLM. Scorer refactor + 7-criteria ship gate.**
 
 **Why:** OIDA v4.2 author's review of `CONSULTATION_OIDA.md` (response in
