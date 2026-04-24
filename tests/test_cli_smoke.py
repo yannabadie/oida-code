@@ -58,8 +58,9 @@ def test_inspect_emits_valid_audit_request(tmp_path_factory: object) -> None:
     assert request.scope.changed_files == []
 
 
-def test_phase2_subcommands_raise() -> None:
-    for sub in ("normalize", "verify", "audit", "repair"):
+def test_unimplemented_phase2_phase5_subcommands_raise() -> None:
+    # Phase 1 ships `verify` and `audit`; `normalize` and `repair` are still
+    # NotImplementedError.
+    for sub in ("normalize", "repair"):
         result = runner.invoke(app, [sub, "."])
-        # Typer surfaces the raised NotImplementedError as a non-zero exit.
         assert result.exit_code != 0, f"{sub} should not succeed in phase 1"
