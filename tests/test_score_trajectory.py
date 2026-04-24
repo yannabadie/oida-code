@@ -188,6 +188,70 @@ def test_state_before_action_state_after_are_distinct() -> None:
     assert before_t1.unobserved == frozenset()
 
 
+# ---------------------------------------------------------------------------
+# ADR-19 A2 — split gain/progress, terminal case, resource_id nodes
+# ---------------------------------------------------------------------------
+
+
+def test_candidate_gain_can_fire_without_progress_event() -> None:
+    """ADR-19 A2.1: prove the paper's 'gain without progress' branch is
+    structurally reachable after the split. Pre-A2.1, compute_gain and
+    is_progress_event were identical, so this combination was impossible."""
+    trace, oblig, req, _ = _load("gain_without_progress.json")
+    m = score_trajectory(trace, oblig, req)
+    # t=0 is a progress event (entered U with src/a.py).
+    # t=1 is a test_run on tests/test_a.py while an obligation is pending
+    #    on src/a.py::f → candidate_gain fires (ran relevant test) but
+    #    progress_event does NOT (no new path in U, no obligation closed).
+    assert m.timesteps[0].is_progress is True
+    assert m.timesteps[1].is_progress is False
+    assert m.timesteps[1].candidate_gain is True, (
+        "A2.1 branch unreachable: candidate_gain should fire on "
+        "relevant-test-run step even without closing an obligation"
+    )
+
+
+def test_post_terminal_tail_does_not_inflate_exploitation_error() -> None:
+    """ADR-19 A2.2: after goal closed AND U empty, subsequent steps are
+    terminal and must not count in either normalizer. Code edits in the
+    tail count into a separate suspicious_tail_count diagnostic."""
+    trace, oblig, req, _ = _load("post_terminal_tail.json")
+    m = score_trajectory(trace, oblig, req)
+    # t=0 exploration (entered src/a.py), t=1 exploit_goal progress (close),
+    # t=2 commit on visited file with goal closed → terminal
+    # t=3 tool_call → terminal
+    # t=4 edit → terminal + suspicious_tail
+    terminal_events = [ts for ts in m.timesteps if ts.case == "terminal"]
+    assert len(terminal_events) >= 2, (
+        f"expected ≥ 2 terminal steps, got {len(terminal_events)}"
+    )
+    # No terminal step should be an error.
+    assert all(not ts.is_error for ts in terminal_events)
+    # Suspicious tail fires for t=4 edit.
+    assert m.suspicious_tail_count >= 1
+    # Terminal steps don't land in either denominator.
+    assert m.terminal_steps >= 2
+    # Exploitation_error normaliser excludes terminal → stays moderate.
+    assert m.exploitation_error <= 0.5
+
+
+def test_same_file_different_tools_share_stale_node() -> None:
+    """ADR-19 A2.3: Read / Edit / Grep on src/a.py must share node
+    identity so the no-progress graph treats them as the same territory."""
+    trace, oblig, req, _ = _load("same_resource_different_tools.json")
+    m = score_trajectory(trace, oblig, req)
+    # t=0 progress (enters U). t=1-3 all on src/a.py, no obligation
+    # closure, no new paths → no_progress segment starts at t=1.
+    # Pre-A2.3, node_visits had 3 distinct keys (read, grep, edit all
+    # carrying their kind) so n_t never crossed the budget.
+    # Post-A2.3, node_visits['src/a.py'] = 3 (grep + edit + re-read),
+    # over the budget of 2 → n_t = 1 at the final step.
+    assert m.stale_score >= 1, (
+        f"A2.3 broken: same-file node_visits should exceed budget, "
+        f"got stale_score={m.stale_score}"
+    )
+
+
 def test_metrics_are_json_serializable() -> None:
     trace, oblig, req, _ = _load("clean_success.json")
     m = score_trajectory(trace, oblig, req)

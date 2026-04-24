@@ -16,15 +16,25 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from oida_code.models.trace import NoProgressClassification
 
-CaseLabel = Literal["exploration", "exploit_goal", "exploit_other", "either"]
-"""Paper Table 1 case attribution for a single timestep.
-
-Maps to the paper's four cases:
+CaseLabel = Literal[
+    "exploration",
+    "exploit_goal",
+    "exploit_other",
+    "either",
+    "terminal",
+]
+"""Paper Table 1 case attribution for a single timestep, extended with a
+terminal case for the post-goal tail that the paper does not model.
 
 * ``exploration``     — Case 1 (U(t) non-empty, P(t) empty)
 * ``exploit_goal``    — Case 2 (goal in P(t), |T|=1)
 * ``exploit_other``   — Case 3 (P(t) non-empty, goal not in P, U(t) empty)
 * ``either``          — Case 4 (P(t) non-empty, goal not in P, U(t) non-empty)
+* ``terminal``        — ADR-19 A2.2: P(t) = ∅ ∧ U(t) = ∅ ∧ goal closed.
+  Paper assumes the episode ends at the goal; real code sessions keep
+  running (commit, report, cleanup). Terminal steps are excluded from
+  both normalizers; a ``suspicious_tail`` flag on the metrics carries
+  the post-terminal-code-edit signal separately.
 """
 
 
@@ -37,6 +47,12 @@ class TimestepCase(BaseModel):
     case: CaseLabel
     is_error: bool
     is_progress: bool = False
+    candidate_gain: bool = False
+    """ADR-19 A2.1: weaker-than-progress signal. True when the action
+    touched a pending-obligation resource, ran a relevant test, or
+    inspected a direct dependency — even if it did not itself close an
+    obligation or enter a new file. Enables the paper's "gain without
+    progress" branch where err depends on stale_score monotonicity."""
     stale_score: int = Field(ge=0)
     gain: bool
     target_set_size: int = Field(ge=0)
@@ -72,6 +88,23 @@ class TrajectoryMetrics(BaseModel):
     # signal as on 200).
     exploration_steps: int = Field(ge=0, description="Steps in Cases 1+4.")
     exploitation_steps: int = Field(ge=0, description="Steps in Cases 2+3+4.")
+    terminal_steps: int = Field(
+        default=0,
+        ge=0,
+        description=(
+            "Steps after goal closed AND U empty. "
+            "Excluded from both normalizers (ADR-19 A2.2)."
+        ),
+    )
+    suspicious_tail_count: int = Field(
+        default=0,
+        ge=0,
+        description=(
+            "Code-editing actions observed in the terminal tail. Non-zero "
+            "values mean the agent kept editing after the goal was closed — "
+            "a regression-risk signal distinct from exploration/exploitation."
+        ),
+    )
 
     # Per-segment classification (Phase-2 shape filled in by Phase-3 scorer).
     segment_classifications: list[NoProgressClassification] = Field(

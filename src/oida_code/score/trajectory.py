@@ -1,40 +1,51 @@
 """Explore/Exploit error scorer — paper 2604.13151 §4 + ADR-18 + ADR-19.
 
-This module implements Park et al. 2026 §4 formulas (`c_t`, `e_t`, `n_t`,
-`S_t`, `err(t)`, Table 1 case attribution) adapted to code audit traces.
+Implements Park et al. 2026 §4 formulas (`c_t`, `e_t`, `n_t`, `S_t`,
+`err(t)`, Table 1 case attribution) adapted to code audit traces.
 
-**Structural discipline (ADR-19):**
+**Structural discipline (ADR-19 A/A2):**
 
-The scorer is written around three explicit types so the paper's
-state-before / action / state-after distinction is impossible to
-conflate by accident:
+Three explicit types carry the state-before / action / state-after
+distinction so the paper's semantics cannot be conflated by an index
+slip:
 
     state_before = TrajectoryState.build(events[:t], changed_files, obligations)
     action       = events[t]
     state_after  = state_before.apply(action, obligations)
 
 The case attribution, target-set size, and progress/gain checks are all
-derived from ``state_before``. Only the stale-score update and the
-visited/closed deltas use ``state_after``.
+derived from ``state_before``. Only the visited/closed deltas use
+``state_after``.
 
-**Formulas (paper §4, adapted via ADR-18; bounded `U(t)` per same ADR):**
+**A2.1 split** (2026-04-24 author directive):
 
-    c_t = |E_np| - |V_np| + 1            (cyclomatic number of no-progress sub-walk)
-    e_t = Σ_e max{m_np(e) - 2, 0}        (edge-reuse penalty, budget = 2)
-    n_t = Σ_v max{m_np(v) - 2, 0}        (node-reuse penalty, budget = 2)
-    S_t = c_t + e_t + n_t
+* ``progress_event`` — strong signal that resets the no-progress
+  segment: newly observed in-surface resource OR newly closed
+  obligation.
+* ``candidate_gain`` — weaker signal that a step moved *toward* a
+  target without yet producing real progress: progress_event OR
+  touched-a-pending-obligation-resource OR ran-relevant-test OR
+  inspected-direct-dependency. Exposed on ``TimestepCase.candidate_gain``.
+* ``err(t)`` is keyed on the narrow ``gain`` (paper-faithful:
+  membership in the next target set) not the broader candidate_gain;
+  the latter is a diagnostic the Phase-4 verifier will consume.
 
-    err(t) = 0 if t→t+1 is a progress event
-           = 1 if Gain(t→t+1) = 0
-           = 0 if |T(t)| = 1 and Gain(t→t+1) = 1
-           = 1{S_t > S_{t-1}} if |T(t)| > 1 and Gain(t→t+1) = 1
+**A2.2 terminal case** (2026-04-24 author directive):
 
-Case attribution (Table 1, attributed to **state_before**):
+``P(t) = ∅ ∧ U(t) = ∅ ∧ goal-in-closed`` is an explicit ``terminal``
+case. Post-terminal steps do not contribute to exploration or
+exploitation denominators; code-editing actions in the terminal tail
+count into a separate ``suspicious_tail_count`` diagnostic.
 
-    Case 1: U ≠ ∅, P = ∅                 → exploration step
-    Case 2: goal ∈ P                     → exploitation step
-    Case 3: P ≠ ∅, goal ∉ P, U = ∅       → exploitation step
-    Case 4: P ≠ ∅, goal ∉ P, U ≠ ∅       → either step
+**A2.3 resource_id stale nodes + undirected edges** (2026-04-24):
+
+Stale-graph nodes are the resource identity of the scope (file path or
+symbol), not ``(kind, scope)``. ``Read src/a.py``, ``Edit src/a.py``,
+``Grep src/a.py`` are the same node. Edges are *unordered* pairs of
+resources — a probe-and-return walk (A→B→A) registers 2 traversals of
+the single undirected edge {A, B}, not 2 distinct directed edges. This
+matches the paper's ``NoProgressSegment._edge_key(a, b) = (min, max)``
+semantics and makes D1 tests 1/2/7 pass.
 """
 
 from __future__ import annotations
@@ -57,8 +68,11 @@ if TYPE_CHECKING:
     from oida_code.models.obligation import Obligation
 
 
+_CODE_EDIT_KINDS: frozenset[str] = frozenset({"edit", "write"})
+
+
 # ---------------------------------------------------------------------------
-# Path normalization
+# Path + resource-id normalization (A2.3)
 # ---------------------------------------------------------------------------
 
 
@@ -66,8 +80,27 @@ def _normalize_path(p: str) -> str:
     return p.replace("\\", "/").lstrip("./")
 
 
+def _resource_id(scope_entry: str) -> str:
+    """Canonical resource identifier for stale-graph nodes.
+
+    File paths normalize via ``_normalize_path``. Scope entries in
+    ``file::symbol`` form keep the symbol so two distinct symbols in the
+    same file are still distinct resources — but all Read/Edit/Grep on
+    the same symbol share node identity.
+    """
+    norm = scope_entry.replace("\\", "/").lstrip("./")
+    return norm
+
+
+def _event_resource(ev: TraceEvent) -> str:
+    """Primary resource_id for a trace event. Empty scope → ``_none``."""
+    if not ev.scope:
+        return "_none"
+    return _resource_id(ev.scope[0])
+
+
 # ---------------------------------------------------------------------------
-# TrajectoryState — explicit state-before / state-after discipline (ADR-19)
+# TrajectoryState — ADR-19 explicit state-before / state-after discipline
 # ---------------------------------------------------------------------------
 
 
@@ -75,9 +108,8 @@ def _normalize_path(p: str) -> str:
 class TrajectoryState:
     """State of the audit-surface at a single tick, **before** some action.
 
-    ``TrajectoryState.build(events[:t], ...)`` is the state *before* the
-    agent takes action ``events[t]``. Do not pass ``events[:t+1]`` — that
-    would be ``state_after``, which is a different object.
+    ``TrajectoryState.build(events[:t], ...)`` is state *before* the
+    agent takes action ``events[t]``. Do not pass ``events[:t+1]``.
     """
 
     visited: frozenset[str]
@@ -108,12 +140,11 @@ class TrajectoryState:
 
 
 # ---------------------------------------------------------------------------
-# State construction primitives — operate on a prefix of events, never events[t]
+# State construction primitives
 # ---------------------------------------------------------------------------
 
 
 def _collect_visited(prefix: list[TraceEvent]) -> frozenset[str]:
-    """Paths read / grep'd / globbed up to (but not including) the current action."""
     return frozenset(
         _normalize_path(p)
         for ev in prefix
@@ -123,7 +154,6 @@ def _collect_visited(prefix: list[TraceEvent]) -> frozenset[str]:
 
 
 def _collect_closed(prefix: list[TraceEvent]) -> frozenset[str]:
-    """Obligation IDs closed by any event in the prefix."""
     return frozenset(oid for ev in prefix for oid in ev.closed_obligations)
 
 
@@ -132,11 +162,7 @@ def _pending_set(
     closed_ids: frozenset[str],
     visited_paths: frozenset[str],
 ) -> frozenset[str]:
-    """Obligations with status=open ∧ scope visited.
-
-    ADR-18 notes this is a coarse proxy for "prerequisites satisfied"; the
-    dependency-graph-aware version lands in Phase 3.5 Block C.
-    """
+    """Obligations with status=open ∧ scope visited."""
     out: set[str] = set()
     for o in obligations:
         if o.id in closed_ids:
@@ -150,7 +176,6 @@ def _pending_set(
 
 
 def _pick_goal(obligations: list[Obligation]) -> str | None:
-    """``source = "intent"`` wins; else heaviest weight; ties by id."""
     if not obligations:
         return None
     intent = [o for o in obligations if o.source == "intent"]
@@ -160,16 +185,24 @@ def _pick_goal(obligations: list[Obligation]) -> str | None:
 
 
 # ---------------------------------------------------------------------------
-# Case attribution (Table 1) — operates on state_before ONLY
+# Case attribution (Table 1 + terminal) — on state_before ONLY
 # ---------------------------------------------------------------------------
 
 
 def classify_case(state_before: TrajectoryState) -> CaseLabel:
-    """Paper Table 1 case attribution, on state **before** the action."""
+    """Paper Table 1 + ADR-19 A2.2 terminal extension.
+
+    Terminal fires when P=∅, U=∅, AND the goal has been closed. If the
+    goal exists but is not yet closed, we still land in the degenerate
+    exploit_goal branch (paper's |T|=0 case, rare in practice).
+    """
     u_empty = not state_before.unobserved
     p_empty = not state_before.pending
     goal_pending = (
         state_before.goal is not None and state_before.goal in state_before.pending
+    )
+    goal_closed = (
+        state_before.goal is not None and state_before.goal in state_before.closed
     )
 
     if p_empty and not u_empty:
@@ -180,26 +213,27 @@ def classify_case(state_before: TrajectoryState) -> CaseLabel:
         return "exploit_other"                     # Case 3
     if not p_empty and not goal_pending and not u_empty:
         return "either"                            # Case 4
-    # P = ∅ ∧ U = ∅: the trace has nothing left to do. Paper is silent;
-    # we classify it as exploit_goal with |T| = 0 so err(t) falls to the
-    # Gain = 0 → err = 1 branch whenever a further action is taken.
-    return "exploit_goal"
+    # P = ∅ ∧ U = ∅.
+    if goal_closed or state_before.goal is None:
+        return "terminal"                          # ADR-19 A2.2
+    return "exploit_goal"                          # |T|=0 degenerate
 
 
 def target_set_size(case: CaseLabel, state_before: TrajectoryState) -> int:
-    """|T(t)| from Table 1. Always computed on state_before."""
     if case == "exploration":
         return len(state_before.unobserved)
     if case == "exploit_goal":
         return 1
     if case == "exploit_other":
         return len(state_before.pending)
-    # "either" — paper: T = U union {l(u) : u in P}
-    return len(state_before.unobserved) + len(state_before.pending)
+    if case == "either":
+        return len(state_before.unobserved) + len(state_before.pending)
+    # terminal
+    return 0
 
 
 # ---------------------------------------------------------------------------
-# Gain + progress — operate on state_before + action (+ state_after for close)
+# Progress + gain (A2.1 split)
 # ---------------------------------------------------------------------------
 
 
@@ -208,11 +242,9 @@ def compute_gain(
     action: TraceEvent,
     state_after: TrajectoryState,
 ) -> bool:
-    """ADR-18 gain: entered unobserved-changed-file OR closed an obligation.
+    """Narrow, paper-faithful gain: entered U(t) OR closed an obligation.
 
-    Phase 3.5 Block-A contract: narrow set-membership gain. Evidence-based
-    richer variants (discovery/evidence/obligation/risk/counterexample) are
-    Phase 3.5 Block-B carry-over.
+    This is the ``Gain(t → t+1)`` used in the err-equation branch.
     """
     action_paths = {_normalize_path(p) for p in action.scope}
     if action_paths & state_before.unobserved:
@@ -221,55 +253,88 @@ def compute_gain(
     return bool(newly_closed)
 
 
-def is_progress_step(
+def is_progress_event(
     state_before: TrajectoryState,
     action: TraceEvent,
     state_after: TrajectoryState,
 ) -> bool:
     """Paper §4 progress event: entered unobserved cell OR closed a task.
 
-    Progress is computed from the *delta* between state_before and
-    state_after, keyed to the bounded-U(t) surface (ADR-18). Re-reading a
-    file already in ``state_before.visited`` is not progress even if the
-    tool returned fresh text.
+    Resets the no-progress segment. For Phase 3.5 Block A the predicate
+    coincides with ``compute_gain``; Block B extends it with verifier-
+    state-changed-to-passing and counterexample-found signals.
     """
-    action_paths = {_normalize_path(p) for p in action.scope}
-    if action_paths & state_before.unobserved:
+    return compute_gain(state_before, action, state_after)
+
+
+def compute_candidate_gain(
+    state_before: TrajectoryState,
+    action: TraceEvent,
+    state_after: TrajectoryState,
+    obligations: list[Obligation],
+) -> bool:
+    """A2.1 candidate_gain: weaker signal distinct from progress_event.
+
+    True when the action moved toward a target even if it did not yet
+    close one. Paper's intuition (author Answer2.md): a move in the
+    right direction should not be punished unless stale_score rises.
+
+    Implemented as the union of:
+
+    * ``is_progress_event``
+    * action touched a resource that scopes a pending obligation
+    * action is a ``test_run`` whose scope overlaps any pending
+      obligation's scope (ran-relevant-test proxy for Phase 3.5)
+    """
+    if is_progress_event(state_before, action, state_after):
         return True
-    newly_closed = state_after.closed - state_before.closed
-    return bool(newly_closed)
+
+    action_paths = {_normalize_path(p) for p in action.scope}
+    if not action_paths:
+        return False
+
+    pending_scopes: set[str] = set()
+    for o in obligations:
+        if o.id in state_before.pending:
+            path_half = _normalize_path(o.scope.split("::", 1)[0])
+            if path_half:
+                pending_scopes.add(path_half)
+
+    # Touched a pending-obligation resource OR ran tests that cover one.
+    # Conservative test-run rule: any test_run while obligations are
+    # pending counts as "ran relevant test" for Phase 3.5; Block B
+    # tightens this via a test-to-source map.
+    if action_paths & pending_scopes:
+        return True
+    return action.kind == "test_run" and bool(pending_scopes)
 
 
 # ---------------------------------------------------------------------------
-# Stale-score counters (c_t, e_t, n_t)
+# Stale-score counters (A2.3 resource_id nodes + undirected edges)
 # ---------------------------------------------------------------------------
 
 
 def _stale_counters(
     events: list[TraceEvent], segment_start: int, segment_end: int
 ) -> tuple[int, int, int]:
-    """Compute (c, e, n) for the no-progress window ``events[segment_start:segment_end]``.
+    """Compute (c_t, e_t, n_t) for ``events[segment_start : segment_end+1]``.
 
-    Nodes are ``(kind, scope[0] or '_none')``. The richer
-    resource-id-based nodes that treat ``Read foo.py`` and ``Edit foo.py``
-    as the same territory are Phase 3.5 Block-A carry-over per author's
-    item 7.
+    Nodes = ``_event_resource(ev)`` — same resource_id regardless of
+    action kind (A2.3). Edges = unordered pairs of consecutive node
+    identities (A2.3). Budgets = 2 per paper.
     """
     window = events[segment_start : segment_end + 1]
     if len(window) < 2:
         return 0, 0, 0
 
-    def _node(ev: TraceEvent) -> tuple[str, str]:
-        primary = _normalize_path(ev.scope[0]) if ev.scope else "_none"
-        return ev.kind, primary
-
-    node_visits: Counter[tuple[str, str]] = Counter()
-    edge_visits: Counter[tuple[tuple[str, str], tuple[str, str]]] = Counter()
-    nodes = [_node(ev) for ev in window]
+    nodes = [_event_resource(ev) for ev in window]
+    node_visits: Counter[str] = Counter()
+    edge_visits: Counter[tuple[str, str]] = Counter()
     for n in nodes:
         node_visits[n] += 1
     for a, b in pairwise(nodes):
-        edge_visits[(a, b)] += 1
+        lo, hi = (a, b) if a <= b else (b, a)
+        edge_visits[(lo, hi)] += 1  # undirected
 
     e_over = sum(max(m - 2, 0) for m in edge_visits.values())
     n_over = sum(max(m - 2, 0) for m in node_visits.values())
@@ -279,7 +344,7 @@ def _stale_counters(
 
 
 # ---------------------------------------------------------------------------
-# Segment classification
+# Segment classification + derivation
 # ---------------------------------------------------------------------------
 
 
@@ -334,14 +399,12 @@ def _derive_segments(timesteps: list[TimestepCase]) -> list[NoProgressSegment]:
 
 
 # ---------------------------------------------------------------------------
-# Main scoring loop — explicit state_before / action / state_after
+# Main scoring loop
 # ---------------------------------------------------------------------------
 
 
 @dataclass(slots=True)
 class _ScoringLoop:
-    """Mutable bookkeeping for the main loop; kept out of module state."""
-
     events: list[TraceEvent] = field(default_factory=list)
     changed_files: list[str] = field(default_factory=list)
     obligations: list[Obligation] = field(default_factory=list)
@@ -350,6 +413,7 @@ class _ScoringLoop:
     max_stale: int = 0
     prev_stale: int = 0
     last_progress_t: int = -1
+    suspicious_tail: int = 0
 
     def run(self) -> list[TimestepCase]:
         for t in range(len(self.events)):
@@ -357,28 +421,41 @@ class _ScoringLoop:
         return self.timesteps
 
     def _score_step(self, t: int) -> None:
-        # --- state_before, action, state_after (ADR-19 discipline) ---
         state_before = TrajectoryState.build(
-            self.events[:t],
-            self.changed_files,
-            self.obligations,
-            goal=self.goal,
+            self.events[:t], self.changed_files, self.obligations, goal=self.goal
         )
         action = self.events[t]
         state_after = TrajectoryState.build(
-            self.events[: t + 1],
-            self.changed_files,
-            self.obligations,
-            goal=self.goal,
+            self.events[: t + 1], self.changed_files, self.obligations, goal=self.goal
         )
 
-        # --- attribution uses state_before ONLY ---
         case = classify_case(state_before)
         t_size = target_set_size(case, state_before)
-        progress = is_progress_step(state_before, action, state_after)
+        progress = is_progress_event(state_before, action, state_after)
+        candidate = compute_candidate_gain(
+            state_before, action, state_after, self.obligations
+        )
+
+        # Terminal case: never flagged as error, tracks suspicious_tail.
+        if case == "terminal":
+            if action.kind in _CODE_EDIT_KINDS:
+                self.suspicious_tail += 1
+            self.timesteps.append(
+                TimestepCase(
+                    t=t,
+                    case=case,
+                    is_error=False,
+                    is_progress=False,
+                    candidate_gain=candidate,
+                    stale_score=0,
+                    gain=False,
+                    target_set_size=t_size,
+                )
+            )
+            return
 
         if progress:
-            self._emit_progress(t, case, t_size)
+            self._emit_progress(t, case, t_size, candidate)
             return
 
         gain = compute_gain(state_before, action, state_after)
@@ -400,13 +477,16 @@ class _ScoringLoop:
                 case=case,
                 is_error=is_error,
                 is_progress=False,
+                candidate_gain=candidate,
                 stale_score=stale,
                 gain=gain,
                 target_set_size=t_size,
             )
         )
 
-    def _emit_progress(self, t: int, case: CaseLabel, t_size: int) -> None:
+    def _emit_progress(
+        self, t: int, case: CaseLabel, t_size: int, candidate: bool
+    ) -> None:
         self.last_progress_t = t
         self.prev_stale = 0
         self.timesteps.append(
@@ -415,6 +495,7 @@ class _ScoringLoop:
                 case=case,
                 is_error=False,
                 is_progress=True,
+                candidate_gain=candidate,
                 stale_score=0,
                 gain=True,
                 target_set_size=t_size,
@@ -438,11 +519,7 @@ def score_trajectory(
     obligations: list[Obligation] | None = None,
     request: AuditRequest | None = None,
 ) -> TrajectoryMetrics:
-    """Score a trace end-to-end and produce :class:`TrajectoryMetrics`.
-
-    Deterministic, pure, no I/O. A zero-event trace returns a zeroed
-    metrics object.
-    """
+    """Score a trace end-to-end. Deterministic, pure, no I/O."""
     obligations = list(obligations or [])
     events = list(trace.events)
 
@@ -456,6 +533,8 @@ def score_trajectory(
             progress_events_count=0,
             exploration_steps=0,
             exploitation_steps=0,
+            terminal_steps=0,
+            suspicious_tail_count=0,
             segment_classifications=[],
             timesteps=[],
         )
@@ -471,13 +550,13 @@ def score_trajectory(
     )
     timesteps = loop.run()
 
-    # Normalizers per paper §5 Evaluation.
     exploration_steps = sum(
         1 for ts in timesteps if ts.case in ("exploration", "either")
     )
     exploitation_steps = sum(
         1 for ts in timesteps if ts.case in ("exploit_goal", "exploit_other", "either")
     )
+    terminal_steps = sum(1 for ts in timesteps if ts.case == "terminal")
     exploration_errors = sum(
         1 for ts in timesteps if ts.is_error and ts.case in ("exploration", "either")
     )
@@ -519,6 +598,8 @@ def score_trajectory(
         progress_events_count=progress_events_count,
         exploration_steps=exploration_steps,
         exploitation_steps=exploitation_steps,
+        terminal_steps=terminal_steps,
+        suspicious_tail_count=loop.suspicious_tail,
         segment_classifications=classifications,
         timesteps=timesteps,
     )
@@ -527,8 +608,9 @@ def score_trajectory(
 __all__ = [
     "TrajectoryState",
     "classify_case",
+    "compute_candidate_gain",
     "compute_gain",
-    "is_progress_step",
+    "is_progress_event",
     "score_trajectory",
     "target_set_size",
 ]

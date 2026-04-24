@@ -1,0 +1,21 @@
+{
+  "label": "terminal_tail",
+  "description": "ADR-19 A2.2 — after goal closed AND U empty, subsequent actions enter the terminal case. Post-terminal commits/reports must not inflate exploitation_error. Post-terminal code edits count toward suspicious_tail_count (a separate diagnostic).",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-pre-terminal001", "kind": "precondition", "scope": "src/a.py::f", "description": "goal", "status": "open", "source": "intent", "weight": 5}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "read target"},
+      {"t": 1, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "fix + close", "closed_obligations": ["o-pre-terminal001"]},
+      {"t": 2, "kind": "commit", "tool": "git", "scope": ["src/a.py"], "intent": "ship (terminal tail)"},
+      {"t": 3, "kind": "tool_call", "tool": "Bash", "scope": [], "intent": "post-ship report (terminal tail)"},
+      {"t": 4, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "SUSPICIOUS late edit in tail"}
+    ],
+    "progress": [
+      {"t": 1, "kind": "obligation_closed", "obligation_id": "o-pre-terminal001", "description": "closed"}
+    ],
+    "no_progress_segments": []
+  }
+}

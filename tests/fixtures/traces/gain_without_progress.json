@@ -1,0 +1,16 @@
+{
+  "label": "gain_without_progress",
+  "description": "ADR-19 A2.1 — candidate_gain can fire without progress_event. Agent reads src/a.py (the changed file, in U) at t=0 → that's progress. Then at t=1 runs pytest which touches an obligation-scoped file → candidate_gain=True (ran relevant test) but progress_event=False (no new file entered, no obligation closed). Exactly the 'move in the right direction without producing progress' branch the paper anticipates.",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-pre-gainsplit01", "kind": "precondition", "scope": "src/a.py::f", "description": "open obligation", "status": "open", "source": "intent", "weight": 3}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "discover a"},
+      {"t": 1, "kind": "test_run", "tool": "pytest", "scope": ["tests/test_a.py"], "intent": "run relevant test"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}

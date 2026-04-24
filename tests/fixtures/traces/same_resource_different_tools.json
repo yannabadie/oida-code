@@ -1,0 +1,18 @@
+{
+  "label": "resource_id_territory",
+  "description": "ADR-19 A2.3 — Read/Edit/Grep on the same file must share node identity in the stale graph. Pre-A2.3, (read, src/a.py) / (edit, src/a.py) / (grep, src/a.py) were 3 distinct nodes. Post-A2.3, they are all node 'src/a.py'. Includes an unreachable goal (intent-source obligation on unvisited scope) so the scorer stays in exploit_goal for t=1-3 rather than falling into terminal, letting the stale counter actually run.",
+  "changed_files": ["src/a.py"],
+  "obligations": [
+    {"id": "o-goal-never0001", "kind": "api_contract", "scope": "src/unvisited.py::goal_fn", "description": "goal scope never visited — keeps P=∅ without triggering terminal", "status": "open", "source": "intent", "weight": 5}
+  ],
+  "trace": {
+    "events": [
+      {"t": 0, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "read a (progress: enters U)"},
+      {"t": 1, "kind": "grep", "tool": "Grep", "scope": ["src/a.py"], "intent": "grep same file"},
+      {"t": 2, "kind": "edit", "tool": "Edit", "scope": ["src/a.py"], "intent": "edit same file"},
+      {"t": 3, "kind": "read", "tool": "Read", "scope": ["src/a.py"], "intent": "re-read same file (n_t crosses budget)"}
+    ],
+    "progress": [],
+    "no_progress_segments": []
+  }
+}
