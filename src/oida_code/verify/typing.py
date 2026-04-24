@@ -71,6 +71,7 @@ def run_type_check(repo_path: Path | str, *, budget_seconds: int = 60) -> ToolEv
         _MYPY_ARGS,
         repo_path=Path(repo_path),
         budget_seconds=budget_seconds,
+        python_module="mypy",
     )
 
     if result.status != "ok":

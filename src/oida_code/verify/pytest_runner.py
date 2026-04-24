@@ -80,6 +80,7 @@ def run_pytest(repo_path: Path | str, *, budget_seconds: int = 600) -> ToolEvide
     with tempfile.TemporaryDirectory(prefix="oida-pytest-") as tmpdir:
         xml_path = Path(tmpdir) / "junit.xml"
         argv = [
+            f"--rootdir={root}",
             f"--junit-xml={xml_path}",
             "-q",
             "--maxfail=50",
@@ -91,6 +92,7 @@ def run_pytest(repo_path: Path | str, *, budget_seconds: int = 600) -> ToolEvide
             argv,
             repo_path=root,
             budget_seconds=budget_seconds,
+            python_module="pytest",
         )
 
         if result.status != "ok":

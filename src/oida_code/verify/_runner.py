@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -49,23 +50,35 @@ def run_tool(
     *,
     repo_path: Path,
     budget_seconds: int,
+    python_module: str | None = None,
 ) -> RunResult:
     """Invoke ``binary argv*`` at ``repo_path`` with a wall-clock budget.
 
     ``status`` semantics::
 
         "ok"            binary ran to completion (any exit code)
-        "tool_missing"  ``shutil.which(binary)`` returned ``None``
+        "tool_missing"  ``shutil.which(binary)`` returned ``None`` (and
+                        ``python_module`` is not importable)
         "timeout"       exceeded ``budget_seconds``
         "error"         OSError / permission denied / other subprocess failure
 
+    When ``python_module`` is supplied and the module is importable in the
+    **current** interpreter, the call form becomes
+    ``[sys.executable, "-m", python_module, *argv]``. This is the fix for the
+    Phase 1 carry-over bug where ``shutil.which("pytest")`` resolved to a
+    pytest bound to a different Python than ``sys.executable`` and
+    ``oida_code`` imports failed in the subprocess.
+
     The caller is responsible for interpreting ``exit_code`` per tool contract.
     """
-    resolved = shutil.which(binary)
-    if resolved is None:
-        return RunResult(status="tool_missing", cmd=[binary, *argv])
-
-    cmd = [resolved, *argv]
+    cmd: list[str]
+    if python_module is not None and _module_importable(python_module):
+        cmd = [sys.executable, "-m", python_module, *argv]
+    else:
+        resolved = shutil.which(binary)
+        if resolved is None:
+            return RunResult(status="tool_missing", cmd=[binary, *argv])
+        cmd = [resolved, *argv]
     start = time.monotonic()
     try:
         proc = subprocess.run(
@@ -115,6 +128,16 @@ def tool_status_from_run(result: RunResult) -> ToolStatus:
     return result.status
 
 
+def _module_importable(module: str) -> bool:
+    """Return ``True`` if ``module`` can be resolved in the current interpreter."""
+    import importlib.util
+
+    try:
+        return importlib.util.find_spec(module) is not None
+    except (ValueError, ImportError):
+        return False
+
+
 def probe_version(binary: str, *, arg: str = "--version") -> str | None:
     """Return the first line of ``binary --version`` stdout, or ``None``.
 
@@ -143,4 +166,9 @@ def probe_version(binary: str, *, arg: str = "--version") -> str | None:
     return None
 
 
-__all__ = ["RunResult", "probe_version", "run_tool", "tool_status_from_run"]
+__all__ = [
+    "RunResult",
+    "probe_version",
+    "run_tool",
+    "tool_status_from_run",
+]

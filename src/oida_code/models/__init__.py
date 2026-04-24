@@ -38,6 +38,22 @@ from oida_code.models.normalized_event import (
     PreconditionSpec,
     ScenarioConfig,
 )
+from oida_code.models.obligation import (
+    EvidenceRequirement,
+    Obligation,
+    ObligationKind,
+    ObligationSource,
+    ObligationStatus,
+)
+from oida_code.models.trace import (
+    NoProgressClassification,
+    NoProgressSegment,
+    ProgressEvent,
+    ProgressKind,
+    Trace,
+    TraceEvent,
+    TraceEventKind,
+)
 
 __all__ = [
     "AuditReport",
@@ -45,12 +61,21 @@ __all__ = [
     "CommandsSpec",
     "CriticalFinding",
     "EvidenceKind",
+    "EvidenceRequirement",
     "Finding",
     "IntentSpec",
+    "NoProgressClassification",
+    "NoProgressSegment",
     "NormalizedEvent",
     "NormalizedScenario",
+    "Obligation",
+    "ObligationKind",
+    "ObligationSource",
+    "ObligationStatus",
     "PolicySpec",
     "PreconditionSpec",
+    "ProgressEvent",
+    "ProgressKind",
     "RepairPlan",
     "RepoSpec",
     "ReportSummary",
@@ -60,5 +85,8 @@ __all__ = [
     "ToolBudgets",
     "ToolEvidence",
     "ToolStatus",
+    "Trace",
+    "TraceEvent",
+    "TraceEventKind",
     "VerdictLabel",
 ]
