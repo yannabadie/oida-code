@@ -1,8 +1,10 @@
-"""Pydantic v2 model for the raw audit request (blueprint §5 A)."""
+"""Pydantic v2 model for the raw audit request (blueprint §5 A + PLAN.md §9)."""
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from oida_code.models.evidence import ToolBudgets
 
 
 class RepoSpec(BaseModel):
@@ -44,7 +46,10 @@ class PolicySpec(BaseModel):
 
 
 class AuditRequest(BaseModel):
-    """Raw audit intake produced by ``oida-code inspect`` (blueprint §5 A)."""
+    """Raw audit intake produced by ``oida-code inspect``.
+
+    Schema v1.1 (2026-04-24): added ``budgets`` field after advisor review.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -53,6 +58,7 @@ class AuditRequest(BaseModel):
     scope: ScopeSpec = Field(default_factory=ScopeSpec)
     commands: CommandsSpec = Field(default_factory=CommandsSpec)
     policy: PolicySpec = Field(default_factory=PolicySpec)
+    budgets: ToolBudgets = Field(default_factory=ToolBudgets)
 
 
 __all__ = [

@@ -1,10 +1,10 @@
 """Pydantic v2 I/O models for the ``oida-code`` public boundary.
 
-See blueprint §5 for the schema contracts. The three top-level models are:
+See PLAN.md §9 for schema versions.
 
-* :class:`AuditRequest` — raw audit intake (Pass 1 input)
-* :class:`NormalizedScenario` — deterministic-scorer input (Pass 2 input)
-* :class:`AuditReport` — final verdict + repair plan (pipeline output)
+* v1 (Phase 0): :class:`AuditRequest`, :class:`NormalizedScenario`, :class:`AuditReport`.
+* v1.1 (Phase 1): + :class:`Finding`, :class:`ToolEvidence`, :class:`ToolBudgets`,
+  :data:`VerdictLabel`.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from oida_code.models.audit_report import (
     CriticalFinding,
     RepairPlan,
     ReportSummary,
+    VerdictLabel,
 )
 from oida_code.models.audit_request import (
     AuditRequest,
@@ -22,6 +23,14 @@ from oida_code.models.audit_request import (
     PolicySpec,
     RepoSpec,
     ScopeSpec,
+)
+from oida_code.models.evidence import (
+    EvidenceKind,
+    Finding,
+    Severity,
+    ToolBudgets,
+    ToolEvidence,
+    ToolStatus,
 )
 from oida_code.models.normalized_event import (
     NormalizedEvent,
@@ -35,6 +44,8 @@ __all__ = [
     "AuditRequest",
     "CommandsSpec",
     "CriticalFinding",
+    "EvidenceKind",
+    "Finding",
     "IntentSpec",
     "NormalizedEvent",
     "NormalizedScenario",
@@ -45,4 +56,9 @@ __all__ = [
     "ReportSummary",
     "ScenarioConfig",
     "ScopeSpec",
+    "Severity",
+    "ToolBudgets",
+    "ToolEvidence",
+    "ToolStatus",
+    "VerdictLabel",
 ]

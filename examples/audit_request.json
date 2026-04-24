@@ -25,5 +25,12 @@
     "max_critical_findings": 0,
     "min_mutation_score": 0.65,
     "min_property_checks": 50
+  },
+  "budgets": {
+    "lint": 30,
+    "types": 60,
+    "tests": 600,
+    "semgrep": 120,
+    "codeql": 900
   }
 }
