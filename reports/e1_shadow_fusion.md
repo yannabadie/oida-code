@@ -24,8 +24,8 @@ oida-code score-trace trace.jsonl --request request.json \
 | `tests/test_e1_shadow_fusion.py` | 14 E1 tests | ~330 |
 | `reports/e1_shadow_fusion.md` | this report | — |
 
-Gates: ruff clean, mypy clean (52 src), **242/242 unit tests pass**
-(was 225 at v0.4.2, +17 = 3 E1.0 + 14 E1).
+Gates: ruff clean, mypy clean (52 src), **250/250 unit tests pass**
+(was 225 at v0.4.2, +17 E0.1+E1 +8 E1.1 = 250).
 
 ---
 
@@ -51,35 +51,57 @@ signal that drives shadow_debt_pressure honest.
 
 ---
 
-## 3. ShadowFusionReport schema
+## 3. ShadowFusionReport schema (E1.1 hardened)
 
 ```python
 class ShadowFusionReport(BaseModel):
-    authoritative: Literal[False] = False     # pinned by type
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,                                # E1.1 §point 1
+        validate_assignment=True,                   # E1.1 §point 1
+    )
+
+    authoritative: Literal[False] = False           # pinned by type
     status: Literal[
         "experimental",
         "unsupported_input",
         "blocked_by_readiness",
     ]
-    readiness_status: FusionStatus            # forwarded from FusionReadinessReport
-    event_scores: list[ShadowEventScore]
+    readiness_status: FusionStatus                  # from FusionReadinessReport
+    event_scores: tuple[ShadowEventScore, ...] = () # E1.1: tuple, not list
     graph_summary: ShadowGraphSummary
     trajectory_summary: ShadowTrajectorySummary | None
-    blockers: list[str]
-    warnings: list[str]
+    blockers: tuple[str, ...] = ()                  # E1.1: tuple, not list
+    warnings: tuple[str, ...] = ()                  # E1.1: tuple, not list
     recommendation: str
 ```
 
-Per-event:
+Per-event (also frozen with `validate_assignment=True`):
 
 ```python
 class ShadowEventScore(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, validate_assignment=True)
+
     event_id: str
     base_pressure: float                      # ∈ [0, 1]
     shadow_debt_pressure: float               # ∈ [0, 1] — constitutive prop
     shadow_integrity_pressure: float          # ∈ [0, 1] — supportive prop
     graph_propagation_pressure: float         # ∈ [0, 1] — delta vs base
 ```
+
+**E1.1 hardening (QA/A12.md):**
+
+* `frozen=True` rejects attribute reassignment at runtime.
+* `validate_assignment=True` re-runs validators on any reassignment
+  attempt — `Literal[False]` on `authoritative` rejects `True` even if
+  `frozen` were lifted.
+* Public collections are `tuple[...]`, not `list[...]` — no `.append`,
+  no slice assignment, no in-place mutation.
+* Re-validating a payload with `authoritative=true` raises
+  `ValidationError`.
+* Goal: integrator-friendliness, not absolute defence against
+  `object.__setattr__`. A normal integrator cannot mutate the report
+  and pretend it became authoritative.
 
 **The names are deliberate (per A11.md):** `shadow_debt_pressure` /
 `shadow_integrity_pressure` — NOT `shadow_v_net`. V_net has formal
@@ -89,17 +111,28 @@ real V_net.
 
 ---
 
-## 4. Formula and weights (verbatim from A11.md)
+## 4. Formula and weights (verbatim from A11.md, E1.1 missing-grounding fix)
 
 ```text
+grounding_pressure(event) =                # E1.1: distinguishes missing vs zero
+    (0.5,  False)        if no preconditions
+    (1 - verified_frac, True) otherwise
+
 base_pressure(event) =
-    0.40 * (1 - grounding)
+    0.40 * grounding_pressure(event).pressure
   + 0.20 * static_failure_pressure
   + 0.25 * trajectory_pressure
   + 0.15 * (1 - completion)
 ```
 
 * `grounding` — fraction of weighted preconditions verified on the event.
+  **E1.1 (A12.md §point 2):** an event with NO precondition model now
+  contributes a NEUTRAL `0.5` to the grounding component (not the pre-
+  E1.1 `1.0` max-pressure value), and the `warnings` field surfaces a
+  `"missing grounding model on N event(s)"` notice. An event with a
+  REAL ZERO grounding (model exists, 0/N verified) still contributes
+  `1.0` — a real negative signal. The two cases produce numerically
+  distinct base_pressure values.
 * `static_failure_pressure` — `1 - operator_accept` (proxied through the
   mapper's ruff/mypy fold).
 * `trajectory_pressure` — `max(exploration_error, exploitation_error)`
@@ -212,6 +245,31 @@ to `parent_base * 0.60 * 0.80 = 0.48` even when its local base was 0.
 
 ---
 
+## 10.5. E1.1 hardening summary (post-A12.md sync)
+
+Three concrete patches applied AFTER the initial E1 commit, before E2:
+
+1. **Frozen Pydantic models + tuples** on `ShadowFusionReport`,
+   `ShadowEventScore`, `ShadowGraphSummary`,
+   `ShadowTrajectorySummary`. `event_scores`, `blockers`, `warnings`
+   are tuples on the public surface. 4 tests assert that
+   `shadow.authoritative = True` raises `ValidationError`,
+   `event_scores.append(...)` is unavailable, `model_validate(
+   {..., "authoritative": True})` raises, and nested
+   `ShadowEventScore` is also frozen.
+2. **Missing-grounding semantics.** `_grounding_pressure(event)`
+   returns `(pressure, is_real)`. No preconditions → `(0.5, False)`
+   neutral + warning. Preconditions exist with 0/N verified →
+   `(1.0, True)` real negative signal. 4 tests assert
+   numerical and warning-level distinction between the two cases.
+3. **README aligned**: "Phase 3.5 + E1 complete", "250/250 tests",
+   E2/E3 pending mentioned.
+
+Eight new tests in `tests/test_e1_shadow_fusion.py` (the +8 from the
+242→250 jump). The shadow formula and propagation logic are
+unchanged structurally — E1.1 only hardened the type discipline and
+fixed the grounding semantics that pre-E1.1 conflated with real-zero.
+
 ## 11. Decision: keep / revise / reject shadow formula
 
 **Decision: keep, mark experimental, opt-in only. Do not promote to
@@ -249,7 +307,7 @@ same shape; until then it stays here.
 |---|---|
 | ruff check src/ tests/ scripts/ | **clean** |
 | mypy src/ | **clean** (52 files) |
-| pytest tests/ (unit slice) | **242 / 242 PASS** |
+| pytest tests/ (unit slice) | **250 / 250 PASS (E1.1)** |
 | E1.0 grounding-zero tests | 3 / 3 |
 | E1 invariant tests | 10 / 10 |
 | E1 D2 fixture comparisons | 4 / 4 |
