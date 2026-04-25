@@ -42,7 +42,8 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -57,6 +58,7 @@ from oida_code._vendor.oida_framework.models import (
 )
 from oida_code.extract.blast_radius import estimate_blast_radius
 from oida_code.extract.dependencies import (
+    DependencyEdge,
     DependencyGraphResult,
     build_dependency_graph,
 )
@@ -69,6 +71,13 @@ from oida_code.models.normalized_event import (
     ScenarioConfig,
 )
 from oida_code.models.obligation import Obligation
+from oida_code.score.event_evidence import (
+    EventEvidenceView,
+    build_event_evidence_view,
+    event_completion_from_view,
+    event_operator_accept_from_view,
+    event_tests_pass_from_view,
+)
 
 _PATTERN_ID_CLEAN = re.compile(r"[^a-zA-Z0-9_]+")
 
@@ -628,39 +637,92 @@ def _task_summary(obligation: Obligation) -> str:
     return obligation.description.strip()[:140] or f"{obligation.kind} @ {obligation.scope}"
 
 
-def obligations_to_scenario(
+@dataclass(frozen=True, slots=True)
+class ScoringInputs:
+    """E3.0 (QA/A14.md, ADR-24) — bundled outputs of the scoring driver.
+
+    Keeps the existing :func:`obligations_to_scenario` return shape
+    untouched (``NormalizedScenario``) while exposing the dependency
+    graph, the per-event evidence view, and the edge-confidence
+    mapping that downstream consumers (shadow fusion, future
+    estimators) need without recomputing them.
+    """
+
+    scenario: NormalizedScenario
+    graph: DependencyGraphResult
+    obligation_to_event_id: Mapping[str, str]
+    edge_confidences: dict[tuple[str, str, str], float] = field(
+        default_factory=dict,
+    )
+    evidence_view: dict[str, EventEvidenceView] = field(default_factory=dict)
+
+
+def edge_confidences_from_dependency_graph(
+    graph: DependencyGraphResult,
+    obligation_to_event_id: Mapping[str, str],
+) -> dict[tuple[str, str, str], float]:
+    """Translate :class:`DependencyEdge` confidences into the
+    ``(parent_event_id, child_event_id, kind) -> confidence`` mapping
+    that :func:`compute_experimental_shadow_fusion` accepts (ADR-23 §5
+    Option B).
+
+    Edges whose parent or child obligation isn't in the event id
+    mapping are silently skipped — they reference obligations outside
+    the current scenario and would never propagate anyway.
+    """
+    out: dict[tuple[str, str, str], float] = {}
+    for edge_kind, edges in (
+        ("constitutive", graph.constitutive_edges),
+        ("supportive", graph.supportive_edges),
+    ):
+        for edge in edges:
+            assert isinstance(edge, DependencyEdge)
+            parent_event = obligation_to_event_id.get(edge.parent_id)
+            child_event = obligation_to_event_id.get(edge.child_id)
+            if parent_event is None or child_event is None:
+                continue
+            out[(parent_event, child_event, edge_kind)] = float(edge.confidence)
+    return out
+
+
+def build_scoring_inputs(
     obligations: list[Obligation],
     request: AuditRequest | None = None,
     tool_evidence: list[ToolEvidence] | None = None,
     *,
     name: str | None = None,
     description: str | None = None,
-) -> NormalizedScenario:
-    """Synthesize a :class:`NormalizedScenario` from obligations + evidence.
+) -> ScoringInputs:
+    """E3.0 entry point — produce scenario + graph + edge_confidences +
+    per-event evidence view in a single deterministic pass.
 
-    See the module docstring for the default-origin table. This function is
-    deliberately pure; it never hits the filesystem or subprocess.
+    Wraps :func:`obligations_to_scenario` plus the graph and view
+    builders so callers (CLI, smoke scripts, tests) can wire the
+    shadow fusion's ``edge_confidences`` parameter without recomputing
+    the dependency graph.
     """
     if not obligations:
-        return NormalizedScenario(
-            name=name or (request.intent.summary[:80] if request else "empty"),
-            description=description or "No obligations extracted.",
-            events=[],
+        empty_graph = DependencyGraphResult(
+            obligations=[],
+            constitutive_edges=[],
+            supportive_edges=[],
+        )
+        return ScoringInputs(
+            scenario=NormalizedScenario(
+                name=name or (request.intent.summary[:80] if request else "empty"),
+                description=description or "No obligations extracted.",
+                events=[],
+            ),
+            graph=empty_graph,
+            obligation_to_event_id={},
+            edge_confidences={},
+            evidence_view={},
         )
 
-    tests_pass_value = _tests_pass_from_evidence(tool_evidence)
-    completion_value = _completion_from_evidence(tool_evidence)
-    operator_value = _operator_accept_from_evidence(tool_evidence)
-
     changed_files = list(request.scope.changed_files) if request else []
-
-    # ADR-21: build the bounded dependency graph over obligation IDs,
-    # then translate obligation IDs → event IDs for the vendored
-    # NormalizedEvent.constitutive_parents / supportive_parents fields.
     repo_path = Path(request.repo.path) if request else Path(".")
-    graph: DependencyGraphResult = build_dependency_graph(
-        obligations, repo_path, changed_files
-    )
+    graph = build_dependency_graph(obligations, repo_path, changed_files)
+
     ob_id_to_event_id: dict[str, str] = {
         ob.id: _event_id_for(idx, ob) for idx, ob in enumerate(obligations)
     }
@@ -673,27 +735,29 @@ def obligations_to_scenario(
             if pid in ob_id_to_event_id
         )
 
-    # ADR-20 Option A: no automatic ``_link_evidence_to_obligations``.
-    # Obligations enter with their declared status; per-child evidence
-    # evaluation happens inside ``_preconditions_for``.
-    events: list[NormalizedEvent] = []
+    # First pass — build events with placeholder defaults so we can
+    # construct an EventEvidenceView keyed by the right event ids.
+    placeholder_events: list[NormalizedEvent] = []
+    event_scopes: dict[str, tuple[str, ...]] = {}
     for idx, ob in enumerate(obligations):
         data_signal = _data_signal_for_scope(ob.scope)
         reversibility = round(max(0.0, min(1.0, 1.0 - data_signal)), 6)
-        blast = round(data_signal, 6)  # scope-local blast; aggregate is elsewhere.
-        events.append(
+        blast = round(data_signal, 6)
+        ev_id = _event_id_for(idx, ob)
+        event_scopes[ev_id] = (ob.scope,)
+        placeholder_events.append(
             NormalizedEvent(
-                id=_event_id_for(idx, ob),
+                id=ev_id,
                 pattern_id=_pattern_id_for(ob),
                 task=_task_summary(ob),
-                capability=0.5,  # default — Phase 4 LLM
+                capability=0.5,
                 reversibility=reversibility,
-                observability=0.5,  # default — Phase 4 uses test-file presence
+                observability=0.5,
                 blast_radius=blast,
-                completion=completion_value,
-                tests_pass=tests_pass_value,
-                operator_accept=operator_value,
-                benefit=0.5,  # default — Phase 4 LLM from intent
+                completion=0.5,
+                tests_pass=0.5,
+                operator_accept=0.5,
+                benefit=0.5,
                 preconditions=_preconditions_for(ob, tool_evidence, changed_files),
                 constitutive_parents=_parent_event_ids(ob.id, "constitutive"),
                 supportive_parents=_parent_event_ids(ob.id, "supportive"),
@@ -701,17 +765,80 @@ def obligations_to_scenario(
             )
         )
 
+    placeholder_scenario = NormalizedScenario(
+        name="placeholder", description="", events=placeholder_events,
+    )
+    evidence_view = build_event_evidence_view(
+        placeholder_scenario,
+        tool_evidence,
+        event_scopes=event_scopes,
+    )
+
+    # Second pass — rebuild each event with per-event evidence-derived
+    # completion / tests_pass / operator_accept. NormalizedEvent isn't
+    # frozen so model_copy is safe here.
+    events: list[NormalizedEvent] = []
+    for ev in placeholder_events:
+        view = evidence_view.get(ev.id)
+        if view is None:
+            events.append(ev)
+            continue
+        events.append(
+            ev.model_copy(update={
+                "completion": event_completion_from_view(view),
+                "tests_pass": event_tests_pass_from_view(view),
+                "operator_accept": event_operator_accept_from_view(view),
+            })
+        )
+
     scenario_name = name or (
-        request.intent.summary[:80] if request and request.intent.summary else "oida-code-audit"
+        request.intent.summary[:80]
+        if request and request.intent.summary
+        else "oida-code-audit"
     )
     scenario_desc = description or (
         f"Synthesized scenario for {len(obligations)} obligation(s)"
     )
-    return NormalizedScenario(
+    scenario = NormalizedScenario(
         name=scenario_name,
         description=scenario_desc,
         events=events,
     )
+    edge_confidences = edge_confidences_from_dependency_graph(
+        graph, ob_id_to_event_id,
+    )
+    return ScoringInputs(
+        scenario=scenario,
+        graph=graph,
+        obligation_to_event_id=ob_id_to_event_id,
+        edge_confidences=edge_confidences,
+        evidence_view=evidence_view,
+    )
+
+
+def obligations_to_scenario(
+    obligations: list[Obligation],
+    request: AuditRequest | None = None,
+    tool_evidence: list[ToolEvidence] | None = None,
+    *,
+    name: str | None = None,
+    description: str | None = None,
+) -> NormalizedScenario:
+    """Synthesize a :class:`NormalizedScenario` from obligations + evidence.
+
+    Thin wrapper over :func:`build_scoring_inputs`; existing callers
+    that only need the scenario continue to work unchanged. Callers
+    that need the dependency graph, per-event evidence view, or
+    edge-confidence map should call :func:`build_scoring_inputs`
+    directly.
+    """
+    return build_scoring_inputs(
+        obligations,
+        request=request,
+        tool_evidence=tool_evidence,
+        name=name,
+        description=description,
+    ).scenario
 
 
 def analyze_scenario(scenario: NormalizedScenario) -> dict[str, Any]:
@@ -728,7 +855,10 @@ def analyze_scenario(scenario: NormalizedScenario) -> dict[str, Any]:
 
 
 __all__ = [
+    "ScoringInputs",
     "analyze_scenario",
+    "build_scoring_inputs",
+    "edge_confidences_from_dependency_graph",
     "obligations_to_scenario",
     "pydantic_to_vendored",
     "vendored_to_pydantic",

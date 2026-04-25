@@ -537,25 +537,41 @@ def score_trace_cmd(
         metrics.model_dump_json(exclude={"timesteps"})
     )
     if experimental_shadow_fusion and request_obj is not None:
+        from oida_code.estimators.readiness import assess_estimator_readiness
         from oida_code.score.experimental_shadow_fusion import (
             compute_experimental_shadow_fusion,
         )
         from oida_code.score.fusion_readiness import assess_fusion_readiness
-        from oida_code.score.mapper import obligations_to_scenario
+        from oida_code.score.mapper import build_scoring_inputs
 
-        scenario = obligations_to_scenario(
-            obligations, request=request_obj, tool_evidence=None
+        # E3.0 (ADR-24): build_scoring_inputs exposes the dependency
+        # graph's per-edge confidences so shadow fusion uses real
+        # DependencyEdge.confidence values instead of the uniform 0.6
+        # default. Tool evidence stays None at score-trace time — the
+        # full audit pipeline runs the verifiers; score-trace only
+        # consumes pre-collected facts. The estimator readiness
+        # ladder (E3.4) sits beside the official readiness gate and
+        # describes what the deterministic baseline can claim.
+        inputs = build_scoring_inputs(
+            obligations, request=request_obj, tool_evidence=None,
         )
         readiness = assess_fusion_readiness(
-            scenario, tool_evidence=None, trajectory_metrics=metrics
+            inputs.scenario, tool_evidence=None, trajectory_metrics=metrics,
+        )
+        estimator_report = assess_estimator_readiness(
+            inputs.scenario, inputs.evidence_view, request=request_obj,
         )
         shadow = compute_experimental_shadow_fusion(
-            scenario,
+            inputs.scenario,
             readiness,
             tool_evidence=None,
             trajectory_metrics=metrics,
+            edge_confidences=inputs.edge_confidences,
         )
         payload["readiness"] = json.loads(readiness.model_dump_json())
+        payload["estimator_readiness"] = json.loads(
+            estimator_report.model_dump_json()
+        )
         payload["experimental_shadow_fusion"] = json.loads(
             shadow.model_dump_json()
         )

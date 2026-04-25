@@ -75,6 +75,83 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-25 16:00:00] - **ADR-24: Estimator contracts before Phase-4 LLM verifier.**
+
+**Why:** Phase 3.5 + E1 + E2 shipped a structurally validated shadow
+fusion that is monotone, bounded, channel-clean, and non-authoritative.
+But the real-repo smoke (E2 §9) showed every event lands at exactly
+the same `0.475` pressure on production codebases — every load-bearing
+input is a structural default. Before introducing any LLM verifier we
+must define **what** an estimator is contractually allowed to claim,
+**how** confidence relates to source, and **when** an estimate may
+unblock official fusion. Without those guardrails, an LLM estimate
+could quietly become authoritative just because nothing rejected it.
+
+**Decision (E3 protocol):**
+
+* E3.0 — wire deterministic evidence into per-event signals
+  (`EventEvidenceView`, edge_confidences from `DependencyEdge`).
+* E3.1 — frozen `SignalEstimate` + `EstimatorReport` schemas.
+* E3.2 — deterministic baselines for `capability` / `benefit` /
+  `observability` (default-blocking; require Phase 4 LLM for real
+  signal) and per-event completion / tests_pass / operator_accept
+  derived from `EventEvidenceView`.
+* E3.3 — `LLMEstimatorInput` / `LLMEstimatorOutput` contracts
+  (schemas only, no implementation).
+* E3.4 — `assess_estimator_readiness` ladder (blocked /
+  diagnostic_only / shadow_ready / official_ready_candidate). The
+  `official_ready_candidate` status is reserved — production CLI
+  must NOT emit official `V_net` even at this status until a
+  follow-up ADR explicitly unlocks it (ADR-22 still holds).
+
+**Accepted:**
+
+* Deterministic evidence plumbing first; no LLM in this phase.
+* Frozen `SignalEstimate` schema with model-level invariants.
+* Confidence separated from value (a high value with confidence=0.0
+  is information-poor, not a confident estimate).
+* `source` distinguishes `default` / `missing` from
+  `tool` / `static_analysis` / `test_result` / `hybrid` / `llm` /
+  `heuristic`.
+* LLM estimates are diagnostic unless corroborated:
+  * `source="llm"` → `confidence ≤ 0.6`
+  * `source="hybrid"` → `confidence ≤ 0.8`
+  * `is_authoritative=True` only for tool-grounded narrow fields
+* LLM output must cite `cited_evidence_refs`; uncited high-confidence
+  claims fail validation.
+
+**Rejected:**
+
+* Filling `capability` / `benefit` / `observability` with raw LLM scores.
+* Treating LLM self-reported confidence as evidence.
+* Unlocking official `V_net` from shadow pressure or estimator output
+  alone.
+* Hiding missing fields behind neutral 0.5 defaults without flagging
+  them as `is_default=True` + `confidence=0.0`.
+* Modifying the vendored OIDA core (ADR-02 still holds).
+
+**Wiring decisions (E3.0 §1):** chose **Option B** (already in ADR-23
+§5) — `NormalizedEvent` schema unchanged; `edge_confidences` flows
+through `compute_experimental_shadow_fusion`'s parameter, populated
+from `DependencyEdge.confidence` via
+`edge_confidences_from_dependency_graph`. CLI score-trace uses
+`build_scoring_inputs` to produce the bundle in a single pass.
+
+**Wiring decisions (E3.4):** `EstimatorReport` is now emitted
+alongside `FusionReadinessReport` in the CLI score-trace JSON
+payload (`payload["estimator_readiness"]`). It does NOT replace the
+official readiness gate — the two coexist by design. The estimator
+ladder describes what the estimator can claim; the official gate
+describes what the user is allowed to publish.
+
+**Outcome:** all 19 acceptance criteria from QA/A14.md met
+structurally. `EventEvidenceView` differentiates per-event evidence;
+`SignalEstimate` rejects sloppy authoritative claims; the LLM
+contract caps confidence and requires citations. The deterministic
+baseline keeps `capability` / `benefit` defaulting → official fusion
+remains blocked at v0.4.x. Report:
+`reports/e3_estimator_contracts.md`.
+
 [2026-04-25 14:00:00] - **ADR-23: Shadow formula decision protocol (E2).**
 
 **Why:** E1 (commit `92224c7`) shipped the shadow fusion as opt-in

@@ -37,17 +37,14 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from oida_code.extract.dependencies import (
-    build_dependency_graph,
-    derive_audit_surface,
-)
+from oida_code.extract.dependencies import derive_audit_surface
 from oida_code.extract.obligations import extract_obligations
 from oida_code.models.audit_request import AuditRequest, RepoSpec, ScopeSpec
 from oida_code.score.experimental_shadow_fusion import (
     compute_experimental_shadow_fusion,
 )
 from oida_code.score.fusion_readiness import assess_fusion_readiness
-from oida_code.score.mapper import obligations_to_scenario
+from oida_code.score.mapper import build_scoring_inputs
 
 
 @dataclass
@@ -139,16 +136,22 @@ def _smoke_one(name: str, repo: Path, *, n_commits: int = 5) -> ShadowSmokeResul
             changed = _sample_repo_python_files(repo)
         surface = derive_audit_surface(repo, changed, mode="impact", max_files=50)
         obligations = extract_obligations(repo, surface)
-        graph = build_dependency_graph(obligations, repo, surface)
         request = AuditRequest(
             repo=RepoSpec(
                 path=str(repo), revision="HEAD", base_revision="HEAD^",
             ),
             scope=ScopeSpec(changed_files=surface, language="python"),
         )
-        scenario = obligations_to_scenario(obligations, request=request)
+        # E3.0 (ADR-24) — single pass: scenario + dependency graph
+        # + per-event evidence view + edge_confidences.
+        inputs = build_scoring_inputs(obligations, request=request)
+        scenario = inputs.scenario
+        graph = inputs.graph
         readiness = assess_fusion_readiness(scenario)
-        shadow = compute_experimental_shadow_fusion(scenario, readiness)
+        shadow = compute_experimental_shadow_fusion(
+            scenario, readiness,
+            edge_confidences=inputs.edge_confidences,
+        )
     except Exception as exc:  # defensive: report and move on
         return ShadowSmokeResult(
             name=name,
