@@ -1,4 +1,4 @@
-"""Phase 4.3-D (QA/A19.md, ADR-28) — calibration metrics schema.
+"""Phase 4.3-D + 4.3.1 (QA/A19.md + QA/A20.md, ADR-28) — calibration metrics.
 
 Frozen Pydantic shape carrying every aggregate measurement the
 runner produces. ADR-28 forbids product threshold tuning on this
@@ -8,6 +8,17 @@ on controlled cases, not predictive performance.
 Macro-F1 is required because the three claim outcomes (accepted /
 unsupported / rejected) are imbalanced in the pilot — accuracy alone
 would let a "always say accepted" runner look fine.
+
+4.3.1-A honest leak metric: ``official_field_leak_count`` is now an
+``int >= 0`` (was ``Literal[0]``) so a real leak is **measurable**.
+``assert_no_official_field_leaks`` is the gate; the eval script
+exits non-zero when the count is positive. ADR-28's invariant ("no
+leak") becomes runtime-enforced rather than schema-impossible.
+
+4.3.1-B nullable code-outcome metrics: ``f2p_pass_rate_on_expected_fixed``
+and ``p2p_preservation_rate`` are ``Optional[float]`` so a missing
+stability report yields ``null`` + ``code_outcome_status="not_computed"``
+instead of a bogus 0.0.
 """
 
 from __future__ import annotations
@@ -17,12 +28,17 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+CodeOutcomeStatus = Literal["not_computed", "from_stability_report"]
+
 
 class CalibrationMetrics(BaseModel):
     """Aggregate metrics produced by ``run_calibration_eval.py``.
 
-    All rates are in ``[0.0, 1.0]``. ``official_field_leak_count``
-    MUST be 0 — any leak is a bug, regardless of metric quality.
+    All rate fields are in ``[0.0, 1.0]``. ``official_field_leak_count``
+    MUST end up at 0 in any accepted run — but the schema represents
+    it as a non-negative ``int`` so a leak is **detectable** instead
+    of structurally impossible. Use :func:`assert_no_official_field_leaks`
+    or check the eval script's exit code.
     """
 
     model_config = ConfigDict(
@@ -50,16 +66,49 @@ class CalibrationMetrics(BaseModel):
     shadow_bucket_accuracy: float = Field(ge=0.0, le=1.0)
     shadow_pairwise_order_accuracy: float = Field(ge=0.0, le=1.0)
 
-    f2p_pass_rate_on_expected_fixed: float = Field(ge=0.0, le=1.0)
-    p2p_preservation_rate: float = Field(ge=0.0, le=1.0)
+    # 4.3.1-B — Optional[float] so a missing stability report is
+    # honest instead of bogus 0.0.
+    f2p_pass_rate_on_expected_fixed: float | None = Field(
+        default=None, ge=0.0, le=1.0,
+    )
+    p2p_preservation_rate: float | None = Field(
+        default=None, ge=0.0, le=1.0,
+    )
     flaky_case_count: int = Field(ge=0)
+    code_outcome_status: CodeOutcomeStatus = "not_computed"
 
     safety_block_rate: float = Field(ge=0.0, le=1.0)
     fenced_injection_rate: float = Field(ge=0.0, le=1.0)
 
-    official_field_leak_count: Literal[0] = 0
+    # 4.3.1-A — honest leak metric. MUST be 0 in any accepted run;
+    # the eval script exits non-zero when this is positive.
+    official_field_leak_count: int = Field(default=0, ge=0)
 
     notes: str = ""
+
+
+class OfficialFieldLeakError(AssertionError):
+    """Raised by :func:`assert_no_official_field_leaks` when the count
+    is positive — the runner has detected at least one official-field
+    leak somewhere in the calibration run. Provider promotion is
+    forbidden when this fires (ADR-28 + ADR-29)."""
+
+
+def assert_no_official_field_leaks(metrics: CalibrationMetrics) -> None:
+    """Raise :class:`OfficialFieldLeakError` if ``metrics`` reports any
+    leak. Use this from the eval script before declaring success.
+
+    The schema permits ``official_field_leak_count > 0`` so the count
+    itself remains **measurable**; this helper is the runtime gate
+    that prevents promotion of a leaky run.
+    """
+    if metrics.official_field_leak_count > 0:
+        raise OfficialFieldLeakError(
+            f"calibration run reports "
+            f"official_field_leak_count={metrics.official_field_leak_count}; "
+            "ADR-22 + ADR-28 + ADR-29 forbid provider acceptance under "
+            "any leak. Inspect per_case.json for the offending cases."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +207,9 @@ def pairwise_order_accuracy(
 
 __all__ = [
     "CalibrationMetrics",
+    "CodeOutcomeStatus",
+    "OfficialFieldLeakError",
+    "assert_no_official_field_leaks",
     "macro_f1_from_confusion",
     "pairwise_order_accuracy",
     "precision",

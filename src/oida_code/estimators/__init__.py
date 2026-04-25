@@ -54,6 +54,14 @@ from oida_code.estimators.llm_provider import (
     OptionalExternalLLMProvider,
     build_provider,
 )
+from oida_code.estimators.provider_config import (
+    ProviderProfile,
+    get_predefined_profile,
+)
+from oida_code.estimators.providers import (
+    OpenAICompatibleChatProvider,
+    ProviderRawResponse,
+)
 
 __all__ = [
     "LLM_CONFIDENCE_CAP_HYBRID",
@@ -73,7 +81,10 @@ __all__ = [
     "LLMProvider",
     "LLMProviderError",
     "LLMProviderUnavailable",
+    "OpenAICompatibleChatProvider",
     "OptionalExternalLLMProvider",
+    "ProviderProfile",
+    "ProviderRawResponse",
     "SignalEstimate",
     "build_provider",
     "estimate_all_for_event",
@@ -83,6 +94,7 @@ __all__ = [
     "estimate_observability",
     "estimate_operator_accept",
     "estimate_tests_pass",
+    "get_predefined_profile",
     "render_prompt",
     "run_llm_estimator",
 ]

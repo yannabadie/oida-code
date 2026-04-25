@@ -15,7 +15,7 @@ import json
 import sys
 from enum import StrEnum
 from pathlib import Path
-from typing import Annotated, NoReturn
+from typing import Annotated, Any, NoReturn
 
 import typer
 
@@ -620,9 +620,13 @@ def estimate_llm_cmd(
         str,
         typer.Option(
             "--llm-provider",
-            help="Provider name: 'replay' (default), 'fake', or 'external' "
-            "(opt-in; requires the OIDA_LLM_API_KEY env var). External is "
-            "a Phase 4.0 contract stub; no real call is made yet.",
+            help=(
+                "Provider name: 'replay' (default; reads "
+                "--llm-response-fixture), 'fake', 'external' (Phase "
+                "4.0 stub — no call), or 'openai-compatible' (Phase "
+                "4.4 — real provider; requires --provider-profile + "
+                "--api-key-env). No external API call by default."
+            ),
         ),
     ] = "replay",
     response_fixture: Annotated[
@@ -633,6 +637,46 @@ def estimate_llm_cmd(
             exists=True,
             file_okay=True,
             dir_okay=False,
+        ),
+    ] = None,
+    profile_name: Annotated[
+        str | None,
+        typer.Option(
+            "--provider-profile",
+            help=(
+                "Phase 4.4 provider-profile name "
+                "(deepseek / kimi / minimax / custom_openai_compatible). "
+                "Required when --llm-provider=openai-compatible."
+            ),
+        ),
+    ] = None,
+    api_key_env: Annotated[
+        str | None,
+        typer.Option(
+            "--api-key-env",
+            help=(
+                "Phase 4.4: env var name carrying the API key. "
+                "Overrides the profile's default api_key_env. The "
+                "value itself is NEVER printed in logs / errors / "
+                "reports."
+            ),
+        ),
+    ] = None,
+    model_override: Annotated[
+        str | None,
+        typer.Option(
+            "--model",
+            help="Phase 4.4: override the profile's default_model.",
+        ),
+    ] = None,
+    base_url_override: Annotated[
+        str | None,
+        typer.Option(
+            "--base-url",
+            help=(
+                "Phase 4.4: override the profile's base_url (only "
+                "meaningful for custom_openai_compatible)."
+            ),
         ),
     ] = None,
     out: Annotated[
@@ -648,7 +692,7 @@ def estimate_llm_cmd(
         ),
     ] = 30,
 ) -> None:
-    """Phase 4.0 (ADR-25): run an LLM estimator dry-run on a frozen packet.
+    """Phase 4.0/4.4: run an LLM estimator on a frozen packet.
 
     Always emits an :class:`EstimatorReport` JSON. Failures (invalid
     response, schema violations, forbidden phrases) become blockers
@@ -656,10 +700,16 @@ def estimate_llm_cmd(
     in the packet. **Never** emits official ``V_net`` / ``debt_final``
     / ``corrupt_success``; the readiness ladder caps at
     ``shadow_ready`` in production.
+
+    Phase 4.4 — passing ``--llm-provider openai-compatible`` opts in
+    to a real external call. The key is read from the env var named
+    by ``--api-key-env`` (or the profile default); a missing var
+    raises a clean error without echoing the env value. ADR-29.
     """
     from oida_code.estimators.llm_estimator import run_llm_estimator
     from oida_code.estimators.llm_prompt import LLMEvidencePacket
     from oida_code.estimators.llm_provider import (
+        LLMProvider,
         LLMProviderUnavailable,
         build_provider,
     )
@@ -668,7 +718,17 @@ def estimate_llm_cmd(
         packet_path.read_text(encoding="utf-8")
     )
     try:
-        backend = build_provider(provider, fixture_path=response_fixture)
+        backend: LLMProvider
+        if provider == "openai-compatible":
+            backend = _build_openai_compatible_provider(
+                profile_name=profile_name,
+                api_key_env=api_key_env,
+                model_override=model_override,
+                base_url_override=base_url_override,
+                timeout_s=timeout_s,
+            )
+        else:
+            backend = build_provider(provider, fixture_path=response_fixture)
     except LLMProviderUnavailable as exc:
         _fail(f"llm provider unavailable: {exc}")
     run = run_llm_estimator(packet, backend, timeout_s=timeout_s)
@@ -678,6 +738,61 @@ def estimate_llm_cmd(
         return
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8")
+
+
+def _build_openai_compatible_provider(
+    *,
+    profile_name: str | None,
+    api_key_env: str | None,
+    model_override: str | None,
+    base_url_override: str | None,
+    timeout_s: int,
+) -> Any:  # the import is local; concrete type checked by tests
+    """Construct an :class:`OpenAICompatibleChatProvider` from CLI flags.
+
+    Phase 4.4 hard rule: the integrator MUST pass
+    ``--provider-profile`` to opt in to a real call. Custom providers
+    additionally need ``--api-key-env`` AND ``--base-url``.
+    """
+    from oida_code.estimators.llm_provider import LLMProviderUnavailable
+    from oida_code.estimators.provider_config import (
+        ProviderProfile,
+        get_predefined_profile,
+    )
+    from oida_code.estimators.providers import OpenAICompatibleChatProvider
+
+    if profile_name is None:
+        raise LLMProviderUnavailable(
+            "--llm-provider openai-compatible requires --provider-profile "
+            "(deepseek / kimi / minimax / custom_openai_compatible)."
+        )
+    if profile_name == "custom_openai_compatible":
+        if api_key_env is None or base_url_override is None or model_override is None:
+            raise LLMProviderUnavailable(
+                "custom_openai_compatible requires --api-key-env "
+                "--base-url --model."
+            )
+        profile = ProviderProfile(
+            name="custom_openai_compatible",
+            base_url=base_url_override,
+            api_key_env=api_key_env,
+            default_model=model_override,
+            timeout_s=timeout_s,
+        )
+    else:
+        try:
+            base = get_predefined_profile(profile_name)  # type: ignore[arg-type]
+        except KeyError as exc:
+            raise LLMProviderUnavailable(str(exc)) from None
+        updates: dict[str, object] = {"timeout_s": timeout_s}
+        if api_key_env is not None:
+            updates["api_key_env"] = api_key_env
+        if model_override is not None:
+            updates["default_model"] = model_override
+        if base_url_override is not None:
+            updates["base_url"] = base_url_override
+        profile = base.model_copy(update=updates)
+    return OpenAICompatibleChatProvider(profile=profile)
 
 
 @app.command("verify-claims")
@@ -808,6 +923,95 @@ def run_tools_cmd(
         return
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8")
+
+
+@app.command("calibration-eval")
+def calibration_eval_cmd(
+    dataset_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to datasets/calibration_v1/ (manifest.json + cases/).",
+            exists=True, file_okay=False, dir_okay=True,
+        ),
+    ],
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help="Output directory (metrics.json + report.md + per_case.json).",
+        ),
+    ] = Path(".oida/calibration_v1"),
+    stability_report: Annotated[
+        Path | None,
+        typer.Option(
+            "--stability-report",
+            help=(
+                "Optional path to stability_report.json from "
+                "check_calibration_stability.py. When omitted, defaults to "
+                "<--out>/stability_report.json if present; otherwise "
+                "F2P/P2P metrics are emitted as null with "
+                "code_outcome_status='not_computed'."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Phase 4.3 (ADR-28) + Phase 4.4 (ADR-29): run the calibration eval.
+
+    Loads every case under ``<dataset>/cases/``, dispatches to its
+    family evaluator, aggregates metrics, and emits ``metrics.json``,
+    ``report.md``, and ``per_case.json`` under ``<out>``.
+
+    Exits with code 3 if **any** case reports an
+    ``official_field_leak_count > 0`` — the runtime gate that prevents
+    promotion of a leaky run (4.3.1-A).
+    """
+    import json as _json
+
+    from oida_code.calibration.metrics import (
+        OfficialFieldLeakError,
+        assert_no_official_field_leaks,
+    )
+    from oida_code.calibration.runner import (
+        CaseResult,
+        aggregate,
+        load_case,
+        run_case,
+    )
+
+    cases_dir = dataset_path / "cases"
+    if not cases_dir.is_dir():
+        _fail(f"no cases dir at {cases_dir}; run build_calibration_dataset.py first")
+    out.mkdir(parents=True, exist_ok=True)
+
+    results: list[CaseResult] = []
+    for case_dir in sorted(p for p in cases_dir.iterdir() if p.is_dir()):
+        case = load_case(case_dir)
+        results.append(run_case(case, case_dir))
+
+    stability_payload: list[dict[str, object]] | None = None
+    candidate = stability_report or (out / "stability_report.json")
+    if candidate.is_file():
+        try:
+            raw = _json.loads(candidate.read_text(encoding="utf-8"))
+            if isinstance(raw, list):
+                stability_payload = [r for r in raw if isinstance(r, dict)]
+        except (OSError, _json.JSONDecodeError):
+            stability_payload = None
+
+    metrics = aggregate(results, stability_report=stability_payload)
+    (out / "metrics.json").write_text(
+        metrics.model_dump_json(indent=2), encoding="utf-8",
+    )
+    typer.echo(
+        f"cases_evaluated={metrics.cases_evaluated} "
+        f"leaks={metrics.official_field_leak_count} "
+        f"code_outcome_status={metrics.code_outcome_status}"
+    )
+    try:
+        assert_no_official_field_leaks(metrics)
+    except OfficialFieldLeakError as exc:
+        typer.echo(f"FAIL: {exc}", err=True)
+        raise typer.Exit(code=3) from None
 
 
 def main() -> None:  # pragma: no cover - entry-point thunk

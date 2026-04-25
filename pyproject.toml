@@ -88,6 +88,9 @@ ignore_errors = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+markers = [
+    "external_provider: Phase 4.4 optional smoke against a real LLM provider; skipped unless OIDA_RUN_EXTERNAL_PROVIDER_TESTS=1 AND the relevant API key env var is set.",
+]
 
 [tool.coverage.run]
 branch = true

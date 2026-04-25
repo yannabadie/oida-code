@@ -26,6 +26,14 @@ from oida_code.calibration.runner import (
 )
 
 
+def _fmt_optional(value: float | None) -> str:
+    """4.3.1-B — render a nullable rate as ``not_computed`` rather
+    than a fake 0.000."""
+    if value is None:
+        return "not_computed"
+    return f"{value:.3f}"
+
+
 def _format_markdown(
     metrics: CalibrationMetrics, results: list[CaseResult],
 ) -> str:
@@ -61,8 +69,11 @@ def _format_markdown(
         "",
         "## Code outcome (deferred to stability script)",
         "",
-        f"- F2P pass-rate on expected-fixed: {metrics.f2p_pass_rate_on_expected_fixed:.3f}",
-        f"- P2P preservation rate: {metrics.p2p_preservation_rate:.3f}",
+        f"- F2P pass-rate on expected-fixed: "
+        f"{_fmt_optional(metrics.f2p_pass_rate_on_expected_fixed)}",
+        f"- P2P preservation rate: "
+        f"{_fmt_optional(metrics.p2p_preservation_rate)}",
+        f"- code_outcome_status: {metrics.code_outcome_status}",
         f"- flaky cases excluded: {metrics.flaky_case_count}",
         "",
         "## Safety",
@@ -96,6 +107,17 @@ def main() -> int:
         "--out", default=".oida/calibration_v1",
         help="output directory for metrics.json + report.md",
     )
+    parser.add_argument(
+        "--stability-report",
+        default=None,
+        help=(
+            "Optional path to stability_report.json from "
+            "check_calibration_stability.py. When omitted, defaults to "
+            "<--out>/stability_report.json if it exists; otherwise the "
+            "F2P/P2P metrics are emitted as null with "
+            "code_outcome_status='not_computed' (4.3.1-B)."
+        ),
+    )
     args = parser.parse_args()
 
     dataset = Path(args.dataset)
@@ -113,7 +135,9 @@ def main() -> int:
         result = run_case(case, case_dir)
         results.append(result)
 
-    metrics = aggregate(results)
+    # 4.3.1-B — load stability report if available.
+    stability_report = _load_stability_report(args.stability_report, out_dir)
+    metrics = aggregate(results, stability_report=stability_report)
     (out_dir / "metrics.json").write_text(
         metrics.model_dump_json(indent=2), encoding="utf-8",
     )
@@ -129,6 +153,7 @@ def main() -> int:
             "shadow_bucket_actual": r.shadow_bucket_actual,
             "shadow_bucket_match": r.shadow_bucket_match,
             "official_field_leaks": r.official_field_leaks,
+            "flaky": r.flaky,
             "notes": r.notes,
         }
         for r in results
@@ -138,8 +163,46 @@ def main() -> int:
     )
     print(f"wrote metrics + report to {out_dir}")
     print(f"cases_evaluated={metrics.cases_evaluated} "
-          f"leaks={metrics.official_field_leak_count}")
-    return 0 if metrics.official_field_leak_count == 0 else 3
+          f"leaks={metrics.official_field_leak_count} "
+          f"code_outcome_status={metrics.code_outcome_status}")
+    # 4.3.1-A — non-zero exit when ANY official-field leak is reported.
+    # The schema represents the leak count honestly; the eval script is
+    # the runtime gate that prevents promotion of a leaky run.
+    if metrics.official_field_leak_count > 0:
+        print(
+            f"FAIL: official_field_leak_count="
+            f"{metrics.official_field_leak_count} > 0; "
+            "ADR-22 + ADR-28 + ADR-29 forbid provider acceptance.",
+        )
+        return 3
+    return 0
+
+
+def _load_stability_report(
+    explicit_path: str | None, out_dir: Path,
+) -> list[dict[str, object]] | None:
+    """Return the parsed stability report list or None.
+
+    Resolution order:
+      1. explicit ``--stability-report`` path
+      2. ``<out_dir>/stability_report.json`` (the default
+         check_calibration_stability.py output location)
+    """
+    candidate: Path | None
+    if explicit_path is not None:
+        candidate = Path(explicit_path)
+    else:
+        default = out_dir / "stability_report.json"
+        candidate = default if default.is_file() else None
+    if candidate is None or not candidate.is_file():
+        return None
+    try:
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    return None
 
 
 if __name__ == "__main__":

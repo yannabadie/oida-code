@@ -75,6 +75,79 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-27 10:00:00] - **ADR-29: Real provider binding behind explicit opt-in.**
+
+**Why:** Phase 4.0–4.3 shipped contracts + a 32-case calibration
+dataset. The next step is exercising those contracts against a real
+external LLM provider — but only as a regression harness on
+calibration_v1, never as production verifier. ADR-29 binds one
+provider class (``OpenAICompatibleChatProvider``) and explicit
+opt-in flags so a real call requires deliberate operator action.
+
+**Decision (Phase 4.4 protocol):**
+
+* `src/oida_code/estimators/provider_config.py` — frozen
+  ``ProviderProfile`` schema with ``name`` / ``base_url`` /
+  ``api_key_env`` / ``default_model``. **No API-key field.** Three
+  predefined profiles ship: ``deepseek`` / ``kimi`` / ``minimax``;
+  ``custom_openai_compatible`` requires explicit construction.
+* `src/oida_code/estimators/providers/openai_compatible.py` —
+  `OpenAICompatibleChatProvider` speaks OpenAI Chat Completions
+  wire format over `urllib.request`. Tests inject a fake HTTP
+  transport via the `http_post` constructor argument; production
+  uses `default_urllib_post`.
+* CLI `estimate-llm` gains `--llm-provider openai-compatible
+  --provider-profile <name> [--api-key-env VAR] [--model X]
+  [--base-url U]`.
+* CLI `calibration-eval` subcommand wraps the runner; default
+  uses replay; the same `--llm-provider` flags can route the LLM
+  estimator through a real provider for a regression run.
+* 4.3.1 calibration hardening (paired): leak metric is honest
+  (`int` not `Literal[0]`); F2P/P2P metrics nullable + folded from
+  stability report; safety runner uses an exact OIDA_EVIDENCE
+  regex bounded to the data region.
+
+**Accepted:**
+
+* no provider by default (the CLI default is replay)
+* env-var based key loading only — `api_key_env` on the profile,
+  resolved lazily at call time
+* key redaction in logs, exception strings, and any stored
+  payload (`redact_secret`)
+* provider config separate from prompt and from any key value
+* strict Pydantic validation after every response
+* calibration replay baseline still passes
+* no threshold tuning on calibration_v1
+* fake HTTP transport in tests; no real network call under pytest
+  by default
+
+**Rejected:**
+
+* committing keys (push protection + clean history scan)
+* default-on external API calls
+* LLM-as-ground-truth (calibration labels remain script-authored)
+* model self-confidence as evidence
+* provider output writing `V_net` / `debt_final` /
+  `corrupt_success` (existing forbidden-phrase fence still rejects)
+* production claims from synthetic calibration
+* MCP integration (separate ADR will be required)
+* tool/function-calling at the provider layer in 4.4
+* streaming in 4.4
+
+**Outcome:** all 22 acceptance criteria from QA/A20.md met. 26 new
+tests in `tests/test_phase4_4_real_provider.py` (schema invariants,
+predefined profiles, provider unavailable behaviour, key redaction,
+response validation, replay parity, CLI smoke). Plus 13 new tests
+for 4.3.1 in `tests/test_phase4_3_calibration.py`. Full suite
+**499 passed + 4 skipped** (V2 placeholder + 2 Phase-4 observability
+markers + 1 optional external smoke). The pilot calibration eval
+still reports zero leaks; the openai-compatible provider goes
+through the same `LLMEstimatorOutput` validator as the replay path
+so contract compliance is identical. ADR-22 + ADR-25 + ADR-26 +
+ADR-27 + ADR-28 + ADR-29 all hold; production CLI emits no
+`V_net` / `debt_final` / `corrupt_success`. Report:
+`reports/phase4_4_real_provider_binding.md`.
+
 [2026-04-26 14:00:00] - **ADR-28: Calibration dataset before predictive claims.**
 
 **Why:** Phase 4.0–4.2 shipped the LLM estimator + forward/backward
