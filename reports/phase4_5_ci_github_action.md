@@ -673,14 +673,19 @@ GitHub-hosted Ubuntu runner failed in two jobs:
    the `dev = [...]` block and asserts `"PyYAML"` is present, so a
    future PR that drops it gets caught locally before the runner.
 2. `tests/test_cli_smoke.py` pins
-   `runner = CliRunner(env={"NO_COLOR": "1", "COLUMNS": "200"})` at
-   module scope. `NO_COLOR=1` strips ANSI rendering (per the
-   no-color.org convention that Rich respects) and `COLUMNS=200`
-   widens the help table so option names never wrap. The fix
-   applies to all six tests in the file, not just the two
-   `--help` ones — the JSON-extraction tests benefit too because
-   their `find("{")` pattern stops being sensitive to ANSI prefix
-   noise.
+   `runner = CliRunner(env={"COLUMNS": "200"})` at module scope and
+   adds an `_plain(text)` helper that strips ANSI CSI sequences
+   before substring checks. The `COLUMNS=200` env var widens the
+   Rich panel so option names never wrap. The ANSI strip is
+   essential because typer's `OptionHighlighter` styles the
+   leading dashes and the name *separately* — producing e.g.
+   `\x1b[1m--\x1b[0mbase` — so `--base` is no longer a contiguous
+   substring even when `NO_COLOR=1` is set (NO_COLOR only kills
+   colour, not bold/dim styling). The first attempted 4.5.2 fix
+   tried `NO_COLOR=1 + COLUMNS=200`; CI run #2 (id 24938822339)
+   confirmed empirically that NO_COLOR alone is insufficient. The
+   ANSI-strip approach is robust regardless of which styles Rich
+   chooses to emit.
 3. `action.yml`'s `enable-shadow` input description is updated to
    say RESERVED / NOT YET WIRED (Option B per QA/A22.md §4.5.2-E).
    The input is still accepted for forward-compatibility but the

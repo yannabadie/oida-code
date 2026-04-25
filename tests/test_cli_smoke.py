@@ -3,33 +3,51 @@
 from __future__ import annotations
 
 import json
+import re
 
 from typer.testing import CliRunner
 
 from oida_code.cli import app
 from oida_code.models import AuditRequest
 
-# Phase 4.5.2 real-runner fix: pin a wide terminal AND disable Rich
-# colour rendering at the runner level. On GitHub-hosted Linux runners
-# Rich detects `CI=true` and forces colour + an 80-col panel, which
-# wraps option names like `--base` across cells and breaks substring
-# assertions. Locally on Windows the output is plain ASCII and the
-# tests pass; pinning these env vars at the runner level makes the
-# behaviour deterministic everywhere.
-runner = CliRunner(env={"NO_COLOR": "1", "COLUMNS": "200"})
+# Phase 4.5.2 real-runner fix: pin a wide terminal so Rich panels
+# never wrap option names. `COLUMNS=200` is read by Rich's
+# `shutil.get_terminal_size()` fallback when the captured pipe
+# isn't a TTY. We do NOT rely on NO_COLOR alone — Rich still emits
+# bold/dim ANSI codes under NO_COLOR, and typer's
+# `OptionHighlighter` styles the leading dashes and the name
+# separately, producing e.g. `\x1b[1m--\x1b[0mbase` where `--base`
+# is no longer a contiguous substring. The robust fix is to strip
+# ANSI escape sequences from `result.output` before any substring
+# check.
+runner = CliRunner(env={"COLUMNS": "200"})
+
+# ANSI CSI sequence: ESC [ <params> <final-byte (0x40-0x7E)>. Covers
+# bold/dim/colour/reset and the wider SGR family. Conservative
+# enough that we don't accidentally chew through real text.
+_ANSI_CSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def _plain(text: str) -> str:
+    """Return ``text`` with ANSI CSI escape sequences removed.
+
+    Used to make help-text substring assertions robust against
+    Rich's per-segment styling on the GHA Linux runner."""
+    return _ANSI_CSI_RE.sub("", text)
 
 
 def test_inspect_help_shows() -> None:
     result = runner.invoke(app, ["inspect", "--help"])
     assert result.exit_code == 0, result.output
-    assert "inspect" in result.output.lower()
-    assert "--base" in result.output
+    plain = _plain(result.output)
+    assert "inspect" in plain.lower()
+    assert "--base" in plain
 
 
 def test_top_level_help_shows() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0, result.output
-    assert "inspect" in result.output
+    assert "inspect" in _plain(result.output)
 
 
 def test_version_flag() -> None:
