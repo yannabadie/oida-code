@@ -95,9 +95,21 @@ ShadowStatus = Literal[
 
 
 class ShadowEventScore(BaseModel):
-    """Per-event diagnostic — never authoritative."""
+    """Per-event diagnostic — never authoritative.
 
-    model_config = ConfigDict(extra="forbid")
+    E1.1: frozen via ``model_config`` so a normal integrator cannot
+    mutate the score after the report is emitted. Combined with
+    ``validate_assignment=True`` Pydantic also rejects post-hoc
+    reassignments at runtime, so the only way to break the invariant
+    is via ``object.__setattr__`` — which is out-of-scope for this
+    safety net.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_assignment=True,
+    )
 
     event_id: str
     base_pressure: float = Field(ge=0.0, le=1.0)
@@ -107,7 +119,13 @@ class ShadowEventScore(BaseModel):
 
 
 class ShadowGraphSummary(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    """Frozen graph summary (E1.1)."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_assignment=True,
+    )
 
     constitutive_edge_count: int = Field(ge=0)
     supportive_edge_count: int = Field(ge=0)
@@ -116,7 +134,13 @@ class ShadowGraphSummary(BaseModel):
 
 
 class ShadowTrajectorySummary(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    """Frozen trajectory summary (E1.1)."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_assignment=True,
+    )
 
     total_steps: int = Field(ge=0)
     progress_events_count: int = Field(ge=0)
@@ -127,22 +151,37 @@ class ShadowTrajectorySummary(BaseModel):
 class ShadowFusionReport(BaseModel):
     """Output of :func:`compute_experimental_shadow_fusion`.
 
-    ``authoritative`` is ``False`` — pinned by the type annotation. The
-    integrator MUST NOT copy any field from this report into
+    E1.1 hardening:
+
+    * ``frozen=True`` — Pydantic raises on attribute reassignment.
+    * ``validate_assignment=True`` — even if ``frozen`` were lifted,
+      reassigning ``authoritative`` to anything other than ``False``
+      fails the ``Literal[False]`` validator.
+    * ``event_scores`` / ``blockers`` / ``warnings`` are tuples — list
+      mutation methods (``append``, ``extend``, slice assignment)
+      are unavailable on the public surface.
+
+    The integrator MUST NOT copy any field from this report into
     ``AuditReport.summary.total_v_net``, ``debt_final``, or
-    ``corrupt_success_ratio``.
+    ``corrupt_success_ratio``. The shadow report belongs in a separate
+    output block and is opt-in via the ``--experimental-shadow-fusion``
+    CLI flag.
     """
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+        validate_assignment=True,
+    )
 
     authoritative: Literal[False] = False
     status: ShadowStatus
     readiness_status: FusionStatus
-    event_scores: list[ShadowEventScore] = Field(default_factory=list)
+    event_scores: tuple[ShadowEventScore, ...] = ()
     graph_summary: ShadowGraphSummary
     trajectory_summary: ShadowTrajectorySummary | None = None
-    blockers: list[str] = Field(default_factory=list)
-    warnings: list[str] = Field(default_factory=list)
+    blockers: tuple[str, ...] = ()
+    warnings: tuple[str, ...] = ()
     recommendation: str = ""
 
 
@@ -152,6 +191,12 @@ class ShadowFusionReport(BaseModel):
 
 
 def _grounding_for(event: NormalizedEvent) -> float:
+    """Return the verified-fraction over weighted preconditions, [0,1].
+
+    For events with NO preconditions this returns 0.0 — caller MUST use
+    :func:`_grounding_pressure` (E1.1) to distinguish "real zero
+    grounding" (model exists, nothing verified) from "missing model".
+    """
     if not event.preconditions:
         return 0.0
     total = sum(p.weight for p in event.preconditions)
@@ -159,6 +204,31 @@ def _grounding_for(event: NormalizedEvent) -> float:
         return 0.0
     verified = sum(p.weight for p in event.preconditions if p.verified)
     return min(1.0, max(0.0, float(verified) / float(total)))
+
+
+def _grounding_pressure(event: NormalizedEvent) -> tuple[float, bool]:
+    """E1.1 (QA/A12.md §point 2): distinguish real-zero from missing.
+
+    Returns ``(pressure, is_real)``:
+
+    * Real grounding model exists (preconditions present, total > 0)
+      → ``(1 - grounding_fraction, True)``. A model with 0/N verified
+      yields ``pressure = 1.0`` — a real negative signal.
+    * Missing model (no preconditions) → ``(0.5, False)``. Neutral
+      contribution to the formula and the caller emits a warning.
+
+    This avoids the pre-E1.1 conflation where an event with no
+    extracted obligations was treated as "perfect zero grounding"
+    (pressure 1.0, max negative signal) — an artefact, not a finding.
+    """
+    if not event.preconditions:
+        return 0.5, False
+    total = sum(p.weight for p in event.preconditions)
+    if total <= 0:
+        return 0.5, False
+    verified = sum(p.weight for p in event.preconditions if p.verified)
+    grounding = min(1.0, max(0.0, float(verified) / float(total)))
+    return 1.0 - grounding, True
 
 
 def _static_failure_pressure(
@@ -194,17 +264,24 @@ def _base_pressure(
     event: NormalizedEvent,
     tool_evidence: list[ToolEvidence] | None,
     trajectory_pressure: float,
-) -> float:
-    grounding = _grounding_for(event)
+) -> tuple[float, bool]:
+    """Return ``(pressure, grounding_is_real)``.
+
+    The boolean lets the caller emit a per-event "missing grounding
+    model" warning when the precondition layer hasn't produced
+    anything for this event — the pressure value itself is neutral
+    in that case (E1.1 §point 2) so it doesn't corrupt the formula.
+    """
+    grounding_pressure, grounding_is_real = _grounding_pressure(event)
     static_p = _static_failure_pressure(event, tool_evidence)
     completion = event.completion
     pressure = (
-        _W_GROUNDING * (1.0 - grounding)
+        _W_GROUNDING * grounding_pressure
         + _W_STATIC * static_p
         + _W_TRAJECTORY * trajectory_pressure
         + _W_COMPLETION * (1.0 - completion)
     )
-    return _clip(pressure)
+    return _clip(pressure), grounding_is_real
 
 
 # ---------------------------------------------------------------------------
@@ -287,16 +364,19 @@ def compute_experimental_shadow_fusion(
                 propagation_iterations=0,
                 propagation_converged=True,
             ),
-            blockers=["scenario has no events"],
-            warnings=[],
+            blockers=("scenario has no events",),
+            warnings=(),
             recommendation="provide a non-empty scenario",
         )
 
     traj_pressure = _trajectory_pressure(trajectory_metrics)
-    base_by_id: dict[str, float] = {
-        ev.id: _base_pressure(ev, tool_evidence, traj_pressure)
-        for ev in scenario.events
-    }
+    base_by_id: dict[str, float] = {}
+    events_missing_grounding: list[str] = []
+    for ev in scenario.events:
+        pressure, grounding_real = _base_pressure(ev, tool_evidence, traj_pressure)
+        base_by_id[ev.id] = pressure
+        if not grounding_real:
+            events_missing_grounding.append(ev.id)
 
     # Constitutive propagation → shadow_debt_pressure
     debt_by_id, debt_iter, debt_converged = _propagate(
@@ -344,15 +424,25 @@ def compute_experimental_shadow_fusion(
             derived_pressure=traj_pressure,
         )
 
-    blockers = list(readiness.blockers)
-    warnings: list[str] = []
+    blockers = tuple(readiness.blockers)
+    warnings_list: list[str] = []
     if not graph_summary.propagation_converged:
-        warnings.append(
+        warnings_list.append(
             "graph propagation did not converge within the iteration cap"
         )
     if constitutive_count == 0 and supportive_count == 0:
-        warnings.append(
+        warnings_list.append(
             "no graph edges; shadow scores degrade to local base pressure"
+        )
+    if events_missing_grounding:
+        # E1.1: surface missing precondition models so a reader can tell
+        # apart "real zero grounding" from "no model emitted yet".
+        warnings_list.append(
+            f"missing grounding model on {len(events_missing_grounding)} event(s); "
+            "their grounding component contributes neutrally (0.5) to base_pressure "
+            "rather than as real-zero. Affected: "
+            + ", ".join(events_missing_grounding[:8])
+            + ("..." if len(events_missing_grounding) > 8 else "")
         )
 
     if readiness.status == "official_ready":
@@ -383,11 +473,11 @@ def compute_experimental_shadow_fusion(
         authoritative=False,
         status=status,
         readiness_status=readiness.status,
-        event_scores=event_scores,
+        event_scores=tuple(event_scores),
         graph_summary=graph_summary,
         trajectory_summary=trajectory_summary,
         blockers=blockers,
-        warnings=warnings,
+        warnings=tuple(warnings_list),
         recommendation=recommendation,
     )
 

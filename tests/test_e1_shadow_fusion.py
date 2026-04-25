@@ -343,6 +343,147 @@ def test_shadow_import_dependency_with_constitutive_edge_propagates() -> None:
     assert with_parent.shadow_debt_pressure > no_parent.shadow_debt_pressure
 
 
+# ---------------------------------------------------------------------------
+# E1.1 — frozen invariants: shadow report cannot be mutated after creation
+# ---------------------------------------------------------------------------
+
+
+def test_shadow_report_authoritative_cannot_be_assigned_true() -> None:
+    """E1.1 §point 1: ``frozen=True`` + ``Literal[False]`` together
+    reject ``shadow.authoritative = True``."""
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    scenario = _scen([_make_event(idx=1)])
+    shadow = _shadow(scenario)
+    # frozen=True triggers a validation error on any attribute write.
+    with _pytest.raises(ValidationError):
+        shadow.authoritative = True  # type: ignore[misc]
+
+
+def test_shadow_report_event_scores_cannot_be_appended() -> None:
+    """E1.1: ``event_scores`` is a tuple — no ``.append`` available."""
+    scenario = _scen([_make_event(idx=1), _make_event(idx=2)])
+    shadow = _shadow(scenario)
+    assert isinstance(shadow.event_scores, tuple)
+    assert not hasattr(shadow.event_scores, "append")
+
+
+def test_shadow_report_model_validate_rejects_authoritative_true() -> None:
+    """E1.1: re-validating the JSON with ``authoritative=true`` set
+    fails the ``Literal[False]`` validator."""
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    scenario = _scen([_make_event(idx=1)])
+    shadow = _shadow(scenario)
+    payload = shadow.model_dump()
+    payload["authoritative"] = True
+    with _pytest.raises(ValidationError):
+        ShadowFusionReport.model_validate(payload)
+
+
+def test_shadow_nested_scores_are_frozen() -> None:
+    """E1.1: nested ShadowEventScore is also frozen."""
+    import pytest as _pytest
+    from pydantic import ValidationError
+
+    scenario = _scen([_make_event(idx=1)])
+    shadow = _shadow(scenario)
+    assert shadow.event_scores
+    score = shadow.event_scores[0]
+    with _pytest.raises(ValidationError):
+        score.shadow_debt_pressure = 0.99  # type: ignore[misc]
+
+
+# ---------------------------------------------------------------------------
+# E1.1 — missing-grounding semantics (QA/A12.md §point 2)
+# ---------------------------------------------------------------------------
+
+
+def test_missing_preconditions_are_neutral_not_max_pressure() -> None:
+    """E1.1: an event with NO precondition model contributes a neutral
+    0.5 grounding pressure, not the pre-fix 1.0 (which was indistinguishable
+    from real-zero grounding and inflated base_pressure artificially)."""
+    no_pre = _scen([_make_event(idx=1, completion=0.5, operator_accept=0.5)])
+    real_zero = _scen([
+        _make_event(
+            idx=1,
+            completion=0.5,
+            operator_accept=0.5,
+            preconditions=[
+                PreconditionSpec(name="x1", weight=0.5, verified=False),
+                PreconditionSpec(name="x2", weight=0.5, verified=False),
+            ],
+        )
+    ])
+    no_pre_pressure = _shadow(no_pre).event_scores[0].base_pressure
+    real_zero_pressure = _shadow(real_zero).event_scores[0].base_pressure
+    # Real-zero must be strictly higher pressure than missing-model.
+    assert real_zero_pressure > no_pre_pressure
+
+
+def test_zero_verified_real_preconditions_are_high_pressure() -> None:
+    """E1.1: 0/N verified is a real negative signal — pressure should
+    reflect that (full grounding component contributes 0.40 at max)."""
+    scenario = _scen([
+        _make_event(
+            idx=1,
+            completion=1.0,
+            operator_accept=1.0,
+            preconditions=[
+                PreconditionSpec(name="x", weight=1.0, verified=False),
+            ],
+        )
+    ])
+    pressure = _shadow(scenario).event_scores[0].base_pressure
+    # 0.40 * 1.0 + 0.20 * 0 + 0.25 * 0 + 0.15 * 0 = 0.40
+    assert pressure == _pytest_approx(0.40)
+
+
+def test_missing_preconditions_emit_warning() -> None:
+    """E1.1: when ANY event has no preconditions, the warnings list
+    surfaces the missing-grounding signal so integrators don't read
+    the neutral 0.5 as a real measurement."""
+    scenario = _scen([_make_event(idx=1)])  # no preconditions
+    shadow = _shadow(scenario)
+    assert any(
+        "missing grounding model" in w.lower() for w in shadow.warnings
+    ), f"expected missing-grounding warning, got {list(shadow.warnings)}"
+
+
+def test_missing_vs_real_zero_pressure_are_distinct() -> None:
+    """E1.1: the two cases must produce different base_pressure values
+    AND differently-classified shadow status (warnings vs no-warning)."""
+    no_pre = _scen([_make_event(idx=1)])
+    real_zero = _scen([
+        _make_event(
+            idx=1,
+            preconditions=[
+                PreconditionSpec(name="x", weight=1.0, verified=False),
+            ],
+        )
+    ])
+    no_pre_shadow = _shadow(no_pre)
+    real_zero_shadow = _shadow(real_zero)
+    no_pre_p = no_pre_shadow.event_scores[0].base_pressure
+    real_zero_p = real_zero_shadow.event_scores[0].base_pressure
+    # Numerically distinct.
+    assert abs(no_pre_p - real_zero_p) > 1e-6
+    # Only the missing case carries the warning.
+    assert any("missing grounding" in w.lower() for w in no_pre_shadow.warnings)
+    assert not any(
+        "missing grounding" in w.lower() for w in real_zero_shadow.warnings
+    )
+
+
+# Forward declaration used in the inline approx helper above.
+def _pytest_approx(value: float):  # type: ignore[no-untyped-def]
+    import pytest as _pytest
+
+    return _pytest.approx(value, abs=1e-9)
+
+
 def test_shadow_corrupt_plausible_success_high_pressure_but_not_official() -> None:
     """corrupt_plausible scenario shape: high completion + missing
     critical sub-precondition. Shadow must show non-trivial debt
