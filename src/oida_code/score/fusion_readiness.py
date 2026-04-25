@@ -248,6 +248,20 @@ def _audit_operator_accept(
 
 
 def _audit_grounding(scenario: NormalizedScenario) -> FieldReadiness:
+    """E1.0 (QA/A11.md): zero-verified preconditions ARE a real signal.
+
+    Distinction:
+      - ``total_preconditions == 0`` → ``missing`` (no model)
+      - ``total_preconditions > 0 AND verified == 0`` → ``real``
+        (negative signal: model exists, evidence shows nothing closed)
+      - ``total_preconditions > 0 AND verified > 0`` → ``real``
+        (positive partial signal)
+
+    Pre-E1.0 the zero-verified case was tagged ``default``, conflating
+    "no precondition model exists" with "model says nothing's verified."
+    The latter is exactly the kind of negative signal the shadow fusion
+    needs to read honestly.
+    """
     if not scenario.events:
         return FieldReadiness(
             name="grounding", status="missing", source="no events",
@@ -257,7 +271,7 @@ def _audit_grounding(scenario: NormalizedScenario) -> FieldReadiness:
     if total_pre == 0:
         return FieldReadiness(
             name="grounding", status="missing",
-            source="no preconditions",
+            source="no precondition model (extractor produced none)",
             confidence=0.0, blocks_official_fusion=False,
         )
     verified = sum(
@@ -269,9 +283,12 @@ def _audit_grounding(scenario: NormalizedScenario) -> FieldReadiness:
     fraction = verified / total_pre
     return FieldReadiness(
         name="grounding",
-        status="real" if fraction > 0.0 else "default",
+        status="real",  # E1.0: real even at fraction=0 — negative signal
         source=f"per-obligation ADR-20 children ({verified}/{total_pre} verified)",
-        confidence=min(0.6, 0.2 + fraction * 0.6),
+        # Confidence is highest at the extremes (0% verified or 100%
+        # verified) and lowest in the middle — both extremes are clean
+        # readings, partial coverage is the noisiest case.
+        confidence=min(0.6, 0.3 + abs(fraction - 0.5) * 0.6),
         blocks_official_fusion=False,
     )
 

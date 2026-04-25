@@ -347,6 +347,73 @@ def test_shadow_fusion_if_any_is_marked_experimental() -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# E1.0 — grounding-zero semantics (QA/A11.md)
+# ---------------------------------------------------------------------------
+
+
+def test_grounding_zero_with_real_preconditions_is_real_not_default() -> None:
+    """E1.0 — preconditions exist, none verified ⇒ real negative signal,
+    NOT structural default. Pre-E1.0 this case was wrongly classified
+    as ``default`` and treated as if the model itself were missing."""
+    from oida_code.models.normalized_event import PreconditionSpec
+
+    scenario = NormalizedScenario(
+        name="t",
+        description="",
+        events=[
+            _make_event(
+                idx=1,
+                preconditions=[
+                    PreconditionSpec(name="x1", weight=0.5, verified=False),
+                    PreconditionSpec(name="x2", weight=0.5, verified=False),
+                ],
+            )
+        ],
+    )
+    rep = assess_fusion_readiness(scenario)
+    grounding = next(f for f in rep.field_readiness if f.name == "grounding")
+    assert grounding.status == "real", (
+        "E1.0 broken: 0/N verified preconditions is a real (negative) "
+        "signal, not a structural default"
+    )
+    assert "0/2 verified" in grounding.source
+
+
+def test_grounding_missing_when_no_preconditions() -> None:
+    """E1.0 — only the genuinely-no-model case is `missing`."""
+    scenario = NormalizedScenario(
+        name="t", description="", events=[_make_event(idx=1, preconditions=[])]
+    )
+    rep = assess_fusion_readiness(scenario)
+    grounding = next(f for f in rep.field_readiness if f.name == "grounding")
+    assert grounding.status == "missing"
+    assert "no precondition model" in grounding.source
+
+
+def test_grounding_partial_remains_real() -> None:
+    """E1.0 — partial verification stays real (regression guard)."""
+    from oida_code.models.normalized_event import PreconditionSpec
+
+    scenario = NormalizedScenario(
+        name="t",
+        description="",
+        events=[
+            _make_event(
+                idx=1,
+                preconditions=[
+                    PreconditionSpec(name="x1", weight=0.5, verified=True),
+                    PreconditionSpec(name="x2", weight=0.5, verified=False),
+                ],
+            )
+        ],
+    )
+    rep = assess_fusion_readiness(scenario)
+    grounding = next(f for f in rep.field_readiness if f.name == "grounding")
+    assert grounding.status == "real"
+    assert "1/2 verified" in grounding.source
+
+
 def test_assess_with_trajectory_and_evidence_input() -> None:
     """Smoke: trajectory_metrics + tool_evidence flow into the report.
 

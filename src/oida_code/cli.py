@@ -488,6 +488,14 @@ def score_trace_cmd(
             max=500,
         ),
     ] = 50,
+    experimental_shadow_fusion: Annotated[
+        bool,
+        typer.Option(
+            "--experimental-shadow-fusion",
+            help="Compute non-authoritative shadow fusion diagnostics (E1, "
+            "ADR-22). NEVER unlocks official V_net/debt_final.",
+        ),
+    ] = False,
 ) -> None:
     """Score a Claude Code transcript — emit :class:`TrajectoryMetrics` JSON.
 
@@ -528,6 +536,29 @@ def score_trace_cmd(
     payload: dict[str, object] = json.loads(
         metrics.model_dump_json(exclude={"timesteps"})
     )
+    if experimental_shadow_fusion and request_obj is not None:
+        from oida_code.score.experimental_shadow_fusion import (
+            compute_experimental_shadow_fusion,
+        )
+        from oida_code.score.fusion_readiness import assess_fusion_readiness
+        from oida_code.score.mapper import obligations_to_scenario
+
+        scenario = obligations_to_scenario(
+            obligations, request=request_obj, tool_evidence=None
+        )
+        readiness = assess_fusion_readiness(
+            scenario, tool_evidence=None, trajectory_metrics=metrics
+        )
+        shadow = compute_experimental_shadow_fusion(
+            scenario,
+            readiness,
+            tool_evidence=None,
+            trajectory_metrics=metrics,
+        )
+        payload["readiness"] = json.loads(readiness.model_dump_json())
+        payload["experimental_shadow_fusion"] = json.loads(
+            shadow.model_dump_json()
+        )
     if repo is not None:
         outcome = compute_session_outcome(transcript, repo)
         payload["session_outcome"] = {
