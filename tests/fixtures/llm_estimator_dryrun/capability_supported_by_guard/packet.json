@@ -1,0 +1,86 @@
+{
+  "event_id": "e1_create_user",
+  "allowed_fields": ["capability", "benefit", "observability"],
+  "intent_summary": "add auth guard to create_user endpoint",
+  "evidence_items": [
+    {
+      "id": "[E.intent.1]",
+      "kind": "intent",
+      "summary": "User intent: add auth guard to create_user endpoint",
+      "source": "ticket",
+      "confidence": 0.9
+    },
+    {
+      "id": "[E.event.1]",
+      "kind": "event",
+      "summary": "api_contract on src/app.py::create_user",
+      "source": "obligation_extractor",
+      "confidence": 0.85
+    },
+    {
+      "id": "[E.prec.1]",
+      "kind": "precondition",
+      "summary": "auth_guard_present verified by AST decorator scan",
+      "source": "ast",
+      "confidence": 0.85
+    },
+    {
+      "id": "[E.tool.1]",
+      "kind": "tool_finding",
+      "summary": "ruff: no finding on src/app.py::create_user",
+      "source": "ruff",
+      "confidence": 1.0
+    },
+    {
+      "id": "[E.test.1]",
+      "kind": "test_result",
+      "summary": "pytest scoped to tests/test_app.py::test_create_user_requires_auth passed",
+      "source": "pytest",
+      "confidence": 0.8
+    }
+  ],
+  "deterministic_estimates": [
+    {
+      "field": "capability",
+      "event_id": "e1_create_user",
+      "value": 0.5,
+      "confidence": 0.0,
+      "source": "default",
+      "method_id": "default.capability",
+      "method_version": "e3.2-2026-04-25",
+      "evidence_refs": [],
+      "warnings": ["deterministic capability baseline is structural default"],
+      "blockers": ["deterministic capability baseline is structural default"],
+      "is_default": true,
+      "is_authoritative": false
+    },
+    {
+      "field": "benefit",
+      "event_id": "e1_create_user",
+      "value": 0.5,
+      "confidence": 0.0,
+      "source": "default",
+      "method_id": "default.benefit",
+      "method_version": "e3.2-2026-04-25",
+      "evidence_refs": [],
+      "warnings": ["deterministic benefit baseline is structural default"],
+      "blockers": ["deterministic benefit baseline is structural default"],
+      "is_default": true,
+      "is_authoritative": false
+    },
+    {
+      "field": "observability",
+      "event_id": "e1_create_user",
+      "value": 0.6,
+      "confidence": 0.4,
+      "source": "heuristic",
+      "method_id": "observability.test_file_present",
+      "method_version": "e3.2-2026-04-25",
+      "evidence_refs": [],
+      "warnings": ["test file presence is a weak positive"],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ]
+}

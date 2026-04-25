@@ -1,0 +1,10 @@
+{
+  "expected_status": "diagnostic_only",
+  "min_accepted": 2,
+  "max_rejected": 0,
+  "must_have_capability_below_half": true,
+  "must_replace_capability_with_llm": true,
+  "must_replace_benefit_with_llm": true,
+  "observability_must_remain_missing": true,
+  "notes": "Capability is correctly low because the guard mechanism is missing; observability remains missing (LLM declined via unsupported_claims)."
+}

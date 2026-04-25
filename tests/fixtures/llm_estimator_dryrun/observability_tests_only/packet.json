@@ -1,0 +1,65 @@
+{
+  "event_id": "e1_create_user",
+  "allowed_fields": ["capability", "benefit", "observability"],
+  "intent_summary": "expose user creation endpoint",
+  "evidence_items": [
+    {
+      "id": "[E.intent.1]",
+      "kind": "intent",
+      "summary": "Intent: expose user creation endpoint",
+      "source": "ticket",
+      "confidence": 0.9
+    },
+    {
+      "id": "[E.test.1]",
+      "kind": "test_result",
+      "summary": "tests/test_app.py::test_create_user_happy_path passed; no negative-path test detected",
+      "source": "pytest",
+      "confidence": 0.6
+    }
+  ],
+  "deterministic_estimates": [
+    {
+      "field": "capability",
+      "event_id": "e1_create_user",
+      "value": 0.5,
+      "confidence": 0.0,
+      "source": "default",
+      "method_id": "default.capability",
+      "method_version": "e3.2-2026-04-25",
+      "evidence_refs": [],
+      "warnings": [],
+      "blockers": [],
+      "is_default": true,
+      "is_authoritative": false
+    },
+    {
+      "field": "benefit",
+      "event_id": "e1_create_user",
+      "value": 0.5,
+      "confidence": 0.0,
+      "source": "default",
+      "method_id": "default.benefit",
+      "method_version": "e3.2-2026-04-25",
+      "evidence_refs": [],
+      "warnings": [],
+      "blockers": [],
+      "is_default": true,
+      "is_authoritative": false
+    },
+    {
+      "field": "observability",
+      "event_id": "e1_create_user",
+      "value": 0.6,
+      "confidence": 0.4,
+      "source": "heuristic",
+      "method_id": "observability.test_file_present",
+      "method_version": "e3.2-2026-04-25",
+      "evidence_refs": [],
+      "warnings": ["test file presence is a weak positive"],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ]
+}

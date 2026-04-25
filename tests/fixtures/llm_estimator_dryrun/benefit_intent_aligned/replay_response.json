@@ -1,0 +1,22 @@
+{
+  "estimates": [
+    {
+      "field": "benefit",
+      "event_id": "e1_create_user",
+      "value": 0.85,
+      "confidence": 0.55,
+      "source": "llm",
+      "method_id": "llm.benefit.intent_aligned",
+      "method_version": "phase4.0",
+      "evidence_refs": ["[E.intent.1]", "[E.prec.1]"],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ],
+  "cited_evidence_refs": ["[E.intent.1]", "[E.prec.1]"],
+  "unsupported_claims": [
+    "capability@e1_create_user"
+  ]
+}

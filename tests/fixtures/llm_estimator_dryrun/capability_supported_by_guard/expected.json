@@ -1,0 +1,10 @@
+{
+  "expected_status": "shadow_ready",
+  "min_accepted": 3,
+  "max_rejected": 0,
+  "must_replace_capability_with_llm": true,
+  "must_replace_benefit_with_llm": true,
+  "must_replace_observability_with_llm": true,
+  "forbid_blockers_containing": ["forbidden phrase", "schema validation"],
+  "notes": "LLM provided real signal for all 3 fields with proper citations; capability/benefit/observability lift from default to llm source."
+}

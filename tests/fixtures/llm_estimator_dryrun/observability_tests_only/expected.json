@@ -1,0 +1,8 @@
+{
+  "expected_status": "diagnostic_only",
+  "min_accepted": 1,
+  "max_rejected": 0,
+  "must_replace_observability_with_llm": true,
+  "observability_warning_must_mention": "negative-path",
+  "notes": "Observability gets a medium LLM estimate with a warning about missing negative-path tests. Status stays diagnostic_only (capability+benefit still default)."
+}

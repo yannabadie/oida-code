@@ -1,0 +1,23 @@
+{
+  "estimates": [
+    {
+      "field": "observability",
+      "event_id": "e1_create_user",
+      "value": 0.55,
+      "confidence": 0.45,
+      "source": "llm",
+      "method_id": "llm.observability.happy_path_only",
+      "method_version": "phase4.0",
+      "evidence_refs": ["[E.test.1]"],
+      "warnings": ["no negative-path test detected"],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ],
+  "cited_evidence_refs": ["[E.test.1]"],
+  "unsupported_claims": [
+    "capability@e1_create_user",
+    "benefit@e1_create_user"
+  ]
+}

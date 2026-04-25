@@ -1,0 +1,23 @@
+{
+  "estimates": [
+    {
+      "field": "observability",
+      "event_id": "e1_create_user",
+      "value": 0.85,
+      "confidence": 0.6,
+      "source": "llm",
+      "method_id": "llm.observability.negative_path_and_logging",
+      "method_version": "phase4.0",
+      "evidence_refs": ["[E.test.2]", "[E.test.3]"],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ],
+  "cited_evidence_refs": ["[E.test.2]", "[E.test.3]"],
+  "unsupported_claims": [
+    "capability@e1_create_user",
+    "benefit@e1_create_user"
+  ]
+}

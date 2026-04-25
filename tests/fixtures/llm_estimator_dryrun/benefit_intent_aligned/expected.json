@@ -1,0 +1,8 @@
+{
+  "expected_status": "diagnostic_only",
+  "min_accepted": 1,
+  "max_rejected": 0,
+  "must_replace_benefit_with_llm": true,
+  "must_have_benefit_non_authoritative": true,
+  "notes": "Benefit gets a non-default LLM estimate; capability stays default (LLM declined); observability stays heuristic. Status diagnostic_only because capability is still default."
+}

@@ -1,0 +1,7 @@
+{
+  "expected_status": "blocked",
+  "min_accepted": 0,
+  "max_rejected": 1,
+  "must_have_warning_containing": "unknown evidence_refs",
+  "notes": "LLM cited an evidence id that doesn't exist in the packet. The runner rejects the estimate; status falls back to deterministic baseline (blocked)."
+}

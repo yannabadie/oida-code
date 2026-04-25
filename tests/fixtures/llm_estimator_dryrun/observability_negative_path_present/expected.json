@@ -1,0 +1,10 @@
+{
+  "expected_status": "diagnostic_only",
+  "min_accepted": 1,
+  "max_rejected": 0,
+  "must_replace_observability_with_llm": true,
+  "observability_value_must_be_above": 0.7,
+  "compare_to_fixture": "observability_tests_only",
+  "compare_must_be_higher_observability": true,
+  "notes": "Observability is higher than the tests-only fixture because negative-path + logging tests are present. Confidence stays at the LLM cap (0.6)."
+}

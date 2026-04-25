@@ -605,6 +605,81 @@ def repair_cmd(
     )
 
 
+@app.command("estimate-llm")
+def estimate_llm_cmd(
+    packet_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to an LLMEvidencePacket JSON (Phase 4.0).",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+        ),
+    ],
+    provider: Annotated[
+        str,
+        typer.Option(
+            "--llm-provider",
+            help="Provider name: 'replay' (default), 'fake', or 'external' "
+            "(opt-in; requires the OIDA_LLM_API_KEY env var). External is "
+            "a Phase 4.0 contract stub; no real call is made yet.",
+        ),
+    ] = "replay",
+    response_fixture: Annotated[
+        Path | None,
+        typer.Option(
+            "--llm-response-fixture",
+            help="Path to a fixture JSON for --llm-provider replay.",
+            exists=True,
+            file_okay=True,
+            dir_okay=False,
+        ),
+    ] = None,
+    out: Annotated[
+        Path | None,
+        typer.Option("--out", help="Where to write the EstimatorReport JSON."),
+    ] = None,
+    timeout_s: Annotated[
+        int,
+        typer.Option(
+            "--timeout",
+            help="Per-call provider budget (seconds).",
+            min=1, max=600,
+        ),
+    ] = 30,
+) -> None:
+    """Phase 4.0 (ADR-25): run an LLM estimator dry-run on a frozen packet.
+
+    Always emits an :class:`EstimatorReport` JSON. Failures (invalid
+    response, schema violations, forbidden phrases) become blockers
+    and the report falls back to the deterministic baseline embedded
+    in the packet. **Never** emits official ``V_net`` / ``debt_final``
+    / ``corrupt_success``; the readiness ladder caps at
+    ``shadow_ready`` in production.
+    """
+    from oida_code.estimators.llm_estimator import run_llm_estimator
+    from oida_code.estimators.llm_prompt import LLMEvidencePacket
+    from oida_code.estimators.llm_provider import (
+        LLMProviderUnavailable,
+        build_provider,
+    )
+
+    packet = LLMEvidencePacket.model_validate_json(
+        packet_path.read_text(encoding="utf-8")
+    )
+    try:
+        backend = build_provider(provider, fixture_path=response_fixture)
+    except LLMProviderUnavailable as exc:
+        _fail(f"llm provider unavailable: {exc}")
+    run = run_llm_estimator(packet, backend, timeout_s=timeout_s)
+    text = run.report.model_dump_json(indent=2)
+    if out is None:
+        typer.echo(text)
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+
+
 def main() -> None:  # pragma: no cover - entry-point thunk
     app(prog_name="oida-code")
 

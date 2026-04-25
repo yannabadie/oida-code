@@ -1,0 +1,7 @@
+{
+  "expected_status": "blocked",
+  "min_accepted": 0,
+  "max_rejected": 0,
+  "all_load_bearing_must_remain_missing": true,
+  "notes": "No intent provided; LLM correctly declines all three load-bearing fields via unsupported_claims. Status stays blocked."
+}

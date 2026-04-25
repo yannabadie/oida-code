@@ -1,0 +1,20 @@
+{
+  "estimates": [
+    {
+      "field": "capability",
+      "event_id": "e1_create_user",
+      "value": 0.95,
+      "confidence": 0.55,
+      "source": "llm",
+      "method_id": "llm.capability.unsubstantiated",
+      "method_version": "phase4.0",
+      "evidence_refs": ["[E.bogus.42]"],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ],
+  "cited_evidence_refs": ["[E.bogus.42]"],
+  "unsupported_claims": []
+}

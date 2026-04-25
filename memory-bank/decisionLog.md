@@ -75,6 +75,82 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-25 18:30:00] - **ADR-25: LLM estimator dry-run before agentic verifier.**
+
+**Why:** ADR-24 defined the estimator contract (frozen
+`SignalEstimate`, confidence/source rules, citation requirement). But
+the contract is paper until a real estimator runs through it. Phase
+4.0 must prove that an LLM-shaped flow can produce contract-compliant
+estimates **without** acquiring authority over `V_net`, `debt_final`,
+or `corrupt_success`, **without** overriding deterministic tool
+failures, and **without** any default-on external API call.
+
+**Decision (Phase 4.0 protocol):**
+
+* Phase 4.0-A — provider abstraction: `LLMProvider` Protocol with
+  three implementations (Fake, FileReplay, OptionalExternal). Tests
+  use Fake/Replay only. External provider raises clean
+  `LLMProviderUnavailable` without env var.
+* Phase 4.0-B — evidence packet: frozen `LLMEvidencePacket` with
+  citable `[E.kind.idx]` IDs. Prompt template wraps user-supplied
+  text in `<<<EVIDENCE_BLOB ...>>>` fences and labels it as data,
+  not instruction.
+* Phase 4.0-C — runner: parser + validator + merge. Strict failure
+  handling — invalid JSON, schema violation, confidence cap breach,
+  missing citations, forbidden phrase, contradiction with
+  deterministic tool — all become blockers/warnings without crash.
+* Phase 4.0-D — 8 hermetic fixtures including a prompt-injection
+  fixture that proves the fence keeps user text out of instruction
+  context.
+* Phase 4.0-E — `oida-code estimate-llm` subcommand (separate from
+  `score-trace`) with `--llm-provider replay` default.
+* Phase 4.0-F — readiness integration verifies that even on the
+  most permissive fixture, the production CLI emits no official
+  fusion key (`total_v_net`, `debt_final`, `corrupt_success_*`).
+
+**Accepted:**
+
+* Evidence packet with citable refs (`[E.intent.1]`, `[E.event.1]`,
+  `[E.prec.1]`, `[E.tool.1]`, `[E.test.1]`, `[E.graph.1]`).
+* Fake / replay provider as the production-test default.
+* External provider opt-in only, behind env var + explicit flag.
+* Schema validation BEFORE the LLM output reaches any consumer.
+* LLM-only estimates non-authoritative (cap 0.6); hybrid 0.8.
+* Deterministic tool evidence wins all conflicts on tool-grounded
+  fields.
+
+**Rejected:**
+
+* Raw LLM scores as `capability` / `benefit` / `observability` truth.
+* LLM self-reported confidence as evidence.
+* LLM ability to emit `V_net` / `debt_final` / `corrupt_success` in
+  any field (validator-rejected at packet AND runner level).
+* Default-on external API calls (no vendor SDK imported at module
+  load; env var must be present AND explicit `--llm-provider external`
+  flag passed).
+* Full-repo context dump (packet items capped at length 400; only
+  scope-matching tool findings reach the prompt).
+* Phase 4 verifier loop before estimator dry-run (this ADR is
+  explicitly the dry-run only; forward/backward verifier is Phase
+  4.1+).
+
+**Security:** repo + history scanned for committed keys before
+shipping the external provider stub; clean. The
+`OptionalExternalLLMProvider` error path never echoes the env var
+value, even when set. `LLMProviderError` messages drop vendor stack
+traces on purpose.
+
+**Outcome:** all 21 acceptance criteria from QA/A15.md met
+structurally. 32 new tests across `tests/test_phase4_0_llm_estimator_dryrun.py`
+(unit + 8 hermetic fixtures). On real repos the production CLI
+estimator output stays at `status="blocked"` (tool_evidence is
+None at score-trace time per ADR-24 §10 known limitations); on the
+most permissive controlled fixture the report reaches
+`status="shadow_ready"` with all three load-bearing fields
+LLM-replaced. **Official fusion remains null.** ADR-22 holds; no
+follow-up ADR has been proposed to lift it. Report:
+`reports/phase4_0_llm_estimator_dryrun.md`.
+
 [2026-04-25 16:00:00] - **ADR-24: Estimator contracts before Phase-4 LLM verifier.**
 
 **Why:** Phase 3.5 + E1 + E2 shipped a structurally validated shadow

@@ -35,6 +35,25 @@ from oida_code.estimators.llm_contract import (
     LLMEstimatorInput,
     LLMEstimatorOutput,
 )
+from oida_code.estimators.llm_estimator import (
+    LLMEstimatorRun,
+    run_llm_estimator,
+)
+from oida_code.estimators.llm_prompt import (
+    EvidenceItem,
+    EvidenceKind,
+    LLMEvidencePacket,
+    render_prompt,
+)
+from oida_code.estimators.llm_provider import (
+    FakeLLMProvider,
+    FileReplayLLMProvider,
+    LLMProvider,
+    LLMProviderError,
+    LLMProviderUnavailable,
+    OptionalExternalLLMProvider,
+    build_provider,
+)
 
 __all__ = [
     "LLM_CONFIDENCE_CAP_HYBRID",
@@ -43,9 +62,20 @@ __all__ = [
     "EstimateSource",
     "EstimatorReport",
     "EstimatorStatus",
+    "EvidenceItem",
+    "EvidenceKind",
+    "FakeLLMProvider",
+    "FileReplayLLMProvider",
     "LLMEstimatorInput",
     "LLMEstimatorOutput",
+    "LLMEstimatorRun",
+    "LLMEvidencePacket",
+    "LLMProvider",
+    "LLMProviderError",
+    "LLMProviderUnavailable",
+    "OptionalExternalLLMProvider",
     "SignalEstimate",
+    "build_provider",
     "estimate_all_for_event",
     "estimate_benefit",
     "estimate_capability",
@@ -53,4 +83,6 @@ __all__ = [
     "estimate_observability",
     "estimate_operator_accept",
     "estimate_tests_pass",
+    "render_prompt",
+    "run_llm_estimator",
 ]

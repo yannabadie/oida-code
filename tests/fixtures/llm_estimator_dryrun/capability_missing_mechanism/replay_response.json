@@ -1,0 +1,34 @@
+{
+  "estimates": [
+    {
+      "field": "capability",
+      "event_id": "e1_create_user",
+      "value": 0.15,
+      "confidence": 0.55,
+      "source": "llm",
+      "method_id": "llm.capability.guard_missing",
+      "method_version": "phase4.0",
+      "evidence_refs": ["[E.prec.1]"],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    },
+    {
+      "field": "benefit",
+      "event_id": "e1_create_user",
+      "value": 0.7,
+      "confidence": 0.5,
+      "source": "llm",
+      "method_id": "llm.benefit.intent_aligned",
+      "method_version": "phase4.0",
+      "evidence_refs": ["[E.intent.1]"],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ],
+  "cited_evidence_refs": ["[E.prec.1]", "[E.intent.1]"],
+  "unsupported_claims": ["observability@e1_create_user"]
+}
