@@ -302,32 +302,39 @@ def compute_paper_gain(
     state_after: TrajectoryState,
     obligations: list[Obligation],
     segment_events_before: list[TraceEvent],
+    pending_direct_deps: set[str] | None = None,
 ) -> bool:
-    """ADR-19 A2.4: the paper's ``Gain(t → t+1)``, the predicate err(t)
-    uses. Broader than ``is_progress_event`` but **bounded per no-
-    progress segment**: repeating a helpful move does not re-trigger.
+    """ADR-19 A2.4 + E0.1: the paper's ``Gain(t → t+1)``, the predicate
+    err(t) uses. Broader than ``is_progress_event`` but **bounded per
+    no-progress segment**: repeating a helpful move does not re-trigger.
 
     ``paper_gain = True`` iff any of:
 
     * ``is_progress_event`` (entered U or closed obligation)
-    * action touches a pending-obligation resource AND that resource
-      was not already touched earlier in the current no-progress
-      segment
-    * action is ``kind="test_run"``, obligations are pending, AND no
+    * (b) action touches a pending-obligation resource AND that resource
+      was not already touched earlier in the current no-progress segment
+    * (c) action is ``kind="test_run"``, obligations are pending, AND no
       test_run occurred earlier in the current segment
+    * (d) action touches a **direct dependency** of a pending obligation
+      (from the Block-C dep graph) AND that dependency was not already
+      inspected earlier in the current segment
 
-    (Direct-dependency inspection — scientist's 4th sub-rule — is
-    Block C work, bound on the dependency graph.)
+    ``pending_direct_deps`` is the set of file-path scopes of obligations
+    that are direct dependencies (constitutive or supportive parents) of
+    any currently-pending obligation. When ``None``, branch (d) is
+    inactive — preserving backward compatibility with callers that
+    don't have a graph available.
 
-    Keeping paper_gain bounded per segment is the specific correction
-    the OIDA author requested in Answer3.md: "sinon un agent peut
-    relancer le même test 20 fois sans jamais être pénalisé".
+    Branch (d) is the QA/A10.md §E0.1 wiring. The scientist's rule:
+    "Inspecting a direct dependency of an open pending obligation can
+    be paper_gain once per no-progress segment, but not progress_event."
     """
     if is_progress_event(state_before, action, state_after):
         return True
 
     pending_scopes = _pending_obligation_scopes(state_before, obligations)
-    if not pending_scopes:
+    direct_deps = pending_direct_deps or set()
+    if not pending_scopes and not direct_deps:
         return False
 
     action_paths = {_normalize_path(p) for p in action.scope}
@@ -347,8 +354,17 @@ def compute_paper_gain(
     if first_pending_touches:
         return True
 
+    # (d) first inspection of a direct dependency of a pending obligation.
+    first_dep_touches = (action_paths & direct_deps) - already_touched_in_segment
+    if first_dep_touches and pending_scopes:
+        return True
+
     # (c) first relevant test_run in this segment.
-    return action.kind == "test_run" and not segment_had_test_run
+    return (
+        action.kind == "test_run"
+        and bool(pending_scopes)
+        and not segment_had_test_run
+    )
 
 
 def compute_candidate_gain(
@@ -483,6 +499,9 @@ class _ScoringLoop:
     prev_stale: int = 0
     last_progress_t: int = -1
     suspicious_tail: int = 0
+    # E0.1: direct-dependency map. For each obligation_id (child),
+    # the set of file paths of its parent obligations in the graph.
+    deps_by_child: dict[str, frozenset[str]] = field(default_factory=dict)
 
     def run(self) -> list[TimestepCase]:
         for t in range(len(self.events)):
@@ -529,14 +548,19 @@ class _ScoringLoop:
             return
 
         # A2.4: err(t) uses paper_gain, bounded per no-progress segment.
+        # E0.1: include direct-dependency inspection branch.
         segment_start = self.last_progress_t + 1
         segment_events_before = self.events[segment_start:t]
+        pending_direct_deps: set[str] = set()
+        for ob_id in state_before.pending:
+            pending_direct_deps.update(self.deps_by_child.get(ob_id, frozenset()))
         paper_gain = compute_paper_gain(
             state_before,
             action,
             state_after,
             self.obligations,
             segment_events_before,
+            pending_direct_deps,
         )
 
         stale = self._stale_score_at(t)
@@ -592,6 +616,43 @@ class _ScoringLoop:
 
 
 # ---------------------------------------------------------------------------
+# E0.1 — direct-dependency map for paper_gain branch (d)
+# ---------------------------------------------------------------------------
+
+
+def _build_deps_by_child(
+    obligations: list[Obligation],
+    request: AuditRequest | None,
+    changed_files: list[str],
+) -> dict[str, frozenset[str]]:
+    """Map ``obligation_id`` → ``frozenset`` of parent-file paths from
+    the bounded dependency graph. Used by the trajectory scorer's
+    paper_gain branch (d) (QA/A10.md §E0.1).
+
+    Returns an empty dict when no graph can be built (no obligations,
+    no request, or empty changed_files). Imports ``build_dependency_graph``
+    inline to avoid a top-level cycle in case future refactors reverse
+    the dependency direction.
+    """
+    if not obligations or request is None or not changed_files:
+        return {}
+    from oida_code.extract.dependencies import build_dependency_graph
+
+    graph = build_dependency_graph(
+        obligations, request.repo.path, changed_files
+    )
+    ob_id_to_file: dict[str, str] = {
+        o.id: _normalize_path(o.scope.split("::", 1)[0]) for o in obligations
+    }
+    deps: dict[str, set[str]] = {}
+    for edge in [*graph.constitutive_edges, *graph.supportive_edges]:
+        parent_file = ob_id_to_file.get(edge.parent_id)
+        if parent_file:
+            deps.setdefault(edge.child_id, set()).add(parent_file)
+    return {child_id: frozenset(paths) for child_id, paths in deps.items()}
+
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -624,11 +685,17 @@ def score_trajectory(
     changed_files = list(request.scope.changed_files) if request else []
     goal = _pick_goal(obligations)
 
+    # E0.1: build the dep graph once and pre-compute the obligation_id →
+    # parent-file-paths map so the per-step loop can resolve "direct
+    # dependencies of pending obligations" cheaply.
+    deps_by_child = _build_deps_by_child(obligations, request, changed_files)
+
     loop = _ScoringLoop(
         events=events,
         changed_files=changed_files,
         obligations=obligations,
         goal=goal,
+        deps_by_child=deps_by_child,
     )
     timesteps = loop.run()
 

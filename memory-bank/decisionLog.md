@@ -75,6 +75,92 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-25 09:00:00] - **ADR-22: Fusion readiness before graph-aware V_net.**
+
+**Why:** Phase 3.5 (Blocks A-D) shipped a structurally validated
+measurement pipeline: scorer faithful to paper 2604.13151, obligation
+multiplicity (ADR-20), bounded dependency graph (ADR-21), audit
+surface (D0/D0.1), 10 hermetic code-domain traces (D2), and real-repo
+structural smoke (D3). But the OIDA fusion (`V_net`, `debt_final`,
+`corrupt_success`) still has load-bearing inputs that are **defaults,
+not measurements**:
+
+* `event.capability = 0.5` everywhere (Phase 4 LLM intent estimator)
+* `event.benefit = 0.5` everywhere (Phase 4 LLM intent/value estimator)
+* `event.observability = 0.5` (heuristic test-presence detector pending)
+* Several `PreconditionSpec` children verified=False by default
+  (LLM-only signals: `negative_path_tested`, `data_preservation_checked`,
+  `error_or_auth_path_checked`, etc.)
+
+The vendored `OIDAAnalyzer.analyze()` mixes these defaults into
+`q_obs`, `lambda_bias`, `V_dur`, and `V_net`. Emitting those numbers
+publicly would be a silent lie (ADR-13 honesty principle).
+
+**Decision:** OIDA-code MUST NOT emit official `V_net` / `debt_final`
+/ `corrupt_success` while:
+
+1. Load-bearing event fields (`capability`, `benefit`, `observability`)
+   remain at their structural defaults.
+2. Graph-aware fusion is uncalibrated (no validation that constitutive
+   propagation actually predicts what we claim it predicts).
+3. LLM-only sub-preconditions remain unresolved.
+
+**Accepted protocol:**
+
+* Emit a `FusionReadinessReport` that classifies every load-bearing
+  field by source + status + confidence + whether it blocks official
+  fusion.
+* Emit explicit blockers as a list (the user sees what's missing).
+* Allow an experimental SHADOW fusion only if **clearly marked
+  non-authoritative**, in a separate output block, never in
+  `summary.total_v_net` / `summary.debt_final`.
+
+**Rejected alternatives:**
+
+* Filling `V_net` from default-0.5 fields and footnoting it (rejected
+  twice in ADR-13 already; this is the third rejection).
+* Treating dep-graph presence as "graph-aware debt" (the vendored
+  `analyze()` doesn't consume graph in V_net; the graph feeds
+  `double_loop_repair`, not the fusion).
+* Treating any B-state pattern as public `corrupt_success` (B-state
+  is a candidate signal; promotion to verdict requires sustained
+  pattern + negative V_net + trusted inputs — none guaranteed yet).
+* Modifying the vendored OIDA core before a separate-layer experiment
+  (ADR-02 vendoring discipline still holds).
+
+**Architecture (E0.2 verdict):**
+
+    vendored OIDA core
+      → computes official local OIDA quantities when inputs are trusted
+
+    fusion_readiness layer (NEW, src/oida_code/score/fusion_readiness.py)
+      → decides if official fusion is allowed
+
+    experimental_shadow layer
+      → optional, clearly non-authoritative, opt-in
+
+**Field readiness expected at v0.4.2 baseline:**
+
+| Field | Source | Status | Blocks official |
+|---|---|---|---|
+| `capability` | default 0.5 | default | yes |
+| `benefit` | default 0.5 | default | yes |
+| `observability` | default 0.5 | default/heuristic | yes |
+| `completion` | pytest pass-ratio | real | no |
+| `tests_pass` | weighted blend | real-partial | no |
+| `operator_accept` | ruff+mypy green | real | no |
+| `grounding` | per-obligation child weights (ADR-20) | partial-real | no |
+| `preconditions` | 1..N expanders (ADR-20) | real-partial | no |
+| `constitutive_edges` | bounded graph (ADR-21) | real-bounded | no |
+| `supportive_edges` | bounded graph (ADR-21) | real-bounded | no |
+| `trajectory_metrics` | paper-faithful + structural smoke | real-structural | no |
+| `repair_signal` | double_loop_repair | real-bounded | no |
+
+**Acceptance criteria met (E0):** ADR-22 written, fusion_readiness
+module shipped with FusionReadinessReport, 8+ tests including the
+blocking-on-defaults set, official summary stays null when blocked,
+separate-layer decision recorded explicitly here.
+
 [2026-04-24 23:15:00] - **ADR-21: Minimal dependency graph before graph-aware fusion.**
 
 **Why:** Phase 2's `extract/dependencies.py` returned `{ob.id:
