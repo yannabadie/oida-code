@@ -1,0 +1,19 @@
+{
+  "event_id": "event-A",
+  "allowed_fields": [
+    "capability",
+    "benefit",
+    "observability"
+  ],
+  "intent_summary": "intent for confidence_cap_exceeded",
+  "evidence_items": [
+    {
+      "id": "[E.intent.1]",
+      "kind": "intent",
+      "summary": "intent for confidence_cap_exceeded",
+      "source": "ticket",
+      "confidence": 0.9
+    }
+  ],
+  "deterministic_estimates": []
+}

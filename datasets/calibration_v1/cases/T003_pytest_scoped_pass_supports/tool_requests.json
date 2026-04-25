@@ -1,0 +1,11 @@
+[
+  {
+    "tool": "pytest",
+    "purpose": "check pytest",
+    "scope": [
+      "src/a.py"
+    ],
+    "max_runtime_s": 5,
+    "max_output_chars": 4000
+  }
+]

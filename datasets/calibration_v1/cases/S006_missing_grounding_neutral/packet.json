@@ -1,0 +1,23 @@
+{
+  "name": "S006",
+  "description": "missing_grounding_neutral",
+  "events": [
+    {
+      "id": "e1",
+      "pattern_id": "p_S006",
+      "task": "src/a.py: missing_grounding_neutral",
+      "capability": 0.5,
+      "reversibility": 0.5,
+      "observability": 0.5,
+      "blast_radius": 0.3,
+      "completion": 0.5,
+      "tests_pass": 0.5,
+      "operator_accept": 0.5,
+      "benefit": 0.5,
+      "preconditions": [],
+      "constitutive_parents": [],
+      "supportive_parents": [],
+      "invalidates_pattern": false
+    }
+  ]
+}

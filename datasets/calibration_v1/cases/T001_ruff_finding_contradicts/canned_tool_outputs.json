@@ -1,0 +1,7 @@
+{
+  "ruff": {
+    "stdout": "[{\"filename\": \"src/a.py\", \"code\": \"E501\", \"message\": \"line too long\", \"location\": {\"row\": 1, \"column\": 1}}]",
+    "returncode": 1,
+    "runtime_ms": 12
+  }
+}

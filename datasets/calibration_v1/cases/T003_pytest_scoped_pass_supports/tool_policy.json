@@ -1,0 +1,29 @@
+{
+  "allowed_tools": [
+    "ruff",
+    "mypy",
+    "pytest"
+  ],
+  "repo_root": "<case_dir>",
+  "allowed_paths": [
+    "src",
+    "tests"
+  ],
+  "deny_patterns": [
+    ".env",
+    ".env.*",
+    "*.key",
+    "*.pem",
+    "*secret*",
+    "*.token",
+    ".git/config",
+    ".git/hooks/*",
+    "id_rsa",
+    "id_ed25519"
+  ],
+  "allow_network": false,
+  "allow_write": false,
+  "max_tool_calls": 5,
+  "max_total_runtime_s": 60,
+  "max_output_chars_per_tool": 8000
+}

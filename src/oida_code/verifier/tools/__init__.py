@@ -85,14 +85,20 @@ class ToolExecutionEngine:
         total_runtime_ms = 0
         budget_ms = policy.max_total_runtime_s * 1000
         for request in requests:
-            if total_runtime_ms >= budget_ms:
+            # 4.2.1 — clamp the per-tool timeout to the remaining
+            # global budget BEFORE invoking the executor, so a single
+            # slow tool can't push past the engine-level budget. If
+            # there's no budget left at all, block without any
+            # subprocess call.
+            remaining_ms = budget_ms - total_runtime_ms
+            if remaining_ms <= 0:
                 results.append(VerifierToolResult(
                     tool=request.tool,
                     status="blocked",
                     blockers=(
                         f"max_total_runtime_s={policy.max_total_runtime_s} "
-                        f"exceeded; request {request.tool}/{request.purpose!r} "
-                        "skipped",
+                        f"exhausted before request {request.tool}/"
+                        f"{request.purpose!r}; executor not invoked",
                     ),
                 ))
                 continue
@@ -114,14 +120,26 @@ class ToolExecutionEngine:
                     blockers=(str(exc),),
                 ))
                 continue
+            # Effective per-call timeout — the smaller of the request's
+            # own budget and what's left of the engine-level budget.
+            effective_timeout_s = max(
+                1, min(request.max_runtime_s, max(1, remaining_ms // 1000)),
+            )
+            clamped_request = request.model_copy(
+                update={"max_runtime_s": effective_timeout_s},
+            )
             start = time.monotonic()
             outcome = adapter.run(
-                request,
+                clamped_request,
                 repo_root=policy.repo_root,
                 executor=executor,
                 max_output_chars=policy.max_output_chars_per_tool,
             )
-            total_runtime_ms += int((time.monotonic() - start) * 1000)
+            # 4.2.1 — honor the larger of wall-clock and executor-
+            # reported runtime so a fake/replay executor reporting a
+            # synthetic runtime still consumes the engine's budget.
+            wall_ms = int((time.monotonic() - start) * 1000)
+            total_runtime_ms += max(wall_ms, outcome.runtime_ms)
             results.append(outcome)
 
         # Append the over-budget extras, preserving request order.

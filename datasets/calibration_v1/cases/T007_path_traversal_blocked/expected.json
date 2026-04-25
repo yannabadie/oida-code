@@ -1,0 +1,36 @@
+{
+  "case_id": "T007",
+  "family": "tool_grounded",
+  "repo_fixture": null,
+  "request_path": null,
+  "trace_path": null,
+  "packet_path": null,
+  "tool_policy_path": "tool_policy.json",
+  "tool_requests_path": "tool_requests.json",
+  "canned_tool_outputs_path": "canned_tool_outputs.json",
+  "forward_replay_path": null,
+  "backward_replay_path": null,
+  "expected_claim_labels": [],
+  "expected_tool_results": [
+    {
+      "request_id": "ruff:0",
+      "tool": "ruff",
+      "expected_status": "blocked",
+      "expected_findings_min": 0,
+      "expected_findings_max": null,
+      "expected_block_reason_substring": "path traversal"
+    }
+  ],
+  "expected_shadow_bucket": "not_applicable",
+  "expected_repair_behavior": null,
+  "expected_code_outcome": null,
+  "provenance": {
+    "source": "synthetic",
+    "created_by": "script",
+    "source_commit": null,
+    "public_url": null,
+    "contamination_notes": "Built by build_calibration_dataset.py"
+  },
+  "contamination_risk": "synthetic",
+  "notes": "tool_grounded pilot case"
+}

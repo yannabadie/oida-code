@@ -1,0 +1,11 @@
+[
+  {
+    "tool": "ruff",
+    "purpose": "check ruff",
+    "scope": [
+      "src/../../etc/passwd"
+    ],
+    "max_runtime_s": 5,
+    "max_output_chars": 4000
+  }
+]

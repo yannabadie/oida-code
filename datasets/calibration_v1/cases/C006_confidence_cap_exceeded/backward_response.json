@@ -1,0 +1,18 @@
+[
+  {
+    "event_id": "event-A",
+    "claim_id": "C006",
+    "requirement": {
+      "claim_id": "C006",
+      "required_evidence_kinds": [
+        "intent"
+      ],
+      "satisfied_evidence_refs": [
+        "[E.intent.1]"
+      ],
+      "missing_requirements": []
+    },
+    "necessary_conditions_met": true,
+    "warnings": []
+  }
+]

@@ -75,6 +75,101 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-26 14:00:00] - **ADR-28: Calibration dataset before predictive claims.**
+
+**Why:** Phase 4.0–4.2 shipped the LLM estimator + forward/backward
+verifier + tool-grounded loop as **contracts**. None of those phases
+validated quality on real cases. Phase 4.3 designs a calibration
+dataset that measures pipeline behaviour on controlled cases without
+recreating the Phase-3 length-confound trap (progress_rate was
+mechanically tied to session length; commits>0 was a tautological
+outcome proxy).
+
+**Decision (Phase 4.3 protocol):**
+
+* `src/oida_code/calibration/` sub-package: `models.py` (frozen
+  schemas), `metrics.py` (`CalibrationMetrics` + pure helpers),
+  `runner.py` (per-family evaluators + aggregation).
+* `datasets/calibration_v1/` ships a **32-case pilot** spread across
+  five families: 8 `claim_contract`, 8 `tool_grounded`, 6
+  `shadow_pressure`, 6 `code_outcome` (with F2P/P2P), 4
+  `safety_adversarial`. Built deterministically by
+  `scripts/build_calibration_dataset.py`.
+* Three operator scripts:
+  * `build_calibration_dataset.py` — emits the dataset
+  * `run_calibration_eval.py` — emits `metrics.json` + report
+  * `check_calibration_stability.py` — runs `code_outcome` cases'
+    pytest 3 times and flags flaky cases (excluded from headline
+    metrics)
+* 4.2.1 paired hardening: phase4_2 report's residual `<<>>`
+  shorthand replaced with explicit `<<<OIDA_EVIDENCE id="[E.x.y]"
+  kind="...">>>` ... `<<<END_OIDA_EVIDENCE id="[E.x.y]">>>` form;
+  engine pre-clamps per-tool `max_runtime_s` to the remaining global
+  budget AND blocks without invocation when the budget is exhausted;
+  3 new tests pin the behaviour.
+
+**Accepted:**
+
+* claim-level labels (accepted/unsupported/rejected + reason
+  Literal)
+* evidence-ref labels (precision + recall + unknown-ref rejection)
+* tool-result labels with `expected_status` + optional block-reason
+  substring
+* seeded synthetic repo defects with F2P/P2P (SWE-bench-style)
+* multi-run stability (default 3 runs) for `code_outcome` cases;
+  flaky cases excluded
+* `CalibrationProvenance` with `contamination_risk` ladder
+  (synthetic / private / public_low / public_high); `public_high`
+  cases automatically dropped from headline metrics
+* macro-F1 alongside accuracy (the three claim outcomes are
+  imbalanced; accuracy alone could mask "always say accepted")
+* the `Literal[0]` pin on `CalibrationMetrics.official_field_leak_count`
+  + `CalibrationManifest.official_vnet_allowed=Literal[False]` so
+  the schema literally cannot publish a result that claims V_net is
+  open
+
+**Rejected:**
+
+* `commits > 0` as a success proxy (Phase-3 trap)
+* session length as a success proxy (Phase-3 trap)
+* public benchmark score as proof of real-world validity (OpenAI's
+  SWE-bench Verified retraction in 2026 cited contamination + ≥59.4%
+  defective tests in audited subset; we do NOT bet OIDA-code on a
+  saturated public benchmark)
+* official `V_net` / `debt_final` / `corrupt_success` from
+  calibration results (ADR-22 still holds)
+* LLM-as-judge for ground truth (would re-introduce the LLM
+  authority leak ADR-24 forbids)
+* threshold tuning on `calibration_v1` for production use
+
+**External grounding:**
+
+* SWE-bench / SWE-bench Multilingual: F2P (correctness) +
+  P2P (no regression) executable signals.
+* ProdCodeBench: production-derived, prompt + commit + tests with
+  relevance validation + multi-run stability.
+* OpenAI 2026 audit on SWE-bench Verified: contamination guard
+  required; public benchmarks treated as memorisation risk.
+* OWASP agent attack catalogue: prompt injection, tool abuse, data
+  exfiltration; the `safety_adversarial` family covers prompt
+  injection in code AND in tool output, forged evidence ids, and
+  fence-close attempts.
+* NIST AI RMF: govern / map / measure / manage; Phase 4.3 is the
+  *measure* function, decoupled from operational thresholds.
+
+**Outcome:** all 24 acceptance criteria from QA/A19.md met. 22 new
+tests in `tests/test_phase4_3_calibration.py` (schema invariants,
+metric helpers, per-family runners, end-to-end pilot smoke,
+manifest pinning). Plus 3 new tests for 4.2.1 in
+`tests/test_phase4_2_tool_grounded_verifier.py`. Full suite **462
+passed + 3 skipped** (1 V2 placeholder + 2 Phase-4 observability
+markers). The pilot dataset evaluates with all metrics at 1.0 (with
+`code_outcome` deferred to the stability script) and **0
+official-field leaks** across all 32 cases. ADR-22 + ADR-25 + ADR-26
++ ADR-27 + ADR-28 hold; production CLI emits no `V_net` /
+`debt_final` / `corrupt_success`. Report:
+`reports/phase4_3_calibration_dataset_design.md`.
+
 [2026-04-26 09:30:00] - **ADR-27: Bounded tool-grounded verifier loop.**
 
 **Why:** Phase 4.1 (ADR-26) shipped the forward/backward verifier

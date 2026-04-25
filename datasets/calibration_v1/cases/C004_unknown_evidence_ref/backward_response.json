@@ -1,0 +1,18 @@
+[
+  {
+    "event_id": "event-A",
+    "claim_id": "C004",
+    "requirement": {
+      "claim_id": "C004",
+      "required_evidence_kinds": [
+        "intent"
+      ],
+      "satisfied_evidence_refs": [
+        "[E.bogus.42]"
+      ],
+      "missing_requirements": []
+    },
+    "necessary_conditions_met": true,
+    "warnings": []
+  }
+]

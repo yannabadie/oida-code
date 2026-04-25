@@ -1,0 +1,6 @@
+{
+  "ruff": {
+    "missing": true,
+    "runtime_ms": 0
+  }
+}

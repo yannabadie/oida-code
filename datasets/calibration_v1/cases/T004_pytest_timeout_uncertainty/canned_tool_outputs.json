@@ -1,0 +1,6 @@
+{
+  "pytest": {
+    "timed_out": true,
+    "runtime_ms": 5000
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "event_id": "event-A",
+  "allowed_fields": [
+    "capability",
+    "benefit",
+    "observability"
+  ],
+  "intent_summary": "intent for repair_needed_diagnostic",
+  "evidence_items": [
+    {
+      "id": "[E.intent.1]",
+      "kind": "intent",
+      "summary": "intent for repair_needed_diagnostic",
+      "source": "ticket",
+      "confidence": 0.9
+    },
+    {
+      "id": "[E.repair_signal.1]",
+      "kind": "repair_signal",
+      "summary": "fix proposed",
+      "source": "ticket",
+      "confidence": 0.9
+    }
+  ],
+  "deterministic_estimates": []
+}

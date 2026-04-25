@@ -1,0 +1,44 @@
+{
+  "name": "S002",
+  "description": "migration_partial_medium",
+  "events": [
+    {
+      "id": "e1",
+      "pattern_id": "p_S002",
+      "task": "src/a.py: migration_partial_medium",
+      "capability": 0.5,
+      "reversibility": 0.5,
+      "observability": 0.5,
+      "blast_radius": 0.3,
+      "completion": 0.5,
+      "tests_pass": 0.5,
+      "operator_accept": 0.5,
+      "benefit": 0.5,
+      "preconditions": [
+        {
+          "name": "guard",
+          "weight": 0.25,
+          "verified": true
+        },
+        {
+          "name": "rollback",
+          "weight": 0.25,
+          "verified": false
+        },
+        {
+          "name": "data",
+          "weight": 0.25,
+          "verified": false
+        },
+        {
+          "name": "test",
+          "weight": 0.25,
+          "verified": false
+        }
+      ],
+      "constitutive_parents": [],
+      "supportive_parents": [],
+      "invalidates_pattern": false
+    }
+  ]
+}

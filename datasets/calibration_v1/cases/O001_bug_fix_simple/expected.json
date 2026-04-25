@@ -1,0 +1,39 @@
+{
+  "case_id": "O001",
+  "family": "code_outcome",
+  "repo_fixture": "repo",
+  "request_path": null,
+  "trace_path": null,
+  "packet_path": null,
+  "tool_policy_path": null,
+  "tool_requests_path": null,
+  "canned_tool_outputs_path": null,
+  "forward_replay_path": null,
+  "backward_replay_path": null,
+  "expected_claim_labels": [],
+  "expected_tool_results": [],
+  "expected_shadow_bucket": "not_applicable",
+  "expected_repair_behavior": null,
+  "expected_code_outcome": {
+    "f2p_tests": [
+      "tests/test_calc.py::test_divide_by_zero_returns_none"
+    ],
+    "p2p_tests": [
+      "tests/test_calc.py::test_divide_basic"
+    ],
+    "expected_f2p_before": "fail",
+    "expected_f2p_after": "pass",
+    "expected_p2p_before": "pass",
+    "expected_p2p_after": "pass",
+    "stability_runs": 3
+  },
+  "provenance": {
+    "source": "synthetic",
+    "created_by": "script",
+    "source_commit": null,
+    "public_url": null,
+    "contamination_notes": "seeded synthetic bug for F2P/P2P pilot"
+  },
+  "contamination_risk": "synthetic",
+  "notes": "code_outcome pilot — bug_fix_simple"
+}

@@ -1,0 +1,19 @@
+{
+  "event_id": "event-A",
+  "allowed_fields": [
+    "capability",
+    "benefit",
+    "observability"
+  ],
+  "intent_summary": "intent for unknown_evidence_ref",
+  "evidence_items": [
+    {
+      "id": "[E.intent.1]",
+      "kind": "intent",
+      "summary": "intent for unknown_evidence_ref",
+      "source": "ticket",
+      "confidence": 0.9
+    }
+  ],
+  "deterministic_estimates": []
+}

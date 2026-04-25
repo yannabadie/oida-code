@@ -1,0 +1,7 @@
+{
+  "mypy": {
+    "stdout": "src/a.py:5: error: Bad return type [return-value]\n",
+    "returncode": 1,
+    "runtime_ms": 14
+  }
+}

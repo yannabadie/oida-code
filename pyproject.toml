@@ -67,7 +67,15 @@ python_version = "3.11"
 strict = true
 # Vendored OIDA core uses @dataclass(slots=True) and networkx without full stubs;
 # keeping it verbatim per blueprint §2. Exclude it from strict type checking.
-exclude = ["src/oida_code/_vendor/"]
+exclude = [
+    "src/oida_code/_vendor/",
+    # Phase 4.3 calibration dataset: each `code_outcome` case ships
+    # its own ``repo/src/`` mini-project for F2P/P2P stability runs.
+    # mypy's package discovery would treat them as duplicate ``src``
+    # modules; the calibration runner exercises them via a separate
+    # subprocess pytest invocation, not via the project mypy gate.
+    "datasets/",
+]
 
 [[tool.mypy.overrides]]
 module = "networkx.*"

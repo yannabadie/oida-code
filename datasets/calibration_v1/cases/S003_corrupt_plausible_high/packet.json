@@ -1,0 +1,29 @@
+{
+  "name": "S003",
+  "description": "corrupt_plausible_high",
+  "events": [
+    {
+      "id": "e1",
+      "pattern_id": "p_S003",
+      "task": "src/a.py: corrupt_plausible_high",
+      "capability": 0.5,
+      "reversibility": 0.5,
+      "observability": 0.5,
+      "blast_radius": 0.3,
+      "completion": 0.0,
+      "tests_pass": 0.5,
+      "operator_accept": 0.0,
+      "benefit": 0.5,
+      "preconditions": [
+        {
+          "name": "g",
+          "weight": 1.0,
+          "verified": false
+        }
+      ],
+      "constitutive_parents": [],
+      "supportive_parents": [],
+      "invalidates_pattern": false
+    }
+  ]
+}

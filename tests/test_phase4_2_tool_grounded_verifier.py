@@ -366,6 +366,65 @@ def test_tool_timeout_blocks_claim(tmp_path: Path) -> None:
     assert any("budget" in w for w in results[0].warnings)
 
 
+def test_engine_clamps_per_tool_timeout_to_remaining_global_budget(
+    tmp_path: Path,
+) -> None:
+    """4.2.1: when the request's own ``max_runtime_s`` is larger than
+    the engine's remaining global budget, the adapter sees a clamped
+    timeout. We track the timeouts the executor was actually given
+    via the captured :class:`ExecutionContext`."""
+    fake = FakeExecutor({"ruff": _ok(stdout="[]", runtime_ms=10_000)})
+    engine = ToolExecutionEngine(executor=fake)
+    pol = _policy(tmp_path, max_total_runtime_s=2)  # 2-second engine budget
+    long_request = _request(tool="ruff", max_runtime_s=600)  # asks for 600s
+    engine.run((long_request,), pol)
+    assert fake.calls
+    # First tool: clamped to ≤ remaining budget at start (2s).
+    assert fake.calls[0].timeout_s <= 2
+    assert fake.calls[0].timeout_s >= 1
+
+
+def test_engine_blocks_without_invocation_when_global_budget_exhausted(
+    tmp_path: Path,
+) -> None:
+    """4.2.1: once total_runtime_ms drains the budget, the next
+    request is blocked WITHOUT calling the executor — the canary
+    against silently letting one more subprocess slip through."""
+    fake = FakeExecutor({"ruff": _ok(stdout="[]", runtime_ms=2500)})
+    engine = ToolExecutionEngine(executor=fake)
+    pol = _policy(tmp_path, max_total_runtime_s=2)
+    first = _request(tool="ruff", max_runtime_s=10)
+    second = _request(tool="ruff", max_runtime_s=10)
+    results = engine.run((first, second), pol)
+    # First request consumed the budget. Second request should NOT
+    # have invoked the executor.
+    assert len(fake.calls) == 1
+    assert results[1].status == "blocked"
+    assert any(
+        "exhausted" in b and "executor not invoked" in b
+        for b in results[1].blockers
+    )
+
+
+def test_budget_block_result_preserves_request_order(tmp_path: Path) -> None:
+    """4.2.1: a block due to budget exhaustion must NOT shuffle the
+    result list — each result sits at the same index as its request,
+    matching the existing max_tool_calls behaviour."""
+    fake = FakeExecutor({"ruff": _ok(stdout="[]", runtime_ms=2500)})
+    engine = ToolExecutionEngine(executor=fake)
+    pol = _policy(tmp_path, max_total_runtime_s=2)
+    requests = (
+        _request(tool="ruff", max_runtime_s=10),
+        _request(tool="mypy", max_runtime_s=10),
+        _request(tool="pytest", max_runtime_s=10),
+    )
+    results = engine.run(requests, pol)
+    # results[i].tool must match requests[i].tool — order preserved
+    # whether the result is "ok" or "blocked".
+    for req, res in zip(requests, results, strict=True):
+        assert res.tool == req.tool
+
+
 def test_tool_blocked_does_not_call_executor(tmp_path: Path) -> None:
     """A request blocked by the sandbox MUST NOT reach the executor."""
     fake = FakeExecutor({"ruff": _ok("[]")})

@@ -1,0 +1,21 @@
+{
+  "event_id": "event-A",
+  "supported_claims": [
+    {
+      "claim_id": "C001",
+      "event_id": "event-A",
+      "claim_type": "capability_sufficient",
+      "statement": "ok",
+      "confidence": 0.5,
+      "evidence_refs": [
+        "[E.intent.1]"
+      ],
+      "source": "forward",
+      "is_authoritative": false
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": []
+}
