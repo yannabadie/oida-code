@@ -1,0 +1,18 @@
+{
+  "event_id": "e1_create_user",
+  "supported_claims": [
+    {
+      "claim_id": "c-benefit-1",
+      "event_id": "e1_create_user",
+      "claim_type": "benefit_aligned",
+      "statement": "benefit aligned with the endpoint",
+      "confidence": 0.5,
+      "evidence_refs": ["[E.event.1]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": []
+}

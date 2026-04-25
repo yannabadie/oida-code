@@ -1,0 +1,10 @@
+{
+  "event_id": "e1_create_user",
+  "allowed_fields": ["capability", "benefit", "observability"],
+  "intent_summary": "add auth guard with full failure path",
+  "evidence_items": [
+    {"id": "[E.intent.1]", "kind": "intent", "summary": "add auth guard with full failure path", "source": "ticket", "confidence": 0.9},
+    {"id": "[E.test.1]", "kind": "test_result", "summary": "happy-path test only", "source": "pytest", "confidence": 0.7}
+  ],
+  "deterministic_estimates": []
+}

@@ -680,6 +680,77 @@ def estimate_llm_cmd(
     out.write_text(text, encoding="utf-8")
 
 
+@app.command("verify-claims")
+def verify_claims_cmd(
+    packet_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to an LLMEvidencePacket JSON (Phase 4.0).",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    forward_replay: Annotated[
+        Path,
+        typer.Option(
+            "--forward-replay",
+            help="Path to a fixture JSON containing the forward verifier "
+            "response. Phase 4.1 only supports replay; live providers "
+            "land in Phase 4.2.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    backward_replay: Annotated[
+        Path,
+        typer.Option(
+            "--backward-replay",
+            help="Path to a fixture JSON containing the backward verifier "
+            "response.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            help="Where to write the VerifierAggregationReport JSON.",
+        ),
+    ] = None,
+    timeout_s: Annotated[
+        int,
+        typer.Option(
+            "--timeout",
+            help="Per-call provider budget (seconds).",
+            min=1, max=600,
+        ),
+    ] = 30,
+) -> None:
+    """Phase 4.1 (ADR-26): aggregate forward + backward verifier replays.
+
+    Produces a :class:`VerifierAggregationReport` that combines the two
+    replay responses against the packet's evidence. Even if every claim
+    is accepted, the report is non-authoritative — ADR-22 + ADR-26 keep
+    the official fusion gate closed.
+    """
+    from oida_code.estimators.llm_prompt import LLMEvidencePacket
+    from oida_code.verifier.forward_backward import run_verifier
+    from oida_code.verifier.replay import (
+        FileReplayVerifierProvider,
+    )
+
+    packet = LLMEvidencePacket.model_validate_json(
+        packet_path.read_text(encoding="utf-8")
+    )
+    forward = FileReplayVerifierProvider(fixture_path=forward_replay)
+    backward = FileReplayVerifierProvider(fixture_path=backward_replay)
+    run = run_verifier(packet, forward, backward, timeout_s=timeout_s)
+    text = run.report.model_dump_json(indent=2)
+    if out is None:
+        typer.echo(text)
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+
+
 def main() -> None:  # pragma: no cover - entry-point thunk
     app(prog_name="oida-code")
 

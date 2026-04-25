@@ -1,0 +1,8 @@
+{
+  "expected_status": "blocked",
+  "min_accepted": 0,
+  "min_rejected": 1,
+  "must_reject_claim_ids": ["c-cap-bogus"],
+  "must_have_warning_containing": "unknown evidence_refs",
+  "notes": "Forward cited an evidence id that doesn't exist; aggregator rejects. Backward also says necessary conditions not met."
+}

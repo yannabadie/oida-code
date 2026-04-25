@@ -1,0 +1,8 @@
+{
+  "expected_status": "verification_candidate",
+  "min_accepted": 1,
+  "max_rejected": 0,
+  "must_accept_claim_ids": ["c-repair-1"],
+  "report_must_not_be_authoritative": true,
+  "notes": "repair_needed claim accepted (forward + backward + evidence all good), but authoritative=False ensures the verifier cannot promote this to an official emit-V_net signal."
+}

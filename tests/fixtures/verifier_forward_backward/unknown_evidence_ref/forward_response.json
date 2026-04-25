@@ -1,0 +1,18 @@
+{
+  "event_id": "e1",
+  "supported_claims": [
+    {
+      "claim_id": "c-1",
+      "event_id": "e1",
+      "claim_type": "capability_sufficient",
+      "statement": "spurious citation",
+      "confidence": 0.4,
+      "evidence_refs": ["[E.does_not_exist.42]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": []
+}

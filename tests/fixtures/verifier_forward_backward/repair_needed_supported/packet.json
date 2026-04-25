@@ -1,0 +1,11 @@
+{
+  "event_id": "e1_create_user",
+  "allowed_fields": ["capability", "benefit", "observability"],
+  "intent_summary": "add auth guard",
+  "evidence_items": [
+    {"id": "[E.intent.1]", "kind": "intent", "summary": "add auth guard", "source": "ticket", "confidence": 0.9},
+    {"id": "[E.prec.1]", "kind": "precondition", "summary": "auth_guard NOT detected by AST scan", "source": "ast", "confidence": 0.9},
+    {"id": "[E.repair.1]", "kind": "repair_signal", "summary": "missing decorator @requires_auth", "source": "graph", "confidence": 0.8}
+  ],
+  "deterministic_estimates": []
+}

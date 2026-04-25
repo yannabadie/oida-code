@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -39,7 +39,7 @@ delta=0.0; E2 graph ablation 7/7 invariants hold; E2 real-repo
 shadow smoke PASS on oida-code self + attrs; E3 differentiation
 fixture proves shadow pressure now varies with evidence; Phase 4.0
 8 hermetic LLM-estimator fixtures PASS including prompt-injection;
-**364/367 unit tests green (3 skips = V2 placeholder + 2 Phase-4
+**400/403 unit tests green (3 skips = V2 placeholder + 2 Phase-4
 observability markers)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -56,12 +56,13 @@ fixtures where evidence is captured; **no external API is called
 by default** and the `OptionalExternalLLMProvider` is a Phase 4.2+
 contract stub.
 
-**Phase 4.1 forward/backward verifier contract pending.**
+**Phase 4.2 tool-grounded verifier loop pending.**
 **Not production-ready.** See `memory-bank/progress.md`,
 `reports/block_d_validation.md`, `reports/e0_fusion_readiness.md`,
 `reports/e1_shadow_fusion.md`, `reports/e2_shadow_formula_decision.md`,
 `reports/e3_estimator_contracts.md`,
-`reports/phase4_0_llm_estimator_dryrun.md`.
+`reports/phase4_0_llm_estimator_dryrun.md`,
+`reports/phase4_1_forward_backward_contract.md`.
 
 ## Install (dev)
 

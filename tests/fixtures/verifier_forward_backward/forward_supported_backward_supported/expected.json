@@ -1,0 +1,8 @@
+{
+  "expected_status": "verification_candidate",
+  "min_accepted": 1,
+  "max_rejected": 0,
+  "max_unsupported": 0,
+  "must_accept_claim_ids": ["c-cap-1"],
+  "notes": "Forward supports + backward says necessary conditions met + evidence refs exist + no tool contradiction. Claim accepted."
+}

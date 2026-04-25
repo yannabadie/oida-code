@@ -1,0 +1,14 @@
+[
+  {
+    "event_id": "e1_create_user",
+    "claim_id": "c-cap-2",
+    "requirement": {
+      "claim_id": "c-cap-2",
+      "required_evidence_kinds": ["intent", "precondition"],
+      "satisfied_evidence_refs": ["[E.intent.1]"],
+      "missing_requirements": []
+    },
+    "necessary_conditions_met": true,
+    "warnings": []
+  }
+]

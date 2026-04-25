@@ -1,0 +1,8 @@
+{
+  "expected_status": "blocked",
+  "min_accepted": 0,
+  "min_rejected": 1,
+  "must_reject_claim_ids": ["c-cap-2"],
+  "must_have_warning_containing": "contradicts deterministic tool failure",
+  "notes": "Even though forward + backward agree, the deterministic test_result on the same event reports value=0.2 (failure). The aggregator rejects the claim — deterministic wins."
+}

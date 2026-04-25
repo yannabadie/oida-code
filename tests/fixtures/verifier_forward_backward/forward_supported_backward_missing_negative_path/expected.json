@@ -1,0 +1,9 @@
+{
+  "expected_status": "diagnostic_only",
+  "min_accepted": 0,
+  "max_rejected": 0,
+  "min_unsupported": 1,
+  "must_unsupport_claim_ids": ["c-obs-1"],
+  "must_have_warning_containing": "necessary conditions not met",
+  "notes": "Forward supports observability, but backward says negative-path test is required and missing. Claim becomes unsupported."
+}

@@ -1,0 +1,18 @@
+{
+  "event_id": "e1_create_user",
+  "supported_claims": [
+    {
+      "claim_id": "c-cap-bogus",
+      "event_id": "e1_create_user",
+      "claim_type": "capability_sufficient",
+      "statement": "capability inferred from intent alone",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.imaginary.999]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": []
+}

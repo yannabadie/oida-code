@@ -1,0 +1,14 @@
+[
+  {
+    "event_id": "e1_create_user",
+    "claim_id": "c-cap-bogus",
+    "requirement": {
+      "claim_id": "c-cap-bogus",
+      "required_evidence_kinds": ["precondition"],
+      "satisfied_evidence_refs": [],
+      "missing_requirements": ["AST guard scan"]
+    },
+    "necessary_conditions_met": false,
+    "warnings": []
+  }
+]

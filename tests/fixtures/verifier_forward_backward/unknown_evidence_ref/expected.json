@@ -1,0 +1,7 @@
+{
+  "expected_status": "blocked",
+  "min_accepted": 0,
+  "min_rejected": 1,
+  "must_reject_claim_ids": ["c-1"],
+  "must_have_warning_containing": "unknown evidence_refs"
+}

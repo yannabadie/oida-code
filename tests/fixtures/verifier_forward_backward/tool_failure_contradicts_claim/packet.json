@@ -1,0 +1,25 @@
+{
+  "event_id": "e1_create_user",
+  "allowed_fields": ["capability"],
+  "intent_summary": "add auth guard",
+  "evidence_items": [
+    {"id": "[E.intent.1]", "kind": "intent", "summary": "add auth guard", "source": "ticket", "confidence": 0.9},
+    {"id": "[E.test.1]", "kind": "test_result", "summary": "scoped pytest FAILED", "source": "pytest", "confidence": 0.85}
+  ],
+  "deterministic_estimates": [
+    {
+      "field": "completion",
+      "event_id": "e1_create_user",
+      "value": 0.2,
+      "confidence": 0.85,
+      "source": "test_result",
+      "method_id": "completion.pytest_relevant",
+      "method_version": "e3.2-2026-04-25",
+      "evidence_refs": ["[E.test.1]"],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "event_id": "e1_create_user",
+    "claim_id": "c-obs-1",
+    "requirement": {
+      "claim_id": "c-obs-1",
+      "required_evidence_kinds": ["test_result"],
+      "satisfied_evidence_refs": ["[E.test.1]"],
+      "missing_requirements": ["negative-path test"]
+    },
+    "necessary_conditions_met": false,
+    "warnings": ["observability_sufficient requires a negative-path test"]
+  }
+]

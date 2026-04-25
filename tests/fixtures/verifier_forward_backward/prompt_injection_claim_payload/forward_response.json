@@ -1,0 +1,8 @@
+{
+  "event_id": "e1",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": ["evidence summary contains a prompt-injection attempt; treated as data"]
+}

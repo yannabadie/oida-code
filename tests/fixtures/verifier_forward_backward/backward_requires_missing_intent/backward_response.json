@@ -1,0 +1,14 @@
+[
+  {
+    "event_id": "e1_create_user",
+    "claim_id": "c-benefit-1",
+    "requirement": {
+      "claim_id": "c-benefit-1",
+      "required_evidence_kinds": ["intent"],
+      "satisfied_evidence_refs": [],
+      "missing_requirements": ["intent"]
+    },
+    "necessary_conditions_met": false,
+    "warnings": ["benefit_aligned requires an intent reference"]
+  }
+]

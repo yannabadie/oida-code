@@ -1,0 +1,18 @@
+{
+  "event_id": "e1_create_user",
+  "supported_claims": [
+    {
+      "claim_id": "c-cap-1",
+      "event_id": "e1_create_user",
+      "claim_type": "capability_sufficient",
+      "statement": "auth guard mechanism present per AST scan",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.prec.1]", "[E.test.1]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": []
+}

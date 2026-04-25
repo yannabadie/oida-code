@@ -75,6 +75,81 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-25 21:00:00] - **ADR-26: Forward/backward verifier contract before tool-grounded loop.**
+
+**Why:** Phase 4.0 (ADR-25) shipped a dry-run for the LLM ESTIMATOR
+(capability/benefit/observability with citation, caps, schema
+validation). The next step in the AgentV-RL-style verification chain
+is the multi-agent VERIFIER — forward (premises → conclusion) +
+backward (conclusion → required premises) + aggregator. Before any
+real multi-turn loop with tool execution, we need the contract to be
+stable: schemas, aggregation rules, and provider abstraction. ADR-26
+is that contract.
+
+**Decision (Phase 4.1 protocol):**
+
+* Define frozen schemas: `VerifierClaim`, `ForwardVerificationResult`,
+  `BackwardRequirement`, `BackwardVerificationResult`,
+  `VerifierAggregationReport`, `VerifierToolCallSpec`.
+* `VerifierClaim` allowlist: `capability_sufficient`,
+  `benefit_aligned`, `observability_sufficient`,
+  `precondition_supported`, `negative_path_covered`, `repair_needed`,
+  `shadow_pressure_explained`. **Forbidden** (rejected at the schema
+  level): `merge_safe`, `production_safe`, `bug_free`,
+  `security_verified`, `official_v_net`, `official_debt`,
+  `official_corrupt_success`, plus the ADR-22 set (`total_v_net`,
+  `v_net`, `debt_final`, `corrupt_success`, `verdict`).
+* `is_authoritative` pinned to `Literal[False]` on
+  `VerifierClaim` AND on `VerifierAggregationReport` — the verifier
+  CAN NOT promote any claim to official, regardless of status.
+* Aggregator requires forward AND backward support, evidence
+  existence, no tool contradiction, claim type allowlist, confidence
+  cap (0.6 LLM-style sources), and forbidden-phrase rejection.
+* Replay-only providers (Fake / FileReplay /
+  OptionalExternalVerifierProvider stub). **No external API call by
+  default.** No vendor SDK imported at module load.
+* `VerifierToolCallSpec` exists so a verifier can describe what it
+  WOULD ask, but Phase 4.1 does NOT execute any tool. Phase 4.2
+  will introduce tool execution.
+
+**Accepted:**
+
+* claim schema with citable refs and 7 allowed claim types
+* forward + backward schemas with explicit
+  `necessary_conditions_met: bool`
+* aggregation policy that requires both directions
+* fake/replay verifier providers
+* deterministic tools always win conflicts
+
+**Rejected:**
+
+* direct official `V_net` from verifier claims
+* LLM-only proof claims (caps + non-authoritative pin)
+* verifier inventing evidence (unknown `evidence_refs` rejected)
+* verifier executing tools in Phase 4.1 (`ToolCallSpec` is
+  description, not execution)
+* external API calls by default
+* modifying vendored OIDA core (ADR-02 still holds)
+
+**4.0.1 hardening (paired with this ADR):** named per-item data
+fences `<<<OIDA_EVIDENCE id="..." kind="...">>>` ...
+`<<<END_OIDA_EVIDENCE id="...">>>` replace the legacy
+`<<<EVIDENCE_BLOB ...>>>` shape. Inner attempts to forge a closing
+fence are neutralised with a zero-width space. Phase 4.0 report
+updated to match. Five new tests pin the fence name + neutralisation
+behaviour.
+
+**Outcome:** 21/21 acceptance criteria from QA/A16.md met. 31 new
+tests across `tests/test_phase4_1_verifier_contract.py` (schema +
+aggregation + 8 hermetic fixtures including
+`prompt_injection_claim_payload` and `tool_failure_contradicts_claim`).
+Full suite **400 passed + 3 skipped**. The CLI gains
+`oida-code verify-claims <packet> --forward-replay <r> --backward-replay <r>`
+as a separate command (NOT in score-trace per QA/A16.md preference).
+ADR-22 + ADR-25 + ADR-26 all hold; production CLI emits no
+`V_net` / `debt_final` / `corrupt_success`. Report:
+`reports/phase4_1_forward_backward_contract.md`.
+
 [2026-04-25 18:30:00] - **ADR-25: LLM estimator dry-run before agentic verifier.**
 
 **Why:** ADR-24 defined the estimator contract (frozen

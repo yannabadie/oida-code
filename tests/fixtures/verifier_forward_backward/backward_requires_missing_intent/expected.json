@@ -1,0 +1,7 @@
+{
+  "expected_status": "diagnostic_only",
+  "min_accepted": 0,
+  "min_unsupported": 1,
+  "must_unsupport_claim_ids": ["c-benefit-1"],
+  "notes": "Backward requires intent evidence kind; packet has no intent. Claim becomes unsupported."
+}

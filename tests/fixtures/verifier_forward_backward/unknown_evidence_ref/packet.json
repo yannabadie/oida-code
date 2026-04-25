@@ -1,0 +1,9 @@
+{
+  "event_id": "e1",
+  "allowed_fields": ["capability"],
+  "intent_summary": "x",
+  "evidence_items": [
+    {"id": "[E.intent.1]", "kind": "intent", "summary": "x", "source": "ticket", "confidence": 0.9}
+  ],
+  "deterministic_estimates": []
+}

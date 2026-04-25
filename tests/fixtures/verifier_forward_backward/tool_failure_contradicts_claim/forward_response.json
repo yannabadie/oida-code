@@ -1,0 +1,18 @@
+{
+  "event_id": "e1_create_user",
+  "supported_claims": [
+    {
+      "claim_id": "c-cap-2",
+      "event_id": "e1_create_user",
+      "claim_type": "capability_sufficient",
+      "statement": "guard is present per intent",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.intent.1]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": []
+}

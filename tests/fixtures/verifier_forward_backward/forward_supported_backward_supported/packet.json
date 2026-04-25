@@ -1,0 +1,11 @@
+{
+  "event_id": "e1_create_user",
+  "allowed_fields": ["capability", "benefit", "observability"],
+  "intent_summary": "add auth guard to create_user",
+  "evidence_items": [
+    {"id": "[E.intent.1]", "kind": "intent", "summary": "add auth guard", "source": "ticket", "confidence": 0.9},
+    {"id": "[E.prec.1]", "kind": "precondition", "summary": "auth_guard verified", "source": "ast", "confidence": 0.85},
+    {"id": "[E.test.1]", "kind": "test_result", "summary": "scoped negative-path test passed", "source": "pytest", "confidence": 0.85}
+  ],
+  "deterministic_estimates": []
+}

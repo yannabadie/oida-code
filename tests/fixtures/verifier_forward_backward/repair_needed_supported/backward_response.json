@@ -1,0 +1,13 @@
+[
+  {
+    "event_id": "e1_create_user",
+    "claim_id": "c-repair-1",
+    "requirement": {
+      "claim_id": "c-repair-1",
+      "required_evidence_kinds": ["precondition", "repair_signal"],
+      "satisfied_evidence_refs": ["[E.prec.1]", "[E.repair.1]"],
+      "missing_requirements": []
+    },
+    "necessary_conditions_met": true
+  }
+]

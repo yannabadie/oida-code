@@ -1,0 +1,9 @@
+{
+  "event_id": "e1_create_user",
+  "allowed_fields": ["benefit"],
+  "intent_summary": "",
+  "evidence_items": [
+    {"id": "[E.event.1]", "kind": "event", "summary": "create_user endpoint", "source": "ast", "confidence": 0.85}
+  ],
+  "deterministic_estimates": []
+}
