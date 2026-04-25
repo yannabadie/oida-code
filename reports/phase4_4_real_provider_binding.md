@@ -449,3 +449,108 @@ streaming, or function-calling.
 | 20 | ruff clean | PASS |
 | 21 | mypy clean | PASS |
 | 22 | pytest full green, skips documented | PASS (499 + 4 documented skips: V2 placeholder, 2 Phase-4 observability markers, 1 optional external smoke) |
+
+---
+
+## 16. 4.4.1 — External calibration path alignment
+
+**Date**: 2026-04-28 (paired with Phase 4.5).
+**Authority**: QA/A21.md §"4.4.1" — Option A retrofit. ADR-30
+documents the joint commit window with Phase 4.5.
+
+### 16.1 The gap closed
+
+Phase 4.4 shipped `OpenAICompatibleChatProvider`, the
+`estimate-llm` CLI, and 26 mandatory tests (24 + 1 unsupported case
++ 1 optional external smoke). It did **not** wire the provider into
+`oida-code calibration-eval`: the runner had no calibration family
+that exercised the LLM estimator, the CLI subcommand had no
+provider flags, and the metric surface had no estimator-specific
+fields. The 4.4 commit message said "external calibration runs are
+supported" — that was true at the `estimate-llm` level but not at
+the `calibration-eval` level. 4.4.1 closes the gap.
+
+### 16.2 What changed (Option A — new family)
+
+* `CalibrationFamily` Literal extended with `"llm_estimator"`.
+* `CalibrationCase` gains `packet_path: str | None`,
+  `llm_response_path: str | None`,
+  `expected_estimator_status: EstimatorStatusExpected | None`,
+  `expected_estimates: tuple[ExpectedEstimateLabel, ...]`.
+* `ExpectedEstimateLabel` (frozen Pydantic) carries
+  `field`, `event_id`, `expected_status`, `min_value`, `max_value`,
+  `required_evidence_refs`.
+* Family invariants enforced on `model_validator(mode="after")`:
+  `llm_estimator` requires `packet_path` + `expected_estimator_status`;
+  non-`llm_estimator` families reject those fields.
+* `runner.evaluate_llm_estimator(case, case_dir, provider)` —
+  loads packet, builds `FileReplayLLMProvider` when
+  `provider is None`, calls `run_llm_estimator(packet, provider)`,
+  scores `estimator_status_match` + per-estimate matches via
+  `_estimate_matches_label`. Same forbidden-phrase fence as the
+  production CLI.
+* `aggregate(...)` extended to compute
+  `estimator_status_accuracy`, `estimator_estimate_accuracy`,
+  `estimator_cases_evaluated`, `estimator_cases_skipped`. All four
+  are `Optional[float]` / `int` so a calibration run with zero
+  `llm_estimator` cases (or all skipped via the cap) honestly
+  reports `null`, not a fake `0.0`.
+* `oida-code calibration-eval` accepts:
+  `--llm-provider replay|openai-compatible`,
+  `--provider-profile`, `--api-key-env`, `--model`, `--base-url`,
+  `--max-provider-cases`, `--timeout`. Cases beyond
+  `max_provider_cases` are recorded as `estimator_skipped=True`
+  with reason `"max_provider_cases reached"` and dropped from
+  the headline numerator/denominator.
+* `scripts/build_calibration_dataset.py` builds **4** new
+  `llm_estimator` cases (L001–L004) covering capability_supported_clean
+  (→ shadow_ready), capability_missing_mechanism (→ diagnostic_only),
+  benefit_missing_intent (→ blocked), observability_negative_path
+  (→ diagnostic_only). The dataset manifest now reports
+  **36 cases across 6 families**.
+
+### 16.3 The 9 mandatory 4.4.1 tests
+
+In `tests/test_phase4_4_real_provider.py`:
+
+| # | test | what it asserts |
+|---|---|---|
+| 1 | `test_calibration_eval_external_provider_requires_explicit_flag` | `--llm-provider openai-compatible` is the only path that reaches the network |
+| 2 | `test_calibration_eval_external_provider_requires_profile` | Fails fast when `--provider-profile` is missing |
+| 3 | `test_calibration_eval_external_provider_requires_key_env` | Fails fast when the named env var is absent |
+| 4 | `test_calibration_eval_replay_default_makes_no_http_call` | Fake transport asserts zero HTTP requests in replay mode |
+| 5 | `test_calibration_eval_external_uses_same_llm_validator` | Provider response goes through `LLMEstimatorOutput` like the replay path; rejection of forbidden phrases is identical |
+| 6 | `test_calibration_eval_external_invalid_json_rejected` | Non-JSON provider reply is rejected |
+| 7 | `test_calibration_eval_external_missing_citations_rejected` | Estimate without `evidence_refs` is rejected |
+| 8 | `test_calibration_eval_external_official_field_leak_exits_3` | `total_v_net` / `verdict` / etc. in the response triggers `OfficialFieldLeakError` and exit code 3 |
+| 9 | `test_calibration_eval_external_metrics_report_no_secret_values` | Neither `metrics.json` nor `per_case.json` echoes any value of the named env-var (only the env-var **name**) |
+
+### 16.4 Acceptance criteria (QA/A21.md §4.4.1)
+
+| # | criterion | status |
+|---|---|---|
+| 1 | `llm_estimator` family added to calibration_v1 | DONE (4 cases) |
+| 2 | `ExpectedEstimateLabel` schema added | DONE |
+| 3 | `CalibrationCase` family invariants enforced | DONE (model_validator after) |
+| 4 | `evaluate_llm_estimator` runner method added | DONE |
+| 5 | Estimator metrics added to `CalibrationMetrics` | DONE (4 fields, Optional) |
+| 6 | `calibration-eval` provider flags added | DONE (7 flags) |
+| 7 | `--max-provider-cases` cap respected | DONE (skipped cases dropped from headline) |
+| 8 | Replay path still hermetic | PASS (test 4) |
+| 9 | External path uses same validator | PASS (test 5) |
+| 10 | Forbidden-phrase fence holds on provider responses | PASS (test 8) |
+| 11 | Secrets never leaked into metrics | PASS (test 9) |
+| 12 | 9 mandatory 4.4.1 tests | PASS (all green) |
+
+### 16.5 What 4.4.1 does NOT change
+
+* The 4.4 PHASE-2 deterministic runner gate still applies; the new
+  `llm_estimator` family does **not** lower the bar for the other
+  five families.
+* `assert_no_official_field_leaks` is unchanged — the runtime gate
+  exits with code 3 on any positive count, regardless of which
+  family the leak came from.
+* `OpenAICompatibleChatProvider` itself is unchanged; the runner
+  just accepts an optional injected `provider` argument so the
+  `calibration-eval` CLI can pass through what `estimate-llm`
+  builds.

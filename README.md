@@ -6,11 +6,15 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
-8 hermetic fixtures including a prompt-injection scenario.**
+8 hermetic fixtures including a prompt-injection scenario; real
+provider binding behind explicit opt-in (ADR-29); calibration-eval
+external path aligned (Phase 4.4.1); CI workflow + reusable
+composite GitHub Action under least-privilege with fork-PR fence
+and replay default (ADR-30).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -39,7 +43,13 @@ delta=0.0; E2 graph ablation 7/7 invariants hold; E2 real-repo
 shadow smoke PASS on oida-code self + attrs; E3 differentiation
 fixture proves shadow pressure now varies with evidence; Phase 4.0
 8 hermetic LLM-estimator fixtures PASS including prompt-injection;
-**499/503 unit tests green (4 skips = V2 placeholder + 2 Phase-4
+Phase 4.4 real-provider plumbing with fake HTTP transport PASS;
+Phase 4.4.1 9 mandatory tests for `calibration-eval` external path
+PASS; Phase 4.5 17 invariant tests on workflow + composite action
+PASS (including Phase 4.5.1 shell-injection hardening:
+PR-controlled `${{ ... }}` lifted into `env:`, validator §6 +
+2 regression tests); `validate_github_workflows.py` green;
+**525 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -56,7 +66,17 @@ fixtures where evidence is captured; **no external API is called
 by default** and the `OptionalExternalLLMProvider` is a Phase 4.2+
 contract stub.
 
-**Phase 4.5 CI / GitHub Action integration pending.**
+**Phase 4.5 CI workflow + composite GitHub Action shipped (ADR-30).
+Internal CI runs on `push` / `pull_request` / `workflow_dispatch`
+only — never `pull_request_target` — with workflow-level
+`permissions: contents: read`. The reusable `action.yml` defaults
+to `--llm-provider replay`, blocks `openai-compatible` on fork PRs
+in its first step, gates SARIF upload on
+`inputs.upload-sarif == 'true'`, and never references
+`${{ secrets.* }}` in its body. Outputs are JSON / Markdown /
+SARIF / calibration-metrics — none carry `total_v_net` /
+`debt_final` / `corrupt_success` (ADR-22 hard wall).**
+
 **Not production-ready.** See `memory-bank/progress.md`,
 `reports/block_d_validation.md`, `reports/e0_fusion_readiness.md`,
 `reports/e1_shadow_fusion.md`, `reports/e2_shadow_formula_decision.md`,
@@ -65,7 +85,8 @@ contract stub.
 `reports/phase4_1_forward_backward_contract.md`,
 `reports/phase4_2_tool_grounded_verifier_loop.md`,
 `reports/phase4_3_calibration_dataset_design.md`,
-`reports/phase4_4_real_provider_binding.md`.
+`reports/phase4_4_real_provider_binding.md`,
+`reports/phase4_5_ci_github_action.md`.
 
 ## Install (dev)
 

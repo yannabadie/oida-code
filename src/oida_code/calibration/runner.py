@@ -109,6 +109,14 @@ class CaseResult:
     safety_block_match: bool | None = None
     fenced_injection: bool | None = None
 
+    # Phase 4.4.1 — LLM estimator family
+    estimator_status_match: bool | None = None
+    estimator_status_actual: str | None = None
+    estimator_estimate_match_count: int = 0
+    estimator_estimate_total: int = 0
+    estimator_skipped: bool = False
+    estimator_skipped_reason: str | None = None
+
     # Honesty guard
     official_field_leaks: int = 0
 
@@ -623,6 +631,158 @@ def evaluate_code_outcome(
     return result
 
 
+def evaluate_llm_estimator(
+    case: CalibrationCase,
+    case_dir: Path,
+    provider: object | None = None,
+) -> CaseResult:
+    """Phase 4.4.1 — drive the LLM estimator on one calibration case.
+
+    ``provider`` (typed loosely as ``object`` so the runner module stays
+    free of an LLM-package import at module load) is the
+    :class:`LLMProvider` to use. When ``None``, we default to
+    :class:`FileReplayLLMProvider` keyed by ``case.llm_response_path``
+    (or ``case.forward_replay_path`` for backward compat).
+
+    The case carries:
+
+    * ``packet_path`` — the LLMEvidencePacket JSON
+    * ``expected_estimator_status`` — required EstimatorReport.status
+    * ``expected_estimates`` — optional per-field labels
+
+    The runner records:
+
+    * ``estimator_status_match`` — bool
+    * ``estimator_estimate_match_count`` / ``..._total``
+    * ``official_field_leaks`` (any forbidden key in the report dump)
+    """
+    from oida_code.estimators.llm_estimator import run_llm_estimator
+    from oida_code.estimators.llm_prompt import LLMEvidencePacket
+    from oida_code.estimators.llm_provider import (
+        FileReplayLLMProvider,
+        LLMProvider,
+    )
+
+    result = CaseResult(
+        case_id=case.case_id, family=case.family,
+        contamination_risk=case.contamination_risk,
+    )
+    if case.packet_path is None or case.expected_estimator_status is None:
+        result.notes.append(
+            "llm_estimator family requires packet_path and "
+            "expected_estimator_status"
+        )
+        return result
+    raw_packet = _load_relative_json(case_dir, case.packet_path)
+    packet = LLMEvidencePacket.model_validate(raw_packet)
+
+    actual_provider: LLMProvider
+    if provider is None:
+        replay_path = case.llm_response_path or case.forward_replay_path
+        if replay_path is None:
+            result.estimator_skipped = True
+            result.estimator_skipped_reason = (
+                "no provider injected and case has no llm_response_path"
+            )
+            result.notes.append(result.estimator_skipped_reason)
+            return result
+        actual_provider = FileReplayLLMProvider(
+            fixture_path=case_dir / replay_path,
+        )
+    else:
+        actual_provider = provider  # type: ignore[assignment]
+
+    run = run_llm_estimator(packet, actual_provider)
+    payload = run.report.model_dump()
+    _check_no_official_leak(payload, result)
+    result.estimator_status_actual = run.report.status
+    result.estimator_status_match = (
+        run.report.status == case.expected_estimator_status
+    )
+
+    # Per-estimate label scoring.
+    by_field_event: dict[tuple[str, str | None], object] = {
+        (est.field, est.event_id): est for est in run.report.estimates
+    }
+    for label in case.expected_estimates:
+        result.estimator_estimate_total += 1
+        # Scope event_id default — when unspecified, match any event.
+        actual: object | None
+        if label.event_id is not None:
+            actual = by_field_event.get((label.field, label.event_id))
+        else:
+            actual = next(
+                (
+                    est for est in run.report.estimates
+                    if est.field == label.field
+                ),
+                None,
+            )
+        if not _estimate_matches_label(actual, label, run):
+            continue
+        result.estimator_estimate_match_count += 1
+    return result
+
+
+def _estimate_matches_label(
+    actual: object | None,
+    label: object,
+    run: object,
+) -> bool:
+    """Return True iff ``actual`` (a SignalEstimate or None) matches
+    the expected ``label`` (an ExpectedEstimateLabel)."""
+    expected_status: str = label.expected_status  # type: ignore[attr-defined]
+    if expected_status == "missing":
+        if actual is None:
+            return True
+        # Actual present but expected missing — match only if the
+        # estimate is source="missing" (deterministic carrier).
+        return getattr(actual, "source", None) == "missing"
+    if actual is None:
+        return False
+    # accepted vs unsupported vs rejected — derived from membership in
+    # run.report buckets.
+    accepted = {
+        (e.field, e.event_id) for e in run.report.estimates  # type: ignore[attr-defined]
+        if e.source != "missing" and not e.is_default
+    }
+    in_accepted = (
+        getattr(actual, "field", None),
+        getattr(actual, "event_id", None),
+    ) in accepted
+    if expected_status == "accepted" and not in_accepted:
+        return False
+    if expected_status == "rejected":
+        # The runner discards rejected estimates from `report.estimates`,
+        # so a "rejected" label matches when the actual lookup failed
+        # OR the surviving estimate is the deterministic baseline (default).
+        return not in_accepted
+    if (
+        expected_status == "unsupported"
+        and getattr(actual, "confidence", 1.0) > 0.0
+    ):
+        # A SignalEstimate with confidence=0.0 from a non-missing source
+        # is the closest representable surrogate for "unsupported";
+        # the runner doesn't keep the LLM's unsupported_claims past
+        # the validation step.
+        return False
+    # Numeric bounds (when provided).
+    min_value = label.min_value  # type: ignore[attr-defined]
+    max_value = label.max_value  # type: ignore[attr-defined]
+    value = getattr(actual, "value", None)
+    if min_value is not None and (value is None or value < min_value):
+        return False
+    if max_value is not None and (value is None or value > max_value):
+        return False
+    # Required evidence refs.
+    required_refs = label.required_evidence_refs  # type: ignore[attr-defined]
+    if required_refs:
+        actual_refs = set(getattr(actual, "evidence_refs", ()) or ())
+        if not all(ref in actual_refs for ref in required_refs):
+            return False
+    return True
+
+
 _DISPATCH = {
     "claim_contract": evaluate_claim_contract,
     "tool_grounded": evaluate_tool_grounded,
@@ -632,7 +792,18 @@ _DISPATCH = {
 }
 
 
-def run_case(case: CalibrationCase, case_dir: Path) -> CaseResult:
+def run_case(
+    case: CalibrationCase,
+    case_dir: Path,
+    *,
+    provider: object | None = None,
+) -> CaseResult:
+    """Dispatch ``case`` to its family evaluator.
+
+    Phase 4.4.1: ``provider`` is consumed only by the ``llm_estimator``
+    family. Other families ignore it (they don't speak to an LLM)."""
+    if case.family == "llm_estimator":
+        return evaluate_llm_estimator(case, case_dir, provider=provider)
     return _DISPATCH[case.family](case, case_dir)
 
 
@@ -737,6 +908,37 @@ def aggregate(
     fenced = sum(1 for r in safety_results if r.fenced_injection)
     safety_total = len(safety_results)
 
+    # Phase 4.4.1 — LLM estimator metrics (run on ``llm_estimator``
+    # cases, optionally against a real provider). Skipped cases drop
+    # out of both numerator and denominator.
+    estimator_results = [
+        r for r in headline
+        if r.family == "llm_estimator" and not r.estimator_skipped
+    ]
+    estimator_skipped = sum(
+        1 for r in headline
+        if r.family == "llm_estimator" and r.estimator_skipped
+    )
+    estimator_status_acc: float | None
+    estimator_estimate_acc: float | None
+    if estimator_results:
+        estimator_status_match = sum(
+            1 for r in estimator_results if r.estimator_status_match
+        )
+        estimator_status_acc = estimator_status_match / len(estimator_results)
+        est_total = sum(
+            r.estimator_estimate_total for r in estimator_results
+        )
+        est_match = sum(
+            r.estimator_estimate_match_count for r in estimator_results
+        )
+        estimator_estimate_acc = (
+            est_match / est_total if est_total > 0 else None
+        )
+    else:
+        estimator_status_acc = None
+        estimator_estimate_acc = None
+
     # Honesty
     leak_count = sum(r.official_field_leaks for r in bucket_results)
 
@@ -777,6 +979,11 @@ def aggregate(
         code_outcome_status=code_status,
         safety_block_rate=safe_rate(safety_block, safety_total),
         fenced_injection_rate=safe_rate(fenced, safety_total),
+        # Phase 4.4.1 — LLM estimator metrics.
+        estimator_status_accuracy=estimator_status_acc,
+        estimator_estimate_accuracy=estimator_estimate_acc,
+        estimator_cases_evaluated=len(estimator_results),
+        estimator_cases_skipped=estimator_skipped,
         # 4.3.1-A — honest leak metric. Use
         # `assert_no_official_field_leaks(metrics)` (or the eval
         # script's exit code) as the gate; the schema permits a

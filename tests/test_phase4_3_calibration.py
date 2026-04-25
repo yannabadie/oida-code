@@ -565,12 +565,12 @@ def test_pilot_dataset_loads_and_runs_with_zero_leaks() -> None:
     not _DATASET_ROOT.is_dir(),
     reason="run scripts/build_calibration_dataset.py first",
 )
-def test_pilot_dataset_has_all_five_families() -> None:
+def test_pilot_dataset_has_all_six_families() -> None:
     cases_dir = _DATASET_ROOT / "cases"
     families = {load_case(p).family for p in cases_dir.iterdir() if p.is_dir()}
     assert families == {
         "claim_contract", "tool_grounded", "shadow_pressure",
-        "code_outcome", "safety_adversarial",
+        "code_outcome", "safety_adversarial", "llm_estimator",
     }
 
 

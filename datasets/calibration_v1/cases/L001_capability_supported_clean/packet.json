@@ -1,0 +1,69 @@
+{
+  "event_id": "event-A",
+  "allowed_fields": [
+    "capability",
+    "benefit",
+    "observability"
+  ],
+  "intent_summary": "intent for capability_supported_clean",
+  "evidence_items": [
+    {
+      "id": "[E.intent.1]",
+      "kind": "intent",
+      "summary": "intent for capability_supported_clean",
+      "source": "ticket",
+      "confidence": 0.9
+    },
+    {
+      "id": "[E.test_result.1]",
+      "kind": "test_result",
+      "summary": "test signal for capability_supported_clean",
+      "source": "ticket",
+      "confidence": 0.9
+    }
+  ],
+  "deterministic_estimates": [
+    {
+      "field": "capability",
+      "event_id": "event-A",
+      "value": 0.5,
+      "confidence": 0.0,
+      "source": "default",
+      "method_id": "baseline.capability",
+      "method_version": "phase4.4.1",
+      "evidence_refs": [],
+      "warnings": [],
+      "blockers": [],
+      "is_default": true,
+      "is_authoritative": false
+    },
+    {
+      "field": "benefit",
+      "event_id": "event-A",
+      "value": 0.5,
+      "confidence": 0.0,
+      "source": "default",
+      "method_id": "baseline.benefit",
+      "method_version": "phase4.4.1",
+      "evidence_refs": [],
+      "warnings": [],
+      "blockers": [],
+      "is_default": true,
+      "is_authoritative": false
+    },
+    {
+      "field": "observability",
+      "event_id": "event-A",
+      "value": 0.5,
+      "confidence": 0.0,
+      "source": "default",
+      "method_id": "baseline.observability",
+      "method_version": "phase4.4.1",
+      "evidence_refs": [],
+      "warnings": [],
+      "blockers": [],
+      "is_default": true,
+      "is_authoritative": false
+    }
+  ]
+}

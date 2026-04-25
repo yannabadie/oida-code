@@ -75,6 +75,183 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-28 09:00:00] - **ADR-30: CI workflow + composite GitHub Action under least-privilege; no Checks API; fork PR fence; replay default.**
+
+**Why:** Phase 4.4 delivered a real OpenAI-compatible provider behind
+explicit opt-in (ADR-29), and Phase 4.4.1 wired
+`oida-code calibration-eval` to actually route the LLM estimator
+through that provider when invoked with the right flags. The
+operator surface is now ready, but the project has no CI of its own
+(quality gates are run manually) and no GitHub Action for downstream
+adopters. The temptation in this phase is to "go enterprise" —
+GitHub App, Checks API custom annotations, `pull_request_target`
+listening on every PR — and that bundle of decisions is precisely
+what the OIDA + ADR-22 contract forbids. So Phase 4.5 ships a
+deliberately small surface: an internal CI workflow and a reusable
+composite action, both running with `permissions: contents: read`
+by default, with the SARIF upload scoped to a single
+`security-events: write` step gated on an explicit input.
+
+**Decision (Phase 4.5 surface):**
+
+* `.github/workflows/ci.yml` — internal CI with five jobs (lint,
+  typecheck, test, calibration, security-smoke). Workflow-level
+  `permissions: contents: read`. Triggers: `push` on `main`,
+  `pull_request` on `main`, and `workflow_dispatch`. **No
+  `pull_request_target`.** `OIDA_RUN_EXTERNAL_PROVIDER_TESTS=0` is
+  pinned in the test job env so the optional external-provider
+  smoke stays gated. `concurrency: ci-${{ github.ref }}` with
+  `cancel-in-progress: true`.
+* `action.yml` (repo-root composite action) — operator-facing
+  reusable surface. Inputs: `repo-path`, `base-ref`, `intent-file`,
+  `output-dir`, `upload-sarif`, `fail-on`, `surface`,
+  `enable-shadow`, `llm-provider` (default `replay`),
+  `provider-profile`, `api-key-env`, `max-provider-cases`. Outputs:
+  `report-json`, `report-markdown`, `report-sarif`,
+  `calibration-metrics`. The first step blocks
+  `llm-provider == 'openai-compatible'` on fork PRs (compares
+  `github.event.pull_request.head.repo.full_name` against
+  `github.repository`) and aborts with a clear error before any
+  CLI runs. SARIF upload is the only step that can require
+  `security-events: write`; it is gated on `inputs.upload-sarif ==
+  'true'` and uses `github/codeql-action/upload-sarif@v3`. JSON /
+  Markdown / calibration-metrics are uploaded via
+  `actions/upload-artifact@v4`. The action writes a redacted
+  excerpt of the markdown report and the calibration headline to
+  `$GITHUB_STEP_SUMMARY`. **No `${{ secrets.* }}` reference inside
+  the action body — secrets are wired in the calling workflow's
+  `env:` map only, with the action receiving the env-var **name**
+  via `api-key-env`.
+* `scripts/validate_github_workflows.py` — operator + CI-runnable
+  static checker. Verifies: API-key prefix patterns absent
+  (`sk-…`, `ghp_…`, `xoxb-…`); no `pull_request_target`; top-level
+  `permissions:` present and `contents: read`; per-job permissions
+  restricted to `read`/`none`/`security-events: write`; no
+  `${{ secrets.* }}` inside `run:` blocks; action uses composite
+  runs; `llm-provider` default = `replay`; fork-PR guard present;
+  full required-input list shipped.
+
+**Accepted:**
+
+* `permissions: contents: read` is the workflow + action default
+* `pull_request_target` is forbidden everywhere
+* `security-events: write` is allowed only on the SARIF upload
+  step inside the action, never at the workflow or job scope
+* `llm-provider` defaults to `replay`; an explicit
+  `openai-compatible` invocation is required to reach a real API
+* fork PRs cannot run the external provider — guarded explicitly
+  in `action.yml` and tested in `tests/test_phase4_5_*.py`
+* secrets travel through `env:` from the calling workflow; the
+  action body never references `${{ secrets.* }}`
+* SARIF is opt-in via `inputs.upload-sarif == 'true'`
+* outputs are JSON / Markdown / SARIF / calibration-metrics —
+  none of them carry `total_v_net`, `debt_final`,
+  `corrupt_success`, `verdict`, `merge_safe`, `production_safe`,
+  `bug_free`, or `security_verified`
+* the validator script ships green on the shipped tree and
+  exits non-zero with `pull_request_target` flagged when invoked
+  on a workflow that contains it
+* PR-controlled `${{ ... }}` expressions never appear inside a
+  `run:` block — they are lifted into `env:` and referenced as
+  `$VAR` in bash; validator §6 enforces this on workflows AND the
+  composite action
+* tests parse the YAML directly and don't require a runner
+
+**Rejected:**
+
+* GitHub App + Checks API custom annotations (would force
+  per-event `verdict` rendering on the PR diff — the operator can
+  add that later under their own ADR; ADR-22 forbids us shipping
+  it as a default)
+* `pull_request_target` for cross-fork events (intentional anti-
+  pattern; would let a forked PR exfiltrate secrets through the
+  action body)
+* `permissions: write-all` shortcuts
+* an external provider as default for fork PRs (anti-secret-exfil)
+* echoing `${{ secrets.X }}` into the markdown summary (set-x
+  traces would leak even with `add-mask`)
+* a "merge-safe" or "production-safe" status check label (ADR-22
+  permanent ban)
+* PyPI 1.0 promotion (alpha tag retained while official fields
+  remain blocked)
+
+**Paired with this commit (4.4.1 — calibration path alignment):**
+
+* `llm_estimator` family added to `calibration_v1` (4 cases:
+  L001–L004 covering capability_supported_clean,
+  capability_missing_mechanism, benefit_missing_intent,
+  observability_negative_path).
+* `ExpectedEstimateLabel` model + `expected_estimator_status` /
+  `expected_estimates` per-case fields with strict family-aware
+  invariants (only `llm_estimator` may declare them).
+* Runner gains `evaluate_llm_estimator` that loads the packet,
+  builds a `FileReplayLLMProvider` when no provider is injected
+  (replay default), routes through `run_llm_estimator`, and scores
+  status + per-estimate matches via `_estimate_matches_label`.
+* Metrics surface: `estimator_status_accuracy`,
+  `estimator_estimate_accuracy`, `estimator_cases_evaluated`,
+  `estimator_cases_skipped` — `Optional[float]` so a missing
+  signal is honest instead of zero.
+* CLI `calibration-eval` accepts `--llm-provider`,
+  `--provider-profile`, `--api-key-env`, `--model`, `--base-url`,
+  `--max-provider-cases`, `--timeout`. External cases beyond the
+  cap are recorded as `estimator_skipped=True` with a clear reason
+  and dropped from the headline accuracy denominators.
+* Forbidden-phrase fence + `assert_no_official_field_leaks` apply
+  to provider responses identically to the replay path —
+  validated by `test_calibration_eval_external_official_field_
+  leak_exits_3`.
+
+**Phase 4.5.1 hardening (paired with this commit):** the first
+draft of `action.yml` interpolated `${{ inputs.X }}` and
+`${{ github.action_path }}` directly into the run-audit `run:`
+block. That is GitHub's documented shell-injection anti-pattern: a
+PR-controlled value (e.g. a branch name, an `intent-file` path
+passed by a caller) gets substituted at YAML-eval time and can
+break out of bash quoting. The fix lifts every PR-influenced
+expression into the step's `env:` map and uses bash variables
+(`$REPO_PATH`, `$BASE_REF`, `$INTENT_FILE`, `$OUTPUT_DIR`,
+`$FAIL_ON`, `$LLM_PROVIDER`, `$PROVIDER_PROFILE`, `$API_KEY_ENV`,
+`$MAX_PROVIDER_CASES`, `$ACTION_PATH`) inside the heredoc. The
+validator gains rule §6 that scans every `run:` block for
+PR-controlled `${{ ... }}` expressions
+(`inputs.*`, `github.head_ref`, `github.actor`,
+`github.triggering_actor`,
+`github.event.{pull_request,issue,comment,review,discussion,
+workflow_run,push,head_commit}.*`,
+`github.event.head_commit.message`) and fails with a one-liner
+pointing at the env-var pattern. Two new tests:
+`test_action_does_not_inline_pr_controlled_expr_in_run_blocks`
+(structural — walks `runs.steps[*].run`) and
+`test_validate_github_workflows_script_detects_inputs_in_run`
+(plants a poisoned workflow in tmp_path and asserts the validator
+exits non-zero). The fork-fence test is also strengthened — it now
+asserts `openai-compatible` AND `head.repo.full_name` AND
+`github.repository` all appear inside the **same** `if:` clause,
+so a future split-step refactor cannot silently weaken the guard.
+
+**Outcome:** all 23 acceptance criteria from QA/A21.md met. 17 new
+tests in `tests/test_phase4_5_ci_github_action.py` (file existence,
+permissions invariants, `pull_request_target` ban, SARIF gate,
+composite/replay/fork-PR/artifacts/secrets invariants on
+`action.yml`, no-official-fields output check, structural fork-PR
+fence, no-PR-controlled-expr-in-run, validator green-on-shipped-
+tree + detects `pull_request_target` + detects shell-injection
+fixture). 9 new tests in `tests/test_phase4_4_real_provider.py`
+covering 4.4.1 (flag parity, replay default, validator reuse,
+invalid JSON / missing citations rejection, leak exit code 3,
+metrics-report secret redaction). Full suite **525 passed + 4
+skipped** (V2 placeholder + 2 Phase-4 observability markers +
+1 optional external smoke). ruff + mypy clean across `src/`,
+`tests/`, and the seven scripts run by the local gate
+(`scripts/{evaluate_shadow_formula,real_repo_shadow_smoke,
+build_calibration_dataset,check_calibration_stability,
+run_calibration_eval,validate_github_workflows}.py`). ADR-22 +
+ADR-25 + ADR-26 + ADR-27 + ADR-28 + ADR-29 + ADR-30 all hold;
+production CLI and the composite action emit no `V_net` /
+`debt_final` / `corrupt_success`. Report:
+`reports/phase4_5_ci_github_action.md`.
+
 [2026-04-27 10:00:00] - **ADR-29: Real provider binding behind explicit opt-in.**
 
 **Why:** Phase 4.0–4.3 shipped contracts + a 32-case calibration

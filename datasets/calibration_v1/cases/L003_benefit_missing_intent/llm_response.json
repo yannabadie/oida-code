@@ -1,0 +1,9 @@
+{
+  "estimates": [],
+  "cited_evidence_refs": [],
+  "unsupported_claims": [
+    "capability@event-A",
+    "benefit@event-A",
+    "observability@event-A"
+  ]
+}

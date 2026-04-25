@@ -954,16 +954,93 @@ def calibration_eval_cmd(
             ),
         ),
     ] = None,
+    llm_provider: Annotated[
+        str,
+        typer.Option(
+            "--llm-provider",
+            help=(
+                "Phase 4.4.1: provider used for the ``llm_estimator`` "
+                "family. Default 'replay' (per-case fixture file). "
+                "'fake' uses the deterministic fake. "
+                "'openai-compatible' opts in to a real external "
+                "provider — requires --provider-profile + the "
+                "corresponding api_key_env."
+            ),
+        ),
+    ] = "replay",
+    provider_profile: Annotated[
+        str | None,
+        typer.Option(
+            "--provider-profile",
+            help=(
+                "Phase 4.4.1: provider-profile name (deepseek / kimi / "
+                "minimax / custom_openai_compatible). Required when "
+                "--llm-provider=openai-compatible."
+            ),
+        ),
+    ] = None,
+    api_key_env: Annotated[
+        str | None,
+        typer.Option(
+            "--api-key-env",
+            help=(
+                "Phase 4.4.1: env var name carrying the API key. "
+                "Overrides the profile's default api_key_env. The "
+                "value itself is NEVER printed in logs / errors / "
+                "reports."
+            ),
+        ),
+    ] = None,
+    model_override: Annotated[
+        str | None,
+        typer.Option(
+            "--model",
+            help="Phase 4.4.1: override the profile's default_model.",
+        ),
+    ] = None,
+    base_url_override: Annotated[
+        str | None,
+        typer.Option(
+            "--base-url",
+            help="Phase 4.4.1: override the profile's base_url.",
+        ),
+    ] = None,
+    max_provider_cases: Annotated[
+        int,
+        typer.Option(
+            "--max-provider-cases",
+            help=(
+                "Phase 4.4.1: cap the number of llm_estimator cases "
+                "that hit a non-replay provider. 0 means no cap. "
+                "Excess cases are skipped (recorded as "
+                "estimator_skipped=True with a clear reason)."
+            ),
+            min=0, max=10_000,
+        ),
+    ] = 0,
+    timeout_s: Annotated[
+        int,
+        typer.Option(
+            "--timeout",
+            help="Phase 4.4.1: per-call provider timeout in seconds.",
+            min=1, max=600,
+        ),
+    ] = 60,
 ) -> None:
-    """Phase 4.3 (ADR-28) + Phase 4.4 (ADR-29): run the calibration eval.
+    """Phase 4.3 + 4.4 + 4.4.1: run the calibration eval.
 
     Loads every case under ``<dataset>/cases/``, dispatches to its
     family evaluator, aggregates metrics, and emits ``metrics.json``,
     ``report.md``, and ``per_case.json`` under ``<out>``.
 
+    Phase 4.4.1 — when ``--llm-provider openai-compatible`` is passed,
+    ``llm_estimator`` family cases route to a real external provider
+    (DeepSeek / Kimi / MiniMax / custom). Default ``replay`` keeps the
+    pipeline hermetic. ``--max-provider-cases`` caps the external
+    spend; cases beyond the cap are skipped with a clear reason.
+
     Exits with code 3 if **any** case reports an
-    ``official_field_leak_count > 0`` — the runtime gate that prevents
-    promotion of a leaky run (4.3.1-A).
+    ``official_field_leak_count > 0`` (4.3.1-A runtime gate).
     """
     import json as _json
 
@@ -977,16 +1054,75 @@ def calibration_eval_cmd(
         load_case,
         run_case,
     )
+    from oida_code.estimators.llm_provider import (
+        FakeLLMProvider,
+        LLMProvider,
+        LLMProviderUnavailable,
+    )
 
     cases_dir = dataset_path / "cases"
     if not cases_dir.is_dir():
         _fail(f"no cases dir at {cases_dir}; run build_calibration_dataset.py first")
     out.mkdir(parents=True, exist_ok=True)
 
+    # Phase 4.4.1 — provider selection guards.
+    is_external = llm_provider == "openai-compatible"
+    shared_provider: LLMProvider | None = None
+    if is_external:
+        try:
+            shared_provider = _build_openai_compatible_provider(
+                profile_name=provider_profile,
+                api_key_env=api_key_env,
+                model_override=model_override,
+                base_url_override=base_url_override,
+                timeout_s=timeout_s,
+            )
+        except LLMProviderUnavailable as exc:
+            _fail(f"calibration-eval: external provider unavailable: {exc}")
+    elif llm_provider == "fake":
+        shared_provider = FakeLLMProvider()
+    elif llm_provider != "replay":
+        _fail(
+            "--llm-provider must be one of "
+            "{replay, fake, openai-compatible}",
+        )
+
     results: list[CaseResult] = []
+    provider_calls = 0
     for case_dir in sorted(p for p in cases_dir.iterdir() if p.is_dir()):
         case = load_case(case_dir)
-        results.append(run_case(case, case_dir))
+        # Phase 4.4.1 — pick the provider for llm_estimator cases.
+        case_provider: LLMProvider | None = None
+        if case.family == "llm_estimator":
+            if shared_provider is None:
+                # Default replay path uses the per-case fixture.
+                case_provider = None
+            else:
+                # External / fake — count toward the cap.
+                if (
+                    is_external
+                    and max_provider_cases > 0
+                    and provider_calls >= max_provider_cases
+                ):
+                    skipped_result = CaseResult(
+                        case_id=case.case_id,
+                        family=case.family,
+                        contamination_risk=case.contamination_risk,
+                    )
+                    skipped_result.estimator_skipped = True
+                    skipped_result.estimator_skipped_reason = (
+                        f"max_provider_cases={max_provider_cases} cap "
+                        "exhausted; case not sent to external provider"
+                    )
+                    skipped_result.notes.append(
+                        skipped_result.estimator_skipped_reason
+                    )
+                    results.append(skipped_result)
+                    continue
+                case_provider = shared_provider
+                if is_external:
+                    provider_calls += 1
+        results.append(run_case(case, case_dir, provider=case_provider))
 
     stability_payload: list[dict[str, object]] | None = None
     candidate = stability_report or (out / "stability_report.json")
@@ -1005,7 +1141,9 @@ def calibration_eval_cmd(
     typer.echo(
         f"cases_evaluated={metrics.cases_evaluated} "
         f"leaks={metrics.official_field_leak_count} "
-        f"code_outcome_status={metrics.code_outcome_status}"
+        f"code_outcome_status={metrics.code_outcome_status} "
+        f"estimator_evaluated={metrics.estimator_cases_evaluated} "
+        f"estimator_skipped={metrics.estimator_cases_skipped}"
     )
     try:
         assert_no_official_field_leaks(metrics)

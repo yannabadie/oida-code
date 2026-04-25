@@ -40,6 +40,7 @@ from oida_code.calibration.models import (
     CalibrationProvenance,
     ExpectedClaimLabel,
     ExpectedCodeOutcome,
+    ExpectedEstimateLabel,
     ExpectedToolResultLabel,
 )
 
@@ -576,6 +577,178 @@ def build_safety_adversarial(out: Path) -> list[CalibrationCase]:
     return cases
 
 
+def build_llm_estimator(out: Path) -> list[CalibrationCase]:
+    """Phase 4.4.1 — llm_estimator family pilot cases.
+
+    Each case ships:
+
+    * ``packet.json`` — an LLMEvidencePacket
+    * ``llm_response.json`` — the canned LLM JSON the FileReplayLLMProvider
+      returns when ``--llm-provider replay`` (the default)
+    * ``expected.json`` — the CalibrationCase with
+      ``expected_estimator_status`` + per-field
+      ``expected_estimates``
+
+    These cases let ``oida-code calibration-eval`` exercise the same
+    code path as ``estimate-llm`` while remaining hermetic (no
+    network) by default. Operators who pass
+    ``--llm-provider openai-compatible`` route the same packets to
+    a real provider.
+    """
+    cases: list[CalibrationCase] = []
+    specs = [
+        ("L001", "capability_supported_clean", "shadow_ready",
+         True, "accepted", 0.5, 0.95),
+        ("L002", "capability_missing_mechanism", "diagnostic_only",
+         True, "accepted", 0.0, 0.4),
+        ("L003", "benefit_missing_intent", "blocked",
+         False, "missing", None, None),
+        ("L004", "observability_negative_path", "diagnostic_only",
+         True, "accepted", 0.5, 1.0),
+    ]
+    for (
+        cid, slug, expected_status, has_intent,
+        cap_label, cap_min, cap_max,
+    ) in specs:
+        case_dir = out / f"{cid}_{slug}"
+        case_dir.mkdir(parents=True, exist_ok=True)
+        intent = f"intent for {slug}" if has_intent else ""
+        evidence = [
+            _evidence(1, "intent", intent or "<missing>"),
+            _evidence(1, "test_result", f"test signal for {slug}"),
+        ]
+        # The packet's deterministic estimates seed source="default"
+        # so the runner can lift past blocked when the LLM provides
+        # capability/benefit/observability.
+        deterministic: list[dict[str, Any]] = [
+            {
+                "field": f,
+                "event_id": "event-A",
+                "value": 0.5,
+                "confidence": 0.0,
+                "source": ("missing" if not has_intent else "default"),
+                "method_id": f"baseline.{f}",
+                "method_version": "phase4.4.1",
+                "evidence_refs": [],
+                "warnings": [],
+                "blockers": [],
+                "is_default": has_intent,
+                "is_authoritative": False,
+            }
+            for f in ("capability", "benefit", "observability")
+        ]
+        packet = _packet(
+            event_id="event-A", intent=intent, evidence=evidence,
+            deterministic=deterministic,
+        )
+        _write(case_dir, "packet.json", packet)
+        # Canned LLM reply: shadow_ready when has_intent + cap label
+        # is "accepted"; otherwise the LLM declines via unsupported.
+        if expected_status == "blocked":
+            llm_reply: dict[str, Any] = {
+                "estimates": [],
+                "cited_evidence_refs": [],
+                "unsupported_claims": [
+                    "capability@event-A", "benefit@event-A",
+                    "observability@event-A",
+                ],
+            }
+        else:
+            cap_value = (
+                (cap_min + cap_max) / 2.0
+                if cap_min is not None and cap_max is not None
+                else 0.5
+            )
+            llm_reply = {
+                "estimates": [
+                    {
+                        "field": "capability",
+                        "event_id": "event-A",
+                        "value": cap_value,
+                        "confidence": 0.55,
+                        "source": "llm",
+                        "method_id": f"llm.capability.{slug}",
+                        "method_version": "phase4.4.1",
+                        "evidence_refs": ["[E.intent.1]", "[E.test_result.1]"],
+                        "warnings": [],
+                        "blockers": [],
+                        "is_default": False,
+                        "is_authoritative": False,
+                    },
+                    {
+                        "field": "benefit",
+                        "event_id": "event-A",
+                        "value": 0.7,
+                        "confidence": 0.5,
+                        "source": "llm",
+                        "method_id": f"llm.benefit.{slug}",
+                        "method_version": "phase4.4.1",
+                        "evidence_refs": ["[E.intent.1]"],
+                        "warnings": [],
+                        "blockers": [],
+                        "is_default": False,
+                        "is_authoritative": False,
+                    },
+                    {
+                        "field": "observability",
+                        "event_id": "event-A",
+                        "value": 0.65,
+                        "confidence": 0.5,
+                        "source": "llm",
+                        "method_id": f"llm.observability.{slug}",
+                        "method_version": "phase4.4.1",
+                        "evidence_refs": ["[E.test_result.1]"],
+                        "warnings": [],
+                        "blockers": [],
+                        "is_default": False,
+                        "is_authoritative": False,
+                    },
+                ],
+                "cited_evidence_refs": ["[E.intent.1]", "[E.test_result.1]"],
+                "unsupported_claims": [],
+            }
+        _write(case_dir, "llm_response.json", llm_reply)
+        # Expected estimate labels.
+        expected_estimates: list[ExpectedEstimateLabel] = []
+        if expected_status != "blocked":
+            expected_estimates.append(
+                ExpectedEstimateLabel(
+                    field="capability",
+                    event_id="event-A",
+                    expected_status=cap_label,  # type: ignore[arg-type]
+                    min_value=cap_min,
+                    max_value=cap_max,
+                    required_evidence_refs=("[E.intent.1]",),
+                ),
+            )
+        else:
+            for f in ("capability", "benefit", "observability"):
+                expected_estimates.append(
+                    ExpectedEstimateLabel(
+                        field=f,
+                        event_id="event-A",
+                        expected_status="missing",
+                    ),
+                )
+        case = CalibrationCase(
+            case_id=cid,
+            family="llm_estimator",
+            packet_path="packet.json",
+            llm_response_path="llm_response.json",
+            expected_estimator_status=expected_status,  # type: ignore[arg-type]
+            expected_estimates=tuple(expected_estimates),
+            provenance=_provenance(
+                "synthetic LLM estimator pilot — script-authored, no real provider"
+            ),
+            contamination_risk="synthetic",
+            notes=f"llm_estimator pilot — {slug}",
+        )
+        _write(case_dir, "expected.json", json.loads(case.model_dump_json()))
+        _write_text(case_dir, "README.md", f"# {cid} — {slug}\n")
+        cases.append(case)
+    return cases
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -598,6 +771,7 @@ def main() -> int:
     all_cases += build_shadow_pressure(cases_dir)
     all_cases += build_code_outcome(cases_dir)
     all_cases += build_safety_adversarial(cases_dir)
+    all_cases += build_llm_estimator(cases_dir)
 
     families = Counter(c.family for c in all_cases)
     manifest = CalibrationManifest(

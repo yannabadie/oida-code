@@ -10,6 +10,7 @@
   "canned_tool_outputs_path": null,
   "forward_replay_path": "forward_response.json",
   "backward_replay_path": "backward_response.json",
+  "llm_response_path": null,
   "expected_claim_labels": [
     {
       "claim_id": "C007",
@@ -25,6 +26,8 @@
   "expected_shadow_bucket": "not_applicable",
   "expected_repair_behavior": null,
   "expected_code_outcome": null,
+  "expected_estimator_status": null,
+  "expected_estimates": [],
   "provenance": {
     "source": "synthetic",
     "created_by": "script",

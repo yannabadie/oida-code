@@ -1,0 +1,255 @@
+name: oida-code
+description: |
+  AI code verifier — measures the gap between what AI-written code
+  appears to do and what it actually guarantees. Phase 4.5 (ADR-30):
+  reusable composite action that produces JSON / Markdown / SARIF
+  artifacts. NO GitHub App, NO custom Checks API annotations, NO
+  external LLM provider by default. Reports stay diagnostic only;
+  ADR-22 keeps `total_v_net` / `debt_final` / `corrupt_success` null
+  in production.
+
+author: yannabadie
+
+branding:
+  color: blue
+  icon: shield
+
+inputs:
+  repo-path:
+    description: Path to the repo to audit (relative to ${{ github.workspace }}).
+    required: false
+    default: "."
+  base-ref:
+    description: Git revision to diff against (e.g. `origin/main`).
+    required: false
+    default: "origin/main"
+  intent-file:
+    description: |
+      Optional path to a Markdown file describing the change's
+      intent (used as the `IntentSpec.summary` source). Operator-
+      supplied content is treated as untrusted data — never fed to
+      the deterministic verifier as instructions.
+    required: false
+    default: ""
+  output-dir:
+    description: Where artifact JSON / Markdown / SARIF land.
+    required: false
+    default: ".oida"
+  upload-sarif:
+    description: |
+      "true" → upload `${output-dir}/report.sarif` via
+      `github/codeql-action/upload-sarif`. The action's caller MUST
+      grant `security-events: write` to the JOB that runs this with
+      `upload-sarif: true` (NOT the whole workflow). When "false",
+      no SARIF upload happens and `security-events` is not needed.
+    required: false
+    default: "false"
+  fail-on:
+    description: |
+      `none` (default) | `any_critical` | `corrupt`. Mirrors the
+      `--fail-on` flag on `oida-code audit`. The action exits non-
+      zero when the chosen condition holds.
+    required: false
+    default: "none"
+  surface:
+    description: |
+      `impact` (default) or `changed` — passed to `oida-code
+      normalize --surface`.
+    required: false
+    default: "impact"
+  enable-shadow:
+    description: |
+      "true" → also run `oida-code score-trace` with
+      `--experimental-shadow-fusion`. The shadow report is non-
+      authoritative by ADR-22 / ADR-23.
+    required: false
+    default: "false"
+  llm-provider:
+    description: |
+      Phase 4.4.1 / 4.5: provider for the optional `llm_estimator`
+      family of the calibration dataset. Default `replay` (per-case
+      fixture). `openai-compatible` opts in to a real external
+      provider — requires `provider-profile` + the appropriate
+      `api_key_env` to be set as a GitHub Actions secret AND fed
+      to the action via `env:`. The action itself will refuse to
+      run an external provider on a `pull_request` event from a
+      fork (anti-secret-exfil guard).
+    required: false
+    default: "replay"
+  provider-profile:
+    description: |
+      Phase 4.4.1 / 4.5: provider-profile name when
+      `llm-provider=openai-compatible` (deepseek / kimi / minimax /
+      custom_openai_compatible).
+    required: false
+    default: ""
+  api-key-env:
+    description: |
+      Phase 4.4.1 / 4.5: env var name carrying the API key. The
+      action NEVER reads or stores the key value; it just passes the
+      env var name to `oida-code calibration-eval --api-key-env`.
+    required: false
+    default: ""
+  max-provider-cases:
+    description: |
+      Phase 4.4.1 / 4.5: cap on llm_estimator cases routed to a
+      non-replay provider. 0 = no cap. Useful as a cost ceiling on
+      external runs.
+    required: false
+    default: "0"
+
+outputs:
+  report-json:
+    description: Path to the JSON audit report.
+    value: ${{ steps.run.outputs.report-json }}
+  report-markdown:
+    description: Path to the Markdown audit report.
+    value: ${{ steps.run.outputs.report-markdown }}
+  report-sarif:
+    description: Path to the SARIF audit report.
+    value: ${{ steps.run.outputs.report-sarif }}
+  calibration-metrics:
+    description: Path to the calibration metrics JSON.
+    value: ${{ steps.run.outputs.calibration-metrics }}
+
+runs:
+  using: composite
+  steps:
+
+    - name: Phase 4.5 — block external provider on fork PRs
+      if: |
+        inputs.llm-provider == 'openai-compatible'
+        && github.event_name == 'pull_request'
+        && github.event.pull_request.head.repo.full_name != github.repository
+      shell: bash
+      run: |
+        echo "::error::OIDA-code action: external LLM provider is forbidden on pull-request events from forks (ADR-30 anti-secret-exfil guard)."
+        exit 2
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install oida-code
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e ".[dev]"
+      working-directory: ${{ github.action_path }}
+
+    - name: Run audit
+      id: run
+      shell: bash
+      # ADR-30 + Phase 4.5.1: every PR-influenced value travels via
+      # `env:` and is referenced as a bash variable in `run:`. Direct
+      # `${{ inputs.X }}` interpolation inside a `run:` block is a
+      # documented shell-injection anti-pattern (a malicious branch
+      # name could break out of the heredoc quoting). The mapping
+      # below is the GitHub-recommended intermediate-env-var pattern.
+      env:
+        OIDA_RUN_EXTERNAL_PROVIDER_TESTS: "0"
+        REPO_PATH: ${{ inputs.repo-path }}
+        BASE_REF: ${{ inputs.base-ref }}
+        INTENT_FILE: ${{ inputs.intent-file }}
+        OUTPUT_DIR: ${{ inputs.output-dir }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        LLM_PROVIDER: ${{ inputs.llm-provider }}
+        PROVIDER_PROFILE: ${{ inputs.provider-profile }}
+        API_KEY_ENV: ${{ inputs.api-key-env }}
+        MAX_PROVIDER_CASES: ${{ inputs.max-provider-cases }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$OUTPUT_DIR"
+
+        # Inspect → normalize → audit (deterministic gates only).
+        python -m oida_code.cli inspect "$REPO_PATH" \
+          --base "$BASE_REF" \
+          --out "$OUTPUT_DIR/request.json"
+
+        EXTRA_AUDIT=()
+        if [[ -n "$INTENT_FILE" ]]; then
+          EXTRA_AUDIT+=("--intent" "$INTENT_FILE")
+        fi
+
+        python -m oida_code.cli audit "$REPO_PATH" \
+          --base "$BASE_REF" \
+          --format markdown \
+          --out "$OUTPUT_DIR/report.md" \
+          --fail-on "$FAIL_ON" \
+          "${EXTRA_AUDIT[@]}" || AUDIT_EXIT=$?
+
+        python -m oida_code.cli audit "$REPO_PATH" \
+          --base "$BASE_REF" \
+          --format json \
+          --out "$OUTPUT_DIR/report.json" \
+          --fail-on none \
+          "${EXTRA_AUDIT[@]}" || true
+
+        python -m oida_code.cli audit "$REPO_PATH" \
+          --base "$BASE_REF" \
+          --format sarif \
+          --out "$OUTPUT_DIR/report.sarif" \
+          --fail-on none \
+          "${EXTRA_AUDIT[@]}" || true
+
+        # Optional calibration eval. Default `replay` keeps it
+        # hermetic; passing --llm-provider openai-compatible opts in.
+        CAL_OUT="$OUTPUT_DIR/calibration"
+        mkdir -p "$CAL_OUT"
+        if [[ -d "$ACTION_PATH/datasets/calibration_v1" ]]; then
+          CAL_ARGS=("calibration-eval" "$ACTION_PATH/datasets/calibration_v1"
+                    "--out" "$CAL_OUT"
+                    "--llm-provider" "$LLM_PROVIDER"
+                    "--max-provider-cases" "$MAX_PROVIDER_CASES")
+          if [[ "$LLM_PROVIDER" == "openai-compatible" ]]; then
+            if [[ -z "$PROVIDER_PROFILE" ]]; then
+              echo "::error::provider-profile is required when llm-provider=openai-compatible"
+              exit 2
+            fi
+            CAL_ARGS+=("--provider-profile" "$PROVIDER_PROFILE")
+            if [[ -n "$API_KEY_ENV" ]]; then
+              CAL_ARGS+=("--api-key-env" "$API_KEY_ENV")
+            fi
+          fi
+          python -m oida_code.cli "${CAL_ARGS[@]}" || true
+        fi
+
+        echo "report-json=$OUTPUT_DIR/report.json" >> "$GITHUB_OUTPUT"
+        echo "report-markdown=$OUTPUT_DIR/report.md" >> "$GITHUB_OUTPUT"
+        echo "report-sarif=$OUTPUT_DIR/report.sarif" >> "$GITHUB_OUTPUT"
+        echo "calibration-metrics=$CAL_OUT/metrics.json" >> "$GITHUB_OUTPUT"
+
+        # Step summary — Markdown report excerpt + calibration headline.
+        if [[ -f "$OUTPUT_DIR/report.md" ]]; then
+          {
+            echo "## OIDA-code audit"
+            echo
+            head -n 80 "$OUTPUT_DIR/report.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
+        if [[ -f "$CAL_OUT/metrics.json" ]]; then
+          {
+            echo
+            echo "## Calibration metrics"
+            echo
+            echo '```json'
+            head -n 30 "$CAL_OUT/metrics.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+        exit "${AUDIT_EXIT:-0}"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: oida-code-audit
+        path: ${{ inputs.output-dir }}/
+
+    - name: Upload SARIF (optional)
+      if: inputs.upload-sarif == 'true'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.output-dir }}/report.sarif

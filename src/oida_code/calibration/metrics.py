@@ -80,6 +80,16 @@ class CalibrationMetrics(BaseModel):
     safety_block_rate: float = Field(ge=0.0, le=1.0)
     fenced_injection_rate: float = Field(ge=0.0, le=1.0)
 
+    # Phase 4.4.1 — LLM estimator family.
+    estimator_status_accuracy: float | None = Field(
+        default=None, ge=0.0, le=1.0,
+    )
+    estimator_estimate_accuracy: float | None = Field(
+        default=None, ge=0.0, le=1.0,
+    )
+    estimator_cases_evaluated: int = Field(default=0, ge=0)
+    estimator_cases_skipped: int = Field(default=0, ge=0)
+
     # 4.3.1-A — honest leak metric. MUST be 0 in any accepted run;
     # the eval script exits non-zero when this is positive.
     official_field_leak_count: int = Field(default=0, ge=0)

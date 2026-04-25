@@ -30,6 +30,7 @@ CalibrationFamily = Literal[
     "shadow_pressure",
     "code_outcome",
     "safety_adversarial",
+    "llm_estimator",
 ]
 
 ContaminationRisk = Literal[
@@ -55,6 +56,27 @@ ToolResultExpected = Literal[
 ]
 
 ShadowBucket = Literal["low", "medium", "high", "not_applicable"]
+
+
+EstimateExpected = Literal["accepted", "rejected", "unsupported", "missing"]
+"""Phase 4.4.1 — per-estimate ground-truth label.
+
+* ``accepted``    — the LLM estimator produced this estimate; runner
+                    accepted it after schema/citation/forbidden-phrase
+                    checks.
+* ``rejected``    — the runner dropped the estimate (cap breach,
+                    forbidden phrase, contradicting tool, etc.).
+* ``unsupported`` — listed in the response's ``unsupported_claims``.
+* ``missing``     — the LLM did not emit this field at all (and the
+                    deterministic baseline carries ``source="missing"``).
+"""
+
+
+EstimatorStatusExpected = Literal[
+    "blocked", "diagnostic_only", "shadow_ready", "official_ready_candidate",
+]
+"""Phase 4.4.1 — expected :class:`EstimatorReport.status` for an
+``llm_estimator`` family case."""
 
 
 class ExpectedClaimLabel(BaseModel):
@@ -84,6 +106,30 @@ class ExpectedToolResultLabel(BaseModel):
     expected_findings_min: int = Field(default=0, ge=0)
     expected_findings_max: int | None = Field(default=None, ge=0)
     expected_block_reason_substring: str | None = None
+
+
+class ExpectedEstimateLabel(BaseModel):
+    """Phase 4.4.1 — ground-truth label for one LLM estimate slot.
+
+    ``min_value`` / ``max_value`` are optional bounds on the estimate's
+    numeric ``value`` field. They guard against runs that produce a
+    technically schema-valid estimate but with an absurd magnitude
+    (e.g. a capability-low case where the LLM cites the right ref but
+    still claims ``value=0.95``)."""
+
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, validate_assignment=True,
+    )
+
+    field: Literal[
+        "capability", "benefit", "observability",
+        "completion", "tests_pass", "operator_accept", "edge_confidence",
+    ]
+    event_id: str | None = None
+    expected_status: EstimateExpected
+    min_value: float | None = Field(default=None, ge=0.0, le=1.0)
+    max_value: float | None = Field(default=None, ge=0.0, le=1.0)
+    required_evidence_refs: tuple[str, ...] = ()
 
 
 class ExpectedRepairBehavior(BaseModel):
@@ -170,12 +216,19 @@ class CalibrationCase(BaseModel):
     canned_tool_outputs_path: str | None = None
     forward_replay_path: str | None = None
     backward_replay_path: str | None = None
+    # Phase 4.4.1 — for ``llm_estimator`` family cases, this is the
+    # canned LLM JSON response replayed by FileReplayLLMProvider when
+    # the operator hasn't opted in to a real provider.
+    llm_response_path: str | None = None
 
     expected_claim_labels: tuple[ExpectedClaimLabel, ...] = ()
     expected_tool_results: tuple[ExpectedToolResultLabel, ...] = ()
     expected_shadow_bucket: ShadowBucket = "not_applicable"
     expected_repair_behavior: ExpectedRepairBehavior | None = None
     expected_code_outcome: ExpectedCodeOutcome | None = None
+    # Phase 4.4.1 — ground truth for ``llm_estimator`` family cases.
+    expected_estimator_status: EstimatorStatusExpected | None = None
+    expected_estimates: tuple[ExpectedEstimateLabel, ...] = ()
 
     provenance: CalibrationProvenance
     contamination_risk: ContaminationRisk
@@ -202,6 +255,28 @@ class CalibrationCase(BaseModel):
             raise ValueError(
                 f"case {self.case_id}: family='tool_grounded' requires at "
                 "least one expected_tool_results entry."
+            )
+        # Phase 4.4.1 — llm_estimator family invariants.
+        if self.family == "llm_estimator":
+            if self.packet_path is None:
+                raise ValueError(
+                    f"case {self.case_id}: family='llm_estimator' "
+                    "requires packet_path (LLMEvidencePacket JSON)."
+                )
+            if self.expected_estimator_status is None:
+                raise ValueError(
+                    f"case {self.case_id}: family='llm_estimator' "
+                    "requires expected_estimator_status."
+                )
+        if self.family != "llm_estimator" and (
+            self.expected_estimator_status is not None
+            or self.expected_estimates
+            or self.llm_response_path is not None
+        ):
+            raise ValueError(
+                f"case {self.case_id}: only family='llm_estimator' may set "
+                "expected_estimator_status / expected_estimates / "
+                "llm_response_path."
             )
         return self
 
@@ -231,8 +306,11 @@ __all__ = [
     "ClaimExpected",
     "ClaimReason",
     "ContaminationRisk",
+    "EstimateExpected",
+    "EstimatorStatusExpected",
     "ExpectedClaimLabel",
     "ExpectedCodeOutcome",
+    "ExpectedEstimateLabel",
     "ExpectedRepairBehavior",
     "ExpectedToolResultLabel",
     "ShadowBucket",
