@@ -39,6 +39,7 @@ _WORKFLOW_DIR = _REPO_ROOT / ".github" / "workflows"
 _CI_WORKFLOW = _WORKFLOW_DIR / "ci.yml"
 _ACTION = _REPO_ROOT / "action.yml"
 _VALIDATOR_SCRIPT = _REPO_ROOT / "scripts" / "validate_github_workflows.py"
+_PYPROJECT = _REPO_ROOT / "pyproject.toml"
 
 
 @pytest.fixture(scope="module")
@@ -355,6 +356,40 @@ def test_validate_github_workflows_script_detects_pull_request_target(
     assert proc.returncode != 0
     combined = proc.stdout + proc.stderr
     assert "pull_request_target" in combined
+
+
+def test_dev_extra_includes_pyyaml_for_workflow_validator() -> None:
+    """4.5.2-B: PyYAML MUST appear in the ``[project.optional-
+    dependencies].dev`` block so a fresh CI runner that does
+    ``pip install -e .[dev]`` can run
+    ``scripts/validate_github_workflows.py`` (which exits with code 2
+    when the import fails). This is a real-runner regression after
+    the first CI invocation on commit d910006."""
+    body = _PYPROJECT.read_text(encoding="utf-8")
+    # Locate the dev = [...] block. We don't import tomllib here so
+    # that the test runs even on the path where PyYAML / tomllib is
+    # missing — the assertion is a string match against the section.
+    start = body.find("dev = [")
+    assert start != -1, "missing dev = [...] block in pyproject.toml"
+    # The block ends at the next "]" past `start`; allow nested
+    # brackets to be safe.
+    depth = 0
+    end = start
+    while end < len(body):
+        ch = body[end]
+        if ch == "[":
+            depth += 1
+        elif ch == "]":
+            depth -= 1
+            if depth == 0:
+                break
+        end += 1
+    block = body[start : end + 1]
+    assert "PyYAML" in block, (
+        "PyYAML missing from [project.optional-dependencies].dev "
+        "in pyproject.toml — `validate_github_workflows.py` will "
+        "exit 2 on a fresh runner"
+    )
 
 
 def test_validate_github_workflows_script_detects_inputs_in_run(

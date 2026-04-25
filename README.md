@@ -49,7 +49,7 @@ PASS; Phase 4.5 17 invariant tests on workflow + composite action
 PASS (including Phase 4.5.1 shell-injection hardening:
 PR-controlled `${{ ... }}` lifted into `env:`, validator §6 +
 2 regression tests); `validate_github_workflows.py` green;
-**525 passed, 4 skipped (V2 placeholder + 2 Phase-4
+**526 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain

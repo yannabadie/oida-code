@@ -32,6 +32,12 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.6",
     "mypy>=1.11",
+    # Phase 4.5.2 real-runner fix: `scripts/validate_github_workflows.py`
+    # parses workflow + action YAML; without PyYAML the validator
+    # exits 2 and the `security-smoke` CI job fails. PyYAML is a
+    # de-facto standard install on most dev boxes, but explicit is
+    # safer than implicit when CI runs from a clean container.
+    "PyYAML>=6.0",
 ]
 
 [project.scripts]

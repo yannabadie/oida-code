@@ -18,6 +18,12 @@ python scripts/validate_github_workflows.py
 #   - default reaches no external API; no SARIF upload; replay only
 ```
 
+**Status**: structurally complete + Phase 4.5.2 real-runner fix
+landed (PyYAML in dev extras, `tests/test_cli_smoke.py` pinned to
+`NO_COLOR=1` + `COLUMNS=200`, `enable-shadow` input documented as
+RESERVED). Awaiting CI run #2 to flip from "shipped structurally"
+to "accepted end-to-end" per QA/A22.md.
+
 **Verdict (TL;DR)**: structurally complete. The internal CI runs on
 `push` / `pull_request` / `workflow_dispatch` only, never on
 `pull_request_target`, with workflow-level `permissions: contents:
@@ -649,6 +655,57 @@ What this commit **does not** claim:
 
 ---
 
+## 12.1 Phase 4.5.2 — real-runner fix
+
+The first CI run (`d910006`, run #24938535270) on a clean
+GitHub-hosted Ubuntu runner failed in two jobs:
+
+| Job | Exit | Cause |
+|---|---|---|
+| `workflow security smoke` | 2 | `validate_github_workflows.py` exits 2 when PyYAML import fails. PyYAML was a de-facto-installed dependency on local dev boxes but was never declared in `pyproject.toml`'s `[project.optional-dependencies].dev` block. A clean `pip install -e .[dev]` on the runner therefore left it absent. |
+| `pytest` | 1 | `tests/test_cli_smoke.py::test_inspect_help_shows` asserts `--base in result.output`. On the Ubuntu runner Rich detects `CI=true` and forces colour rendering inside an 80-column panel; the option name `--base` wraps inside the table cell and the substring no longer matches. Locally on Windows the same `CliRunner` produces plain ASCII (no Rich panel), so the test passed locally and only broke under GHA's terminal detection. |
+
+**Fixes (this commit):**
+
+1. `pyproject.toml` adds `PyYAML>=6.0` to the `dev` extra. New
+   regression test
+   `test_dev_extra_includes_pyyaml_for_workflow_validator` parses
+   the `dev = [...]` block and asserts `"PyYAML"` is present, so a
+   future PR that drops it gets caught locally before the runner.
+2. `tests/test_cli_smoke.py` pins
+   `runner = CliRunner(env={"NO_COLOR": "1", "COLUMNS": "200"})` at
+   module scope. `NO_COLOR=1` strips ANSI rendering (per the
+   no-color.org convention that Rich respects) and `COLUMNS=200`
+   widens the help table so option names never wrap. The fix
+   applies to all six tests in the file, not just the two
+   `--help` ones — the JSON-extraction tests benefit too because
+   their `find("{")` pattern stops being sensitive to ANSI prefix
+   noise.
+3. `action.yml`'s `enable-shadow` input description is updated to
+   say RESERVED / NOT YET WIRED (Option B per QA/A22.md §4.5.2-E).
+   The input is still accepted for forward-compatibility but the
+   composite action body does not consume it; any operator who sets
+   `enable-shadow: true` today gets the default behaviour.
+   Implementation deferred to Phase 4.6+.
+
+**Acceptance criterion** (QA/A22.md §4.5.2-C): GitHub Actions run
+#2 (after this commit lands) must show ruff / mypy / pytest /
+calibration-eval / workflow security smoke all green. The
+structural local gate is unchanged: ruff clean, mypy clean,
+**526 passed + 4 skipped**, validator OK.
+
+**Out of scope (4.5.3 ticket)**: the runner emits Node 20
+deprecation warnings on `actions/checkout@v4`,
+`actions/setup-python@v5`, `actions/upload-artifact@v4`, and
+`github/codeql-action/upload-sarif@v3`. GitHub has announced
+runners begin defaulting to Node 24 from 2026-06-02; the
+recommended mitigation is testing with
+`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` and bumping pinned
+versions when Node-24-compatible releases land. Tracked under
+Phase 4.5.3 — not blocking 4.5 acceptance.
+
+---
+
 ## 13. Phase 4.6 recommendation
 
 Phase 4.5 closes the operator-facing surface (CI + reusable
@@ -680,7 +737,7 @@ alpha line:
 |---|---|---|
 | Ruff | green | `src/ tests/ scripts/...` (full set in CLAUDE.md) |
 | Mypy | green | 84 source files clean |
-| Pytest | 525 passed, 4 skipped | All 4 skips documented in §10 |
+| Pytest | 526 passed, 4 skipped | All 4 skips documented in §10 (one new test in §12.1: `test_dev_extra_includes_pyyaml_for_workflow_validator`) |
 | `scripts/validate_github_workflows.py` | OK | "workflow + action invariants hold"; rule §6 catches PR-controlled-expr-in-run anti-pattern |
 | ADR-22 hard wall | held | No production code path emits `total_v_net` / `debt_final` / `corrupt_success` / `verdict`; action outputs are name-checked against the forbidden phrase set |
 | ADR-29 (provider opt-in) | held | replay default, fork-PR fence, env-var-name only |

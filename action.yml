@@ -59,9 +59,12 @@ inputs:
     default: "impact"
   enable-shadow:
     description: |
-      "true" → also run `oida-code score-trace` with
-      `--experimental-shadow-fusion`. The shadow report is non-
-      authoritative by ADR-22 / ADR-23.
+      RESERVED / NOT YET WIRED (Phase 4.5.2-E, QA/A22.md). The input
+      is accepted for forward-compatibility but currently ignored by
+      the action body. A future release (tracked under Phase 4.6+)
+      will, when this is `"true"`, run `oida-code score-trace` with
+      `--experimental-shadow-fusion`. The shadow report would be
+      non-authoritative by ADR-22 / ADR-23.
     required: false
     default: "false"
   llm-provider:

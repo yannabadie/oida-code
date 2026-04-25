@@ -9,7 +9,14 @@ from typer.testing import CliRunner
 from oida_code.cli import app
 from oida_code.models import AuditRequest
 
-runner = CliRunner()
+# Phase 4.5.2 real-runner fix: pin a wide terminal AND disable Rich
+# colour rendering at the runner level. On GitHub-hosted Linux runners
+# Rich detects `CI=true` and forces colour + an 80-col panel, which
+# wraps option names like `--base` across cells and breaks substring
+# assertions. Locally on Windows the output is plain ASCII and the
+# tests pass; pinning these env vars at the runner level makes the
+# behaviour deterministic everywhere.
+runner = CliRunner(env={"NO_COLOR": "1", "COLUMNS": "200"})
 
 
 def test_inspect_help_shows() -> None:
