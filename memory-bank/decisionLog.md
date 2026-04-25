@@ -75,6 +75,79 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-26 09:30:00] - **ADR-27: Bounded tool-grounded verifier loop.**
+
+**Why:** Phase 4.1 (ADR-26) shipped the forward/backward verifier
+contract with replay-only providers and `VerifierToolCallSpec` as
+description-only. Phase 4.2 grants the verifier the right to **ask
+for** tools, not the right to choose argv or run shell commands. The
+loop must be bounded, read-only, and policy-gated; tool outputs are
+deterministic evidence, never instructions.
+
+**Decision (Phase 4.2 protocol):**
+
+* `src/oida_code/verifier/tools/` sub-package with `contracts.py`
+  (`ToolPolicy` / `VerifierToolRequest` / `VerifierToolResult`),
+  `sandbox.py` (path traversal, deny patterns, output truncation +
+  SHA256), `adapters.py` (deterministic per-tool adapters that build
+  their own argv), `registry.py` (allowlist lookup),
+  `__init__.py` (`ToolExecutionEngine`).
+* Adapters at minimum: ruff, mypy, pytest. Each builds its own argv;
+  no LLM-supplied free string ever reaches `subprocess.run`.
+* `subprocess.run(..., shell=False, capture_output=True, timeout=...)`.
+* Read-only by default: `allow_write=False`, `allow_network=False`.
+* Budget: `max_tool_calls=5`, `max_total_runtime_s=60`,
+  `max_output_chars_per_tool=8000`.
+* CLI: `oida-code run-tools <requests.json> --policy <policy.json>
+  --out <results.json>` as a separate command (not in `audit`, not
+  in `score-trace`). No two-pass verifier loop in 4.2 — the operator
+  chains `run-tools` → `verify-claims` manually with the enriched
+  packet. Keeps the chain inspectable.
+* No MCP integration in 4.2; real vendor binding is 4.2.x.
+
+**Accepted:**
+
+* allowlisted tools only
+* no shell passthrough (argv-list invocation only)
+* read-only execution
+* per-tool timeout + output cap; truncated output is hashed
+  (SHA256 of FULL payload) so an integrator can detect tampering
+* evidence refs generated from parsed tool output; raw stdout never
+  reaches the LLM
+* deterministic tool evidence wins over LLM claims at the aggregator
+
+**Rejected:**
+
+* autonomous unbounded agent loop
+* destructive tool calls / writes / network
+* MCP integration in Phase 4.2
+* raw tool output trusted as instruction
+* official `V_net` / `debt_final` / `corrupt_success` emission
+* default-on external API calls
+
+**4.1.1 micro-hardening (paired with this ADR):**
+
+* `reports/phase4_1_forward_backward_contract.md` fixture table +
+  bullets now spell out the named OIDA_EVIDENCE fences explicitly
+  (no more "named fences" generic phrasing).
+* `aggregate_verification` rejects any claim whose `event_id`
+  doesn't match `forward.event_id`; backward results with
+  mismatched `event_id` are dropped with a warning;
+  deterministic-tool contradiction is checked against
+  `claim.event_id` (not the forward's roll-up id) so future
+  per-event aggregation paths stay correct.
+* 3 new tests added to `tests/test_phase4_1_verifier_contract.py`.
+
+**Outcome:** all 24 acceptance criteria from QA/A18.md met. 34 new
+tests in `tests/test_phase4_2_tool_grounded_verifier.py` (8 hermetic
+fixtures + adapter / sandbox / engine / CLI smoke). Full suite
+**437 passed + 3 skipped** (1 V2 placeholder + 2 Phase-4
+observability markers). `oida-code run-tools` CLI is wired; the
+`OptionalExternalVerifierProvider` remains a Phase 4.2.x stub. ADR-22
++ ADR-25 + ADR-26 + ADR-27 all hold; production CLI emits no
+`V_net` / `debt_final` / `corrupt_success`. Report:
+`reports/phase4_2_tool_grounded_verifier_loop.md`.
+
 [2026-04-25 21:00:00] - **ADR-26: Forward/backward verifier contract before tool-grounded loop.**
 
 **Why:** Phase 4.0 (ADR-25) shipped a dry-run for the LLM ESTIMATOR

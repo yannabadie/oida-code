@@ -516,3 +516,68 @@ def test_runner_handles_forbidden_phrase_in_response() -> None:
 
 def test_no_external_env_var_set_at_collection_time() -> None:
     _ = os.environ.get("OIDA_VERIFIER_API_KEY")
+
+
+# ---------------------------------------------------------------------------
+# Phase 4.1.1 — aggregator event_id hardening
+# ---------------------------------------------------------------------------
+
+
+def test_claim_event_id_must_match_forward_event_id() -> None:
+    """4.1.1: a supported claim whose event_id != forward.event_id is
+    rejected. Cross-event votes must NOT slip into accepted_claims."""
+    packet = _packet(event_id="event-A")
+    cross = _claim(event_id="event-B")  # mismatch
+    forward = _forward(supported=(cross,), event_id="event-A")
+    backward = (_backward(event_id="event-A"),)
+    rep = aggregate_verification(forward, backward, packet)
+    assert cross in rep.rejected_claims
+    assert cross not in rep.accepted_claims
+    assert any(
+        "event_id 'event-B'" in w and "event-A" in w
+        for w in rep.warnings
+    )
+
+
+def test_backward_event_id_must_match_forward_event_id() -> None:
+    """4.1.1: a backward result whose event_id doesn't match
+    forward.event_id is dropped. The claim it would have validated
+    falls through to "no backward verification → unsupported"."""
+    packet = _packet(event_id="event-A")
+    claim = _claim(event_id="event-A")
+    forward = _forward(supported=(claim,), event_id="event-A")
+    bad_backward = (_backward(event_id="event-OTHER"),)
+    rep = aggregate_verification(forward, bad_backward, packet)
+    assert claim in rep.unsupported_claims
+    assert any(
+        "event_id 'event-OTHER'" in w
+        for w in rep.warnings
+    )
+
+
+def test_tool_failure_check_uses_claim_event_id_not_forward() -> None:
+    """4.1.1: the deterministic-tool contradiction check must use
+    claim.event_id. We craft a forward that carries one event_id but
+    a (now-rejected because of the new event-id check) and verify
+    that an in-event claim is correctly rejected on its own event."""
+    det = SignalEstimate(
+        field="completion",
+        event_id="event-claim",
+        value=0.2,
+        confidence=0.85,
+        source="test_result",
+        method_id="completion.pytest_relevant",
+        method_version="e3.2",
+        evidence_refs=("pytest:src/a.py:1:failed",),
+    )
+    packet = _packet(event_id="event-claim", deterministic=(det,))
+    matching = _claim(event_id="event-claim")
+    forward = _forward(supported=(matching,), event_id="event-claim")
+    backward = (_backward(event_id="event-claim"),)
+    rep = aggregate_verification(forward, backward, packet)
+    assert matching in rep.rejected_claims
+    assert any(
+        f"contradicts deterministic tool failure on event "
+        f"{matching.event_id}" in w
+        for w in rep.warnings
+    )

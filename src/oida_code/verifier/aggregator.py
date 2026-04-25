@@ -86,18 +86,37 @@ def aggregate_verification(
     warnings: list[str] = []
 
     known_ids = _packet_evidence_ids(packet)
-    backward_by_claim: dict[str, BackwardVerificationResult] = {
-        b.claim_id: b for b in backward
-    }
-    tool_fail = _tool_grounded_failure(
-        deterministic_estimates, forward.event_id,
-    )
+    # 4.1.1 — backward results must be filtered by event_id consistency.
+    # A backward result whose event_id doesn't match the claim it refers
+    # to is dropped (warning logged) so the aggregator can't be tricked
+    # into accepting a cross-event vote.
+    backward_by_claim: dict[str, BackwardVerificationResult] = {}
+    for b in backward:
+        if b.event_id != forward.event_id:
+            warnings.append(
+                f"backward result for claim {b.claim_id} has event_id "
+                f"{b.event_id!r} != forward.event_id {forward.event_id!r}; "
+                "ignoring"
+            )
+            continue
+        backward_by_claim[b.claim_id] = b
 
     # Forward-rejected claims are recorded as such, never accepted.
     for claim in forward.rejected_claims:
         rejected.append(claim)
 
     for claim in forward.supported_claims:
+        # 4.1.1 — claim.event_id must match the forward result's event_id.
+        # Otherwise the claim was issued for a different event and should
+        # never be aggregated under this forward.
+        if claim.event_id != forward.event_id:
+            warnings.append(
+                f"claim {claim.claim_id} has event_id {claim.event_id!r} "
+                f"!= forward.event_id {forward.event_id!r}; rejecting"
+            )
+            rejected.append(claim)
+            continue
+
         # Rule 3 — evidence refs must exist
         unknown_refs = [r for r in claim.evidence_refs if r not in known_ids]
         if unknown_refs:
@@ -126,7 +145,14 @@ def aggregate_verification(
             continue
 
         # Rule 4 — deterministic tool contradictions
-        if tool_fail and claim.confidence > 0.0:
+        # 4.1.1 — check tool failure on the CLAIM's event_id, not the
+        # forward's. Even if both currently match, this guards against
+        # future per-event aggregation paths where forward could carry
+        # a roll-up event_id while individual claims target sub-events.
+        if (
+            _tool_grounded_failure(deterministic_estimates, claim.event_id)
+            and claim.confidence > 0.0
+        ):
             warnings.append(
                 f"claim {claim.claim_id} contradicts deterministic tool "
                 f"failure on event {claim.event_id}; rejecting"

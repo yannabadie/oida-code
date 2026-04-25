@@ -246,13 +246,14 @@ Each fixture lives under
 | `backward_requires_missing_intent` | `diagnostic_only` | Forward supports `c-benefit-1`; backward requires intent (none in packet) → unsupported. |
 | `tool_failure_contradicts_claim` | `blocked` | Deterministic test_result has value 0.2 (failure) on the same event; the LLM-style claim is rejected — deterministic wins. |
 | `unknown_evidence_ref` | `blocked` | Forward cites `[E.does_not_exist.42]` → rejected. |
-| `prompt_injection_claim_payload` | `blocked` | Hostile comment in evidence summary; forward correctly emits no claim; render places injection inside named fences. |
+| `prompt_injection_claim_payload` | `blocked` | Hostile comment in evidence summary; forward correctly emits no claim; render places injection inside named `<<<OIDA_EVIDENCE id="..." kind="...">>>` ... `<<<END_OIDA_EVIDENCE id="...">>>` fences. |
 | `repair_needed_supported` | `verification_candidate` | Repair claim accepted (forward + backward + evidence ok), `authoritative=False` ensures it cannot promote to official. |
 
 Plus dedicated tests:
 
-* `test_prompt_injection_claim_payload_is_data` — checks fence
-  bracketing on the rendered prompt.
+* `test_prompt_injection_claim_payload_is_data` — checks
+  `<<<OIDA_EVIDENCE id="..." kind="...">>>` ...
+  `<<<END_OIDA_EVIDENCE id="...">>>` bracketing on the rendered prompt.
 * `test_repair_needed_claim_is_diagnostic_only` — verifies
   `authoritative` stays `False` even when status is
   `verification_candidate`.

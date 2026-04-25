@@ -751,6 +751,65 @@ def verify_claims_cmd(
     out.write_text(text, encoding="utf-8")
 
 
+@app.command("run-tools")
+def run_tools_cmd(
+    requests_path: Annotated[
+        Path,
+        typer.Argument(
+            help="JSON list of VerifierToolRequest objects.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    policy_path: Annotated[
+        Path,
+        typer.Option(
+            "--policy",
+            help="Path to a ToolPolicy JSON.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            "--out", help="Where to write the VerifierToolResult JSON list.",
+        ),
+    ] = None,
+) -> None:
+    """Phase 4.2 (ADR-27): execute a budgeted batch of tool requests.
+
+    Reads a JSON list of :class:`VerifierToolRequest` objects and a
+    :class:`ToolPolicy`, runs each request through its adapter
+    (validated against the policy), and emits one
+    :class:`VerifierToolResult` per request as JSON. Default uses
+    :func:`subprocess.run` (no shell). Read-only by default; the
+    policy MUST set ``allow_write=False`` and ``allow_network=False``
+    in Phase 4.2.
+    """
+    from oida_code.verifier.tools import (
+        ToolExecutionEngine,
+        ToolPolicy,
+        VerifierToolRequest,
+    )
+
+    raw = json.loads(requests_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, list):
+        _fail("run-tools requests must be a JSON list of VerifierToolRequest")
+    requests = tuple(VerifierToolRequest.model_validate(item) for item in raw)
+    policy = ToolPolicy.model_validate_json(
+        policy_path.read_text(encoding="utf-8")
+    )
+    engine = ToolExecutionEngine()
+    results = engine.run(requests, policy)
+    text = json.dumps(
+        [r.model_dump(mode="json") for r in results], indent=2,
+    )
+    if out is None:
+        typer.echo(text)
+        return
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+
+
 def main() -> None:  # pragma: no cover - entry-point thunk
     app(prog_name="oida-code")
 
