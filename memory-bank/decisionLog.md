@@ -75,6 +75,55 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-25 14:00:00] - **ADR-23: Shadow formula decision protocol (E2).**
+
+**Why:** E1 (commit `92224c7`) shipped the shadow fusion as opt-in
+experimental, and E1.1 (commit `84e50f8`) hardened the contract
+(frozen models, missing-grounding semantics). A11.md §"Après E1"
+reserved the keep/revise/reject decision for E2. The decision must
+be **structural**, not predictive: does the formula remain stable,
+monotone, explainable, and useful as a diagnostic, or does any of
+those properties break under sensitivity sweeps and graph variants?
+
+**Decision (E2 protocol):** evaluate the formula along three axes —
+formula variants, sensitivity sweep, graph ablation — record the
+result in `reports/e2_shadow_formula_decision.md`, and choose
+keep / revise / reject. The shadow report's non-authoritative
+status is non-negotiable regardless of outcome.
+
+**Accepted activities:**
+
+* Compare formula variants (V1 current E1.1, V2 dynamic-renormalized,
+  V3 conservative-missing).
+* Sensitivity sweep on grounding / completion / operator_accept /
+  trajectory_pressure / edge_confidence.
+* Graph ablation on local-only / constitutive-only / supportive-only /
+  mixed / cycle / dense-supportive-star / long-supportive-chain.
+* D2 fixture replay to verify relative ordering still holds.
+* Real-repo shadow smoke (no Spearman, no outcome correlation).
+
+**Rejected activities:**
+
+* Promoting any pressure to `total_v_net` / `debt_final` /
+  `corrupt_success_ratio`.
+* Calling shadow pressure a "verdict".
+* Fitting thresholds on hand-made D2 fixtures (overfit risk on
+  synthetic signal).
+* Modifying the vendored OIDA core (ADR-02 holds).
+
+**Edge-confidence sub-decision (E2 §5):** chose **Option B** — keep
+`NormalizedEvent` schema unchanged; pass an optional
+`edge_confidences` mapping into `compute_experimental_shadow_fusion`.
+Default uniform `0.6` when absent. Option A (frozen default) loses
+DependencyEdge confidence; Option C (extend NormalizedEvent) is too
+invasive for an experimental layer. Option B is the contract that
+keeps the public schema stable and makes per-edge calibration
+testable in the shadow layer alone.
+
+**Outcome:** `keep` with two minor revisions — already implemented
+in E1.1 (missing-grounding fix) and this commit (edge_confidences
+parameter). Reports `reports/e2_shadow_formula_decision.md`.
+
 [2026-04-25 09:00:00] - **ADR-22: Fusion readiness before graph-aware V_net.**
 
 **Why:** Phase 3.5 (Blocks A-D) shipped a structurally validated

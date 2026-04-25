@@ -294,6 +294,8 @@ def _propagate(
     base_by_id: dict[str, float],
     parents_attr: str,
     alpha: float,
+    edge_kind: str,
+    edge_confidences: dict[tuple[str, str, str], float] | None,
 ) -> tuple[dict[str, float], int, bool]:
     """Iteratively propagate pressure via ``max()`` over the named
     parents. Returns (final_pressure_by_id, iterations, converged).
@@ -301,6 +303,11 @@ def _propagate(
     Cycle-safe by construction: ``max()`` is idempotent and the
     sequence is monotone non-decreasing in [0, 1] → at most
     ``n_events + 1`` iterations needed (per A11.md).
+
+    E2 / ADR-23 §5: per-edge confidence is read from
+    ``edge_confidences[(parent_id, child_id, edge_kind)]`` if available,
+    else falls back to ``_DEFAULT_EDGE_CONFIDENCE`` (0.6). Option B —
+    NormalizedEvent stays unchanged.
     """
     pressure = dict(base_by_id)
     n_events = len(events)
@@ -319,7 +326,13 @@ def _propagate(
             for parent_id in parents:
                 if parent_id not in pressure:
                     continue
-                contribution = pressure[parent_id] * _DEFAULT_EDGE_CONFIDENCE * alpha
+                edge_key = (parent_id, ev.id, edge_kind)
+                conf = (
+                    edge_confidences.get(edge_key, _DEFAULT_EDGE_CONFIDENCE)
+                    if edge_confidences is not None
+                    else _DEFAULT_EDGE_CONFIDENCE
+                )
+                contribution = pressure[parent_id] * conf * alpha
                 if contribution > best:
                     best = contribution
             best = _clip(best)
@@ -343,6 +356,7 @@ def compute_experimental_shadow_fusion(
     *,
     tool_evidence: list[ToolEvidence] | None = None,
     trajectory_metrics: TrajectoryMetrics | None = None,
+    edge_confidences: dict[tuple[str, str, str], float] | None = None,
 ) -> ShadowFusionReport:
     """E1 entry point. NEVER authoritative.
 
@@ -380,11 +394,21 @@ def compute_experimental_shadow_fusion(
 
     # Constitutive propagation → shadow_debt_pressure
     debt_by_id, debt_iter, debt_converged = _propagate(
-        scenario.events, base_by_id, "constitutive_parents", _ALPHA_CONSTITUTIVE,
+        scenario.events,
+        base_by_id,
+        "constitutive_parents",
+        _ALPHA_CONSTITUTIVE,
+        "constitutive",
+        edge_confidences,
     )
     # Supportive propagation → shadow_integrity_pressure (audit pressure)
     integrity_by_id, int_iter, int_converged = _propagate(
-        scenario.events, base_by_id, "supportive_parents", _ALPHA_SUPPORTIVE,
+        scenario.events,
+        base_by_id,
+        "supportive_parents",
+        _ALPHA_SUPPORTIVE,
+        "supportive",
+        edge_confidences,
     )
 
     constitutive_count = sum(

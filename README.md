@@ -6,19 +6,25 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 complete — structural measurement pipeline validated;
-opt-in experimental shadow fusion shipped non-authoritative.**
+**Phase 3.5 + E1 + E2 complete — structural measurement pipeline
+validated; opt-in experimental shadow fusion shipped non-authoritative;
+formula decision recorded (KEEP V1 per ADR-23).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
 bounded dependency graph for repair propagation (ADR-21), Explore/Exploit
 trajectory scorer faithful to paper 2604.13151 (ADR-18/19), audit-surface
-derivation (impact cone), E0 fusion-readiness layer (ADR-22), and E1
-experimental shadow fusion as opt-in CLI flag (`--experimental-shadow-fusion`).
+derivation (impact cone), E0 fusion-readiness layer (ADR-22), E1
+experimental shadow fusion as opt-in CLI flag (`--experimental-shadow-fusion`),
+and E2 formula decision (ADR-23) with sensitivity sweep, graph
+ablation, variant comparison, and real-repo shadow smoke.
 
 Validation: D1 paper sanity all 10 aspects PASS; D2 10 hermetic
 code-domain traces (71 parametrized tests) PASS; D3 real-repo
-structural smoke PASS on 2 repos; **250/250 unit tests green**.
+structural smoke PASS on 2 repos; E2 sensitivity sweep 26/26
+delta=0.0; E2 graph ablation 7/7 invariants hold; E2 real-repo
+shadow smoke PASS on oida-code self + attrs;
+**277/278 unit tests green (1 skip = V2 placeholder)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
 blocked / null** — `capability` / `benefit` / `observability` are
@@ -28,10 +34,10 @@ official emission. The shadow fusion is diagnostic-only,
 non-authoritative by type (`Literal[False]` + frozen Pydantic model),
 and lives in a separate output block.
 
-**E2 formula decision and E3 estimator contracts pending.**
+**E3 estimator contracts pending.**
 **Not production-ready.** See `memory-bank/progress.md`,
 `reports/block_d_validation.md`, `reports/e0_fusion_readiness.md`,
-`reports/e1_shadow_fusion.md`.
+`reports/e1_shadow_fusion.md`, `reports/e2_shadow_formula_decision.md`.
 
 ## Install (dev)
 
