@@ -2,10 +2,17 @@
 
 QA directive: `QA/A29.md` (2026-04-26).
 ADR: ADR-37 (`memory-bank/decisionLog.md`).
-Status at end of phase: 27 / 27 acceptance criteria green; quality
-gates clean (ruff + mypy + pytest); GitHub-hosted runs to be
-captured in a follow-up commit per the standard "fully accepted"
-docs-update pattern.
+Status at end of phase: **27 / 27** acceptance criteria green;
+quality gates clean (ruff + mypy + pytest, 730 passed / 4
+skipped, was 685/4 before Phase 5.2 — exactly +45 new tests);
+all four GitHub-hosted runs green on commit `6b741ee`:
+
+| Workflow | Run ID | Wall time |
+|---|---|---|
+| ci | 24959872919 | 1m15s |
+| action-smoke | 24959872926 | 1m01s |
+| provider-baseline-node24-smoke | 24959872917 | 19s |
+| gateway-grounded-smoke | 24959872936 | 22s |
 
 ## 1. Diff résumé
 
@@ -334,7 +341,7 @@ protocol surface.
 | mypy (same set) | clean |
 | pytest full suite | green; new file contributes 45 passing tests |
 | `tests/test_phase5_2_gateway_grounded_verifier.py` | 45 / 45 passing |
-| GitHub-hosted CI runs | to be captured in the docs follow-up commit (ci, action-smoke, provider-baseline-node24-smoke, gateway-grounded-smoke) |
+| GitHub-hosted CI runs | all four green on commit `6b741ee` — ci (24959872919, 1m15s), action-smoke (24959872926, 1m01s), provider-baseline-node24-smoke (24959872917, 19s), gateway-grounded-smoke (24959872936, 22s) |
 
 ## Honesty statement
 
