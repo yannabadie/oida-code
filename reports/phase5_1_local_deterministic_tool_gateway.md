@@ -568,7 +568,7 @@ removing the relevant locks.
 | 27. ruff clean | yes — full curated CI scope |
 | 28. mypy clean | yes — 88 source files |
 | 29. pytest full green, skips documented | yes — 685 passed, 4 skipped (V2 placeholder + 2 Phase-4 observability markers + 1 optional external-provider smoke) |
-| 30. At least one GitHub-hosted CI / action-smoke run green after Phase 5.1 | pending — operator triggers post-merge |
+| 30. At least one GitHub-hosted CI / action-smoke run green after Phase 5.1 | **yes** — three runs green on commit 1e38bce: `ci` 24958890104 (1m14s), `action-smoke` 24958890094 (57s), `provider-baseline-node24-smoke` 24958890095 (21s) |
 
 ### Skip inventory (4 — unchanged from Phase 5.0)
 
