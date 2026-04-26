@@ -64,6 +64,38 @@ class ProviderRawResponse(BaseModel):
     usage_completion_tokens: int | None = None
 
 
+class ProviderRedactedIO(BaseModel):
+    """Phase 4.8-A (QA/A25.md, ADR-33) — opt-in redacted-only
+    capture of one provider call for post-hoc label diagnosis.
+
+    Frozen + ``extra="forbid"``. NEVER carries:
+
+    * the raw prompt (only ``prompt_sha256``)
+    * the API key value (``redact_secret`` is applied to
+      ``redacted_response_body`` before it lands here)
+    * any other secret-like content the operator passes in env
+
+    The runner writes one of these per provider call to
+    ``<out>/<provider>/redacted_io/<case_id>.json`` ONLY when the
+    operator passed ``--store-redacted-provider-io`` to the CLI.
+    """
+
+    model_config = ConfigDict(
+        extra="forbid", frozen=True, validate_assignment=True,
+    )
+
+    case_id: str | None = None
+    prompt_sha256: str = Field(min_length=64, max_length=64)
+    redacted_response_body: str
+    model: str
+    http_status: int
+    wall_clock_ms: int
+    response_id: str | None = None
+    finish_reason: str | None = None
+    usage_prompt_tokens: int | None = None
+    usage_completion_tokens: int | None = None
+
+
 @dataclass(frozen=True)
 class HttpRequest:
     """Inputs the HTTP transport sees. ``json_body`` is the dict the
@@ -143,14 +175,35 @@ class OpenAICompatibleChatProvider:
     Protocol — its ``estimate(prompt, *, timeout_s)`` returns the
     JSON content string the existing runner expects, so
     :func:`run_llm_estimator` accepts it transparently.
+
+    Phase 4.8-A: when ``capture_redacted_io=True`` the provider also
+    stashes a frozen :class:`ProviderRedactedIO` after each call;
+    the runner reads it via :meth:`pop_last_redacted_io` and writes
+    it under ``<out>/<provider>/redacted_io/`` when
+    ``--store-redacted-provider-io`` is set on the CLI. The
+    redaction happens INSIDE this dataclass — the API key value
+    never travels into the runner.
     """
 
     profile: ProviderProfile
     http_post: HttpPostFn = field(default=default_urllib_post)
+    capture_redacted_io: bool = False
+    _last_redacted_io: ProviderRedactedIO | None = field(
+        default=None, init=False, repr=False, compare=False,
+    )
 
     def estimate(self, prompt: str, *, timeout_s: int) -> str:
         """LLMProvider Protocol — returns the JSON content string."""
         return self.complete_json(prompt, timeout_s=timeout_s).content
+
+    def pop_last_redacted_io(self) -> ProviderRedactedIO | None:
+        """Return the redacted-IO captured by the most recent
+        ``complete_json`` call (or ``None`` if capture is disabled
+        or no call has happened). Clears the slot so the next call
+        starts fresh."""
+        out = self._last_redacted_io
+        self._last_redacted_io = None
+        return out
 
     def complete_json(
         self, prompt: str, *, timeout_s: int | None = None,
@@ -196,12 +249,17 @@ class OpenAICompatibleChatProvider:
             json_body=body,
             timeout_s=effective_timeout,
         )
+        # Phase 4.8-A — measure wall-clock around the HTTP call so
+        # the redacted-IO can record how long the provider took.
+        import time
+        t_start = time.perf_counter()
         try:
             resp = self.http_post(req)
         except Exception as exc:
             # Defensive: a faulty transport must NEVER leak the key.
             msg = redact_secret(f"{type(exc).__name__}: {exc}", api_key)
             raise LLMProviderError(f"http transport error: {msg}") from None
+        wall_clock_ms = int((time.perf_counter() - t_start) * 1000)
 
         prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
 
@@ -251,25 +309,52 @@ class OpenAICompatibleChatProvider:
         usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
         prompt_tokens_raw = usage.get("prompt_tokens")
         completion_tokens_raw = usage.get("completion_tokens")
+        result_model = str(
+            decoded.get("model") or self.profile.default_model,
+        )
+        result_response_id = (
+            str(decoded.get("id")) if decoded.get("id") else None
+        )
+        result_finish_reason = (
+            str(first.get("finish_reason"))
+            if first.get("finish_reason") is not None else None
+        )
+        result_prompt_tokens = (
+            int(prompt_tokens_raw)
+            if isinstance(prompt_tokens_raw, (int, float))
+            else None
+        )
+        result_completion_tokens = (
+            int(completion_tokens_raw)
+            if isinstance(completion_tokens_raw, (int, float))
+            else None
+        )
+        # Phase 4.8-A — opt-in redacted IO capture. Redaction happens
+        # HERE because the API key value is in scope only inside this
+        # method; the runner must never see the key. The full
+        # response body is captured AFTER `redact_secret(body, key)`
+        # so a provider that echoes auth-related state in 401-style
+        # bodies still has the key value scrubbed.
+        if self.capture_redacted_io:
+            self._last_redacted_io = ProviderRedactedIO(
+                prompt_sha256=prompt_hash,
+                redacted_response_body=redact_secret(resp.body, api_key),
+                model=result_model,
+                http_status=resp.status_code,
+                wall_clock_ms=wall_clock_ms,
+                response_id=result_response_id,
+                finish_reason=result_finish_reason,
+                usage_prompt_tokens=result_prompt_tokens,
+                usage_completion_tokens=result_completion_tokens,
+            )
         return ProviderRawResponse(
             content=content,
             prompt_sha256=prompt_hash,
-            model=str(decoded.get("model") or self.profile.default_model),
-            response_id=str(decoded.get("id")) if decoded.get("id") else None,
-            finish_reason=(
-                str(first.get("finish_reason"))
-                if first.get("finish_reason") is not None else None
-            ),
-            usage_prompt_tokens=(
-                int(prompt_tokens_raw)
-                if isinstance(prompt_tokens_raw, (int, float))
-                else None
-            ),
-            usage_completion_tokens=(
-                int(completion_tokens_raw)
-                if isinstance(completion_tokens_raw, (int, float))
-                else None
-            ),
+            model=result_model,
+            response_id=result_response_id,
+            finish_reason=result_finish_reason,
+            usage_prompt_tokens=result_prompt_tokens,
+            usage_completion_tokens=result_completion_tokens,
         )
 
 
@@ -279,6 +364,7 @@ __all__ = [
     "HttpResponse",
     "OpenAICompatibleChatProvider",
     "ProviderRawResponse",
+    "ProviderRedactedIO",
     "default_urllib_post",
     "redact_secret",
 ]

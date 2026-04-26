@@ -1,0 +1,22 @@
+{
+  "name": "private_holdout_v1",
+  "version": "0.1.0",
+  "description": "Operator-private holdout (Phase 4.8-C). Schema only is committed; case contents stay local. See README.md for the case shape and the gitignore protocol.",
+  "case_count": 12,
+  "case_count_target_distribution": {
+    "llm_estimator": 4,
+    "safety_adversarial": 3,
+    "tool_grounded": 3,
+    "code_outcome": 2
+  },
+  "public_claims_allowed": false,
+  "official_vnet_allowed": false,
+  "contamination_risk_default": "private",
+  "notes": "Manifest skeleton. Once `cases/` is populated locally, regenerate the actual `manifest.json` (same shape as datasets/calibration_v1/manifest.json) and keep it gitignored alongside the cases. This `manifest.example.json` IS committed and serves as the schema contract.",
+  "rules": [
+    "Phase 4.8-C: cases must declare contamination_risk='private'",
+    "ADR-32: no raw prompt/response artifact by default",
+    "ADR-33: --store-redacted-provider-io is opt-in and redacts inside the provider",
+    "Cases never enter the public repo; only the README + this example manifest are committed"
+  ]
+}

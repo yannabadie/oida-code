@@ -124,12 +124,15 @@ NODE24=true at job scope; tests today the 2026-06-02 default
 switch); `action-smoke.yml` invokes the composite action via
 `uses: ./` (replay-only, surfaced + fixed a latent
 `${{ github.workspace }}` bug in input descriptions);
-`sarif-upload.yml` uploads via `github/codeql-action/upload-
-sarif@v3` with `security-events: write` job-scoped only —
-ingestion confirmed via the `code-scanning/analyses` API.
-Fork-PR fence smoke + provider regression baseline marked
-`not_run` with reasons (no fork exists; no API budget) per
-QA/A23.md "ne fake pas le résultat".**
+`sarif-upload.yml` uploads via `github/codeql-action/upload-sarif`
+(bumped to `@v4` in Phase 4.7.0; v3 deprecated December 2026)
+with `security-events: write` job-scoped only — ingestion
+confirmed via the `code-scanning/analyses` API. Provider
+regression baseline subsequently EXECUTED end-to-end in Phase
+4.7 (DeepSeek V4 Pro, run id 24953163352, 4 provider calls,
+`official_field_leak_count == 0`); fork-PR fence smoke remains
+`not_run` (no fork of yannabadie/oida-code exists at this
+commit) per QA/A23.md "ne fake pas le résultat".**
 
 **Not production-ready.** See `memory-bank/progress.md`,
 `reports/block_d_validation.md`, `reports/e0_fusion_readiness.md`,

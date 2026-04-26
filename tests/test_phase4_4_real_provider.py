@@ -778,8 +778,9 @@ def test_calibration_eval_external_provider_requires_explicit_flag(
     )
     assert result.exit_code == 0, result.output
     metrics = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
-    # The 4 llm_estimator cases all evaluate via per-case replay.
-    assert metrics["estimator_cases_evaluated"] == 4
+    # The 8 llm_estimator cases (L001-L008 after Phase 4.8
+    # extension) all evaluate via per-case replay.
+    assert metrics["estimator_cases_evaluated"] == 8
     assert metrics["estimator_cases_skipped"] == 0
 
 
@@ -902,8 +903,10 @@ def test_calibration_eval_external_uses_same_llm_validator(
     assert result.exit_code == 0, result.output
     metrics = json.loads((out / "metrics.json").read_text(encoding="utf-8"))
     # 2 cases were sent through the provider; the rest are skipped.
+    # Phase 4.8: dataset extended L005-L008 → 8 llm_estimator cases
+    # total, 2 evaluated under cap, 6 skipped.
     assert metrics["estimator_cases_evaluated"] == 2
-    assert metrics["estimator_cases_skipped"] == 2
+    assert metrics["estimator_cases_skipped"] == 6
     # No leaks anywhere.
     assert metrics["official_field_leak_count"] == 0
 

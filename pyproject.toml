@@ -56,7 +56,8 @@ line-length = 100
 target-version = "py311"
 # Vendored OIDA core is kept verbatim per blueprint §2 (reuse, do not rewrite).
 # Do not lint vendored code; touching it would diverge from upstream.
-extend-exclude = ["src/oida_code/_vendor"]
+# experiments/ holds the Phase 4.8-F pydantic-ai spike — out-of-tree by design.
+extend-exclude = ["src/oida_code/_vendor", "experiments"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
@@ -81,6 +82,10 @@ exclude = [
     # modules; the calibration runner exercises them via a separate
     # subprocess pytest invocation, not via the project mypy gate.
     "datasets/",
+    # Phase 4.8-F: pydantic-ai spike lives outside the install
+    # surface and depends on a package we do NOT add to dev extras.
+    # Excluded so the project gates stay green without pydantic-ai.
+    "experiments/",
 ]
 
 [[tool.mypy.overrides]]

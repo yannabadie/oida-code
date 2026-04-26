@@ -1,0 +1,75 @@
+{
+  "estimates": [
+    {
+      "field": "capability",
+      "event_id": "event-A",
+      "value": 0.2,
+      "confidence": 0.55,
+      "source": "llm",
+      "method_id": "llm.capability.edge_confidence_low_signal",
+      "method_version": "phase4.4.1",
+      "evidence_refs": [
+        "[E.intent.1]",
+        "[E.test_result.1]"
+      ],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    },
+    {
+      "field": "benefit",
+      "event_id": "event-A",
+      "value": 0.7,
+      "confidence": 0.5,
+      "source": "llm",
+      "method_id": "llm.benefit.edge_confidence_low_signal",
+      "method_version": "phase4.4.1",
+      "evidence_refs": [
+        "[E.intent.1]"
+      ],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    },
+    {
+      "field": "observability",
+      "event_id": "event-A",
+      "value": 0.65,
+      "confidence": 0.5,
+      "source": "llm",
+      "method_id": "llm.observability.edge_confidence_low_signal",
+      "method_version": "phase4.4.1",
+      "evidence_refs": [
+        "[E.test_result.1]"
+      ],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    },
+    {
+      "field": "edge_confidence",
+      "event_id": "event-A",
+      "value": 0.2,
+      "confidence": 0.55,
+      "source": "llm",
+      "method_id": "llm.edge_confidence.edge_confidence_low_signal",
+      "method_version": "phase4.8",
+      "evidence_refs": [
+        "[E.intent.1]",
+        "[E.test_result.1]"
+      ],
+      "warnings": [],
+      "blockers": [],
+      "is_default": false,
+      "is_authoritative": false
+    }
+  ],
+  "cited_evidence_refs": [
+    "[E.intent.1]",
+    "[E.test_result.1]"
+  ],
+  "unsupported_claims": []
+}

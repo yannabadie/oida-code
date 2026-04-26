@@ -8,9 +8,9 @@
     "shadow_pressure": 6,
     "code_outcome": 6,
     "safety_adversarial": 4,
-    "llm_estimator": 4
+    "llm_estimator": 8
   },
-  "case_count": 36,
+  "case_count": 40,
   "public_claims_allowed": false,
   "official_vnet_allowed": false,
   "notes": "Pilot calibration dataset; not predictive validation."

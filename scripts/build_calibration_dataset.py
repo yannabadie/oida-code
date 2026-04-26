@@ -596,19 +596,37 @@ def build_llm_estimator(out: Path) -> list[CalibrationCase]:
     a real provider.
     """
     cases: list[CalibrationCase] = []
+    # L001-L004 — original Phase 4.4.1 cases exercising the
+    # capability/benefit/observability lift mechanism. Primary
+    # expected_estimate label is on `capability`.
+    # L005-L008 — Phase 4.8 extension covering the 4 additional
+    # estimator fields (completion / tests_pass / operator_accept /
+    # edge_confidence). Same lift mechanism, additional field-label
+    # assertion. Required by QA/A25.md §4.8-D ("DeepSeek V4 Pro: 8
+    # cases minimum").
     specs = [
+        # (cid, slug, expected_status, has_intent, secondary_field,
+        #  cap_label, cap_min, cap_max)
         ("L001", "capability_supported_clean", "shadow_ready",
-         True, "accepted", 0.5, 0.95),
+         True, None, "accepted", 0.5, 0.95),
         ("L002", "capability_missing_mechanism", "diagnostic_only",
-         True, "accepted", 0.0, 0.4),
+         True, None, "accepted", 0.0, 0.4),
         ("L003", "benefit_missing_intent", "blocked",
-         False, "missing", None, None),
+         False, None, "missing", None, None),
         ("L004", "observability_negative_path", "diagnostic_only",
-         True, "accepted", 0.5, 1.0),
+         True, None, "accepted", 0.5, 1.0),
+        ("L005", "completion_supported_clean", "shadow_ready",
+         True, "completion", "accepted", 0.5, 1.0),
+        ("L006", "tests_pass_supported_clean", "shadow_ready",
+         True, "tests_pass", "accepted", 0.6, 1.0),
+        ("L007", "operator_accept_intent_clean", "shadow_ready",
+         True, "operator_accept", "accepted", 0.5, 1.0),
+        ("L008", "edge_confidence_low_signal", "diagnostic_only",
+         True, "edge_confidence", "accepted", 0.0, 0.4),
     ]
     for (
         cid, slug, expected_status, has_intent,
-        cap_label, cap_min, cap_max,
+        secondary_field, cap_label, cap_min, cap_max,
     ) in specs:
         case_dir = out / f"{cid}_{slug}"
         case_dir.mkdir(parents=True, exist_ok=True)
@@ -707,13 +725,41 @@ def build_llm_estimator(out: Path) -> list[CalibrationCase]:
                 "cited_evidence_refs": ["[E.intent.1]", "[E.test_result.1]"],
                 "unsupported_claims": [],
             }
+            # Phase 4.8 — L005-L008 add a secondary field estimate
+            # so the LLM reply exercises the additional fields the
+            # `expected_estimates` schema can target. The shape is
+            # the same as capability/benefit/observability above.
+            if secondary_field is not None:
+                secondary_value = (
+                    (cap_min + cap_max) / 2.0
+                    if cap_min is not None and cap_max is not None
+                    else 0.5
+                )
+                llm_reply["estimates"].append({
+                    "field": secondary_field,
+                    "event_id": "event-A",
+                    "value": secondary_value,
+                    "confidence": 0.55,
+                    "source": "llm",
+                    "method_id": f"llm.{secondary_field}.{slug}",
+                    "method_version": "phase4.8",
+                    "evidence_refs": ["[E.intent.1]", "[E.test_result.1]"],
+                    "warnings": [],
+                    "blockers": [],
+                    "is_default": False,
+                    "is_authoritative": False,
+                })
         _write(case_dir, "llm_response.json", llm_reply)
         # Expected estimate labels.
         expected_estimates: list[ExpectedEstimateLabel] = []
         if expected_status != "blocked":
+            # Default Phase 4.4.1 label: capability.
+            # Phase 4.8 L005-L008: switch the label to the secondary
+            # field so the per-case accuracy actually measures it.
+            label_field = secondary_field or "capability"
             expected_estimates.append(
                 ExpectedEstimateLabel(
-                    field="capability",
+                    field=label_field,  # type: ignore[arg-type]
                     event_id="event-A",
                     expected_status=cap_label,  # type: ignore[arg-type]
                     min_value=cap_min,

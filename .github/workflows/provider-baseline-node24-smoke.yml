@@ -1,0 +1,62 @@
+# Phase 4.8.0-B (QA/A25.md, ADR-33) — Node 24 replay smoke for the
+# provider-baseline surface.
+#
+# QA/A25 §4.8.0-B: provider-baseline.yml ran on real runners with
+# the legacy Node 20 vendors (checkout / setup-python / upload-
+# artifact). The Node 24 compat job in ci.yml proves the validator
+# + Phase 4.5/4.6 invariants survive `FORCE_JAVASCRIPT_ACTIONS_TO_
+# NODE24=true`, but provider-baseline.yml itself was never
+# exercised under that flag. This workflow closes that gap.
+#
+# Hard rules:
+#   * REPLAY ONLY by default — no provider-profile, no API key
+#   * `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` at job scope
+#   * NO `pull_request_target`
+#   * `permissions: contents: read` only
+#   * workflow_dispatch + push:main (mirrors action-smoke pattern)
+name: provider-baseline-node24-smoke
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-baseline-node24-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  replay-under-node24:
+    name: provider-baseline replay smoke (Node 24)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Build calibration dataset (idempotent)
+        run: python scripts/build_calibration_dataset.py
+      - name: Replay-only calibration eval (Node 24 mode)
+        run: |
+          mkdir -p .oida/provider-baseline-node24-smoke
+          python -m oida_code.cli calibration-eval datasets/calibration_v1 \
+            --llm-provider replay \
+            --out .oida/provider-baseline-node24-smoke
+      - name: Upload smoke artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-baseline-node24-smoke
+          path: .oida/provider-baseline-node24-smoke/

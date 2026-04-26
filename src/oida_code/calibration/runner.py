@@ -635,6 +635,8 @@ def evaluate_llm_estimator(
     case: CalibrationCase,
     case_dir: Path,
     provider: object | None = None,
+    *,
+    redacted_io_dir: Path | None = None,
 ) -> CaseResult:
     """Phase 4.4.1 — drive the LLM estimator on one calibration case.
 
@@ -643,6 +645,14 @@ def evaluate_llm_estimator(
     :class:`LLMProvider` to use. When ``None``, we default to
     :class:`FileReplayLLMProvider` keyed by ``case.llm_response_path``
     (or ``case.forward_replay_path`` for backward compat).
+
+    Phase 4.8-A: when ``redacted_io_dir`` is set AND the provider has
+    a :meth:`pop_last_redacted_io` method (i.e. an
+    :class:`OpenAICompatibleChatProvider` constructed with
+    ``capture_redacted_io=True``), the runner writes the redacted
+    I/O for this case to ``<redacted_io_dir>/<case_id>.json``. The
+    redaction itself happens INSIDE the provider — the runner just
+    serialises the already-redacted payload.
 
     The case carries:
 
@@ -699,6 +709,24 @@ def evaluate_llm_estimator(
     result.estimator_status_match = (
         run.report.status == case.expected_estimator_status
     )
+
+    # Phase 4.8-A — opt-in redacted I/O capture. The provider stashes
+    # the redacted payload after each successful call; the runner
+    # only serialises it. The redaction itself is provider-side so
+    # the API key value never reaches this scope.
+    if redacted_io_dir is not None:
+        pop = getattr(actual_provider, "pop_last_redacted_io", None)
+        if callable(pop):
+            captured = pop()
+            if captured is not None:
+                redacted_io_dir.mkdir(parents=True, exist_ok=True)
+                payload_with_case_id = captured.model_copy(
+                    update={"case_id": case.case_id},
+                )
+                (redacted_io_dir / f"{case.case_id}.json").write_text(
+                    payload_with_case_id.model_dump_json(indent=2),
+                    encoding="utf-8",
+                )
 
     # Per-estimate label scoring.
     by_field_event: dict[tuple[str, str | None], object] = {
@@ -797,13 +825,23 @@ def run_case(
     case_dir: Path,
     *,
     provider: object | None = None,
+    redacted_io_dir: Path | None = None,
 ) -> CaseResult:
     """Dispatch ``case`` to its family evaluator.
 
     Phase 4.4.1: ``provider`` is consumed only by the ``llm_estimator``
-    family. Other families ignore it (they don't speak to an LLM)."""
+    family. Other families ignore it (they don't speak to an LLM).
+
+    Phase 4.8-A: ``redacted_io_dir`` is consumed only by the
+    ``llm_estimator`` family AND only when the provider opted into
+    redacted-IO capture. Pure replay paths (provider=None) write
+    nothing because the FileReplayLLMProvider has no real wire
+    response to capture."""
     if case.family == "llm_estimator":
-        return evaluate_llm_estimator(case, case_dir, provider=provider)
+        return evaluate_llm_estimator(
+            case, case_dir,
+            provider=provider, redacted_io_dir=redacted_io_dir,
+        )
     return _DISPATCH[case.family](case, case_dir)
 
 

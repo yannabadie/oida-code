@@ -37,6 +37,12 @@ htmlcov/
 .oida/
 memory-bank/*.tmp
 
+# Phase 4.8-C (QA/A25.md) — private_holdout_v1 cases MAY contain
+# operator code that must NOT enter the public repo. The schema
+# (README + manifest.example.json) IS committed; the actual case
+# directories are operator-private and must stay local.
+datasets/private_holdout_v1/cases/
+
 # IDE / editor
 .vscode/
 .idea/

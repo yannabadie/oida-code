@@ -747,12 +747,18 @@ def _build_openai_compatible_provider(
     model_override: str | None,
     base_url_override: str | None,
     timeout_s: int,
+    capture_redacted_io: bool = False,
 ) -> Any:  # the import is local; concrete type checked by tests
     """Construct an :class:`OpenAICompatibleChatProvider` from CLI flags.
 
     Phase 4.4 hard rule: the integrator MUST pass
     ``--provider-profile`` to opt in to a real call. Custom providers
     additionally need ``--api-key-env`` AND ``--base-url``.
+
+    Phase 4.8-A: ``capture_redacted_io`` defaults to False; the CLI
+    flag ``--store-redacted-provider-io`` flips it to True. The
+    redaction happens inside the provider so the runner never holds
+    the raw API key value.
     """
     from oida_code.estimators.llm_provider import LLMProviderUnavailable
     from oida_code.estimators.provider_config import (
@@ -792,7 +798,9 @@ def _build_openai_compatible_provider(
         if base_url_override is not None:
             updates["base_url"] = base_url_override
         profile = base.model_copy(update=updates)
-    return OpenAICompatibleChatProvider(profile=profile)
+    return OpenAICompatibleChatProvider(
+        profile=profile, capture_redacted_io=capture_redacted_io,
+    )
 
 
 @app.command("verify-claims")
@@ -1026,6 +1034,38 @@ def calibration_eval_cmd(
             min=1, max=600,
         ),
     ] = 60,
+    store_redacted_provider_io: Annotated[
+        bool,
+        typer.Option(
+            "--store-redacted-provider-io",
+            help=(
+                "Phase 4.8-A (ADR-33): capture per-case redacted "
+                "provider I/O under <out>/<provider>/redacted_io/. "
+                "DISABLED BY DEFAULT — opt-in only. The redaction "
+                "happens INSIDE the provider before anything reaches "
+                "disk; the API key value never travels into the "
+                "runner. Only meaningful when --llm-provider is "
+                "openai-compatible (replay/fake providers have no "
+                "real wire response to capture)."
+            ),
+        ),
+    ] = False,
+    repeat_provider_runs: Annotated[
+        int,
+        typer.Option(
+            "--repeat-provider-runs",
+            help=(
+                "Phase 4.8-E (ADR-33): repeat the external provider "
+                "loop N times to measure stability (mean + std). "
+                "Hard cap = 3 to bound API spend; default 1 = single "
+                "run (current behaviour). The replay path always "
+                "runs once; this flag only affects the external "
+                "provider loop. Stability metrics are written to "
+                "<out>/stability_summary.json when N > 1."
+            ),
+            min=1, max=3,
+        ),
+    ] = 1,
 ) -> None:
     """Phase 4.3 + 4.4 + 4.4.1: run the calibration eval.
 
@@ -1068,6 +1108,7 @@ def calibration_eval_cmd(
     # Phase 4.4.1 — provider selection guards.
     is_external = llm_provider == "openai-compatible"
     shared_provider: LLMProvider | None = None
+    redacted_io_dir: Path | None = None
     if is_external:
         try:
             shared_provider = _build_openai_compatible_provider(
@@ -1076,15 +1117,32 @@ def calibration_eval_cmd(
                 model_override=model_override,
                 base_url_override=base_url_override,
                 timeout_s=timeout_s,
+                capture_redacted_io=store_redacted_provider_io,
             )
         except LLMProviderUnavailable as exc:
             _fail(f"calibration-eval: external provider unavailable: {exc}")
+        # Phase 4.8-A — redacted IO directory under
+        # <out>/<provider_profile>/redacted_io/ when opted in.
+        if store_redacted_provider_io and provider_profile:
+            redacted_io_dir = out / provider_profile / "redacted_io"
     elif llm_provider == "fake":
         shared_provider = FakeLLMProvider()
     elif llm_provider != "replay":
         _fail(
             "--llm-provider must be one of "
             "{replay, fake, openai-compatible}",
+        )
+    if store_redacted_provider_io and not is_external:
+        # Honest behaviour: the flag is only meaningful for the
+        # external provider path. Replay/fake paths have no wire
+        # response to capture; we say so loudly rather than silently
+        # writing nothing.
+        typer.echo(
+            "calibration-eval: --store-redacted-provider-io is a "
+            "no-op for --llm-provider != openai-compatible; the "
+            "replay/fake paths have no real wire response to "
+            "capture.",
+            err=True,
         )
 
     results: list[CaseResult] = []
@@ -1122,7 +1180,13 @@ def calibration_eval_cmd(
                 case_provider = shared_provider
                 if is_external:
                     provider_calls += 1
-        results.append(run_case(case, case_dir, provider=case_provider))
+        results.append(
+            run_case(
+                case, case_dir,
+                provider=case_provider,
+                redacted_io_dir=redacted_io_dir,
+            ),
+        )
 
     stability_payload: list[dict[str, object]] | None = None
     candidate = stability_report or (out / "stability_report.json")
@@ -1150,6 +1214,120 @@ def calibration_eval_cmd(
     except OfficialFieldLeakError as exc:
         typer.echo(f"FAIL: {exc}", err=True)
         raise typer.Exit(code=3) from None
+
+    # Phase 4.8-E (ADR-33): repeat the external-provider loop to
+    # measure stability. Only fires when --llm-provider is
+    # openai-compatible AND --repeat-provider-runs > 1. The first
+    # run is the one already written above; we add (N-1) more runs
+    # and write `<out>/stability_summary.json` with mean+std across
+    # all N. Hard cap = 3 to bound API spend (enforced by Typer's
+    # min/max on the option).
+    if is_external and repeat_provider_runs > 1:
+        from oida_code.calibration.metrics import CalibrationMetrics
+        all_metrics: list[CalibrationMetrics] = [metrics]
+        for repeat_idx in range(1, repeat_provider_runs):
+            run_results: list[CaseResult] = []
+            run_provider_calls = 0
+            for case_dir in sorted(p for p in cases_dir.iterdir() if p.is_dir()):
+                case = load_case(case_dir)
+                case_provider2: LLMProvider | None = None
+                if case.family == "llm_estimator":
+                    if shared_provider is None:
+                        case_provider2 = None
+                    else:
+                        if (
+                            max_provider_cases > 0
+                            and run_provider_calls >= max_provider_cases
+                        ):
+                            sk = CaseResult(
+                                case_id=case.case_id,
+                                family=case.family,
+                                contamination_risk=case.contamination_risk,
+                            )
+                            sk.estimator_skipped = True
+                            sk.estimator_skipped_reason = (
+                                f"repeat#{repeat_idx + 1}: "
+                                f"max_provider_cases={max_provider_cases} "
+                                "cap exhausted"
+                            )
+                            run_results.append(sk)
+                            continue
+                        case_provider2 = shared_provider
+                        run_provider_calls += 1
+                run_results.append(
+                    run_case(
+                        case, case_dir,
+                        provider=case_provider2,
+                        redacted_io_dir=None,  # only the first run captures
+                    ),
+                )
+            run_metrics = aggregate(run_results, stability_report=stability_payload)
+            all_metrics.append(run_metrics)
+            try:
+                assert_no_official_field_leaks(run_metrics)
+            except OfficialFieldLeakError as exc:
+                typer.echo(
+                    f"FAIL repeat#{repeat_idx + 1}: {exc}", err=True,
+                )
+                raise typer.Exit(code=3) from None
+        # Build the stability summary.
+        import math
+        def _mean_std(vals: list[float]) -> tuple[float, float]:
+            if not vals:
+                return (0.0, 0.0)
+            mean = sum(vals) / len(vals)
+            if len(vals) == 1:
+                return (mean, 0.0)
+            var = sum((v - mean) ** 2 for v in vals) / len(vals)
+            return (mean, math.sqrt(var))
+        # Tracked metrics — Phase 4.8-E spec.
+        def _series(attr: str) -> list[float]:
+            out: list[float] = []
+            for m in all_metrics:
+                v = getattr(m, attr, None)
+                if isinstance(v, (int, float)):
+                    out.append(float(v))
+            return out
+        leak_max = max(
+            (m.official_field_leak_count for m in all_metrics),
+            default=0,
+        )
+        status_mean, status_std = _mean_std(_series("estimator_status_accuracy"))
+        est_mean, est_std = _mean_std(_series("estimator_estimate_accuracy"))
+        safety_mean, safety_std = _mean_std(_series("safety_block_rate"))
+        fence_mean, fence_std = _mean_std(_series("fenced_injection_rate"))
+        evid_mean, _ = _mean_std(_series("evidence_ref_precision"))
+        stability_summary = {
+            "n_runs": repeat_provider_runs,
+            "official_field_leak_count_max": leak_max,
+            "estimator_status_accuracy_mean": status_mean,
+            "estimator_status_accuracy_std": status_std,
+            "estimator_estimate_accuracy_mean": est_mean,
+            "estimator_estimate_accuracy_std": est_std,
+            "safety_block_rate_mean": safety_mean,
+            "safety_block_rate_std": safety_std,
+            "fenced_injection_rate_mean": fence_mean,
+            "fenced_injection_rate_std": fence_std,
+            "citation_precision_mean": evid_mean,
+        }
+        (out / "stability_summary.json").write_text(
+            _json.dumps(stability_summary, indent=2),
+            encoding="utf-8",
+        )
+        typer.echo(
+            f"repeat_provider_runs={repeat_provider_runs} "
+            f"status_acc={status_mean:.3f}±{status_std:.3f} "
+            f"estimate_acc={est_mean:.3f}±{est_std:.3f} "
+            f"leak_max={leak_max}"
+        )
+        # Phase 4.8-E hard rule: leak_max > 0 fails (already covered
+        # by per-run assert above, but assert again on the max).
+        if leak_max > 0:
+            typer.echo(
+                f"FAIL: official_field_leak_count_max={leak_max} > 0",
+                err=True,
+            )
+            raise typer.Exit(code=3) from None
 
 
 def main() -> None:  # pragma: no cover - entry-point thunk
