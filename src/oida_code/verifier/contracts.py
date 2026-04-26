@@ -211,6 +211,10 @@ class VerifierToolCallSpec(BaseModel):
     src/app.py") and Phase 4.2's tool-grounded loop can pick the
     declarations up. ADR-26 explicitly forbids tool execution at the
     verifier layer in Phase 4.1.
+
+    Phase 5.3 (ADR-38) adds the optional ``requested_by_claim_id``
+    so the calibration runner can attribute a tool result to the
+    claim it was asked to support.
     """
 
     model_config = ConfigDict(
@@ -221,6 +225,7 @@ class VerifierToolCallSpec(BaseModel):
     purpose: str = Field(min_length=1, max_length=200)
     expected_evidence_kind: _VerifierEvidenceKind
     scope: tuple[str, ...] = ()
+    requested_by_claim_id: str | None = None
 
 
 __all__ = [

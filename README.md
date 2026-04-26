@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -90,7 +90,44 @@ contents: read`; 45 new tests including
 `test_gateway_loop_is_not_mcp` regression lock that the new
 module's body cannot reference `modelcontextprotocol` /
 `mcp.server` / `stdio_server` / `json_rpc` / `jsonrpc`
-(ADR-37, Phase 5.2).**
+(ADR-37, Phase 5.2); gateway verifier calibration shipped —
+Phase 5.2.1-A fence wording fix in the Phase 5.2 report
+(canary `test_phase5_2_report_uses_current_fence_constant`
+imports the live `FENCE_NAME` constant); Phase 5.2.1-B
+`_enforce_requested_tool_evidence` runs BEFORE the citation
+rule and demotes pass-2 accepted claims when forward
+requested tools but no `[E.tool_output.*]` evidence was
+produced (3 sub-cases: missing definition, all calls
+blocked, no-finding adapter); Phase 5.2.1-C
+`requested_by_claim_id` field added to
+`VerifierToolCallSpec`; new `src/oida_code/calibration/`
+modules `gateway_holdout.py` (`ExpectedVerifierOutcome` +
+`GatewayHoldoutExpected` with Literal expected_delta) and
+`gateway_calibration.py` (~330 LOC) emitting five artifacts
+(baseline_metrics / gateway_metrics / delta_metrics /
+failure_analysis / artifact_manifest); new
+`scripts/run_gateway_calibration.py` Typer-free CLI;
+`datasets/private_holdout_v2/` ships README +
+manifest.example.json with `cases/` gitignored (24-case
+pilot slate documented; synthetic cases CAN be committed if
+marked); failure analysis Markdown table with seven
+canonical classifications (label_too_strict, gateway_bug,
+tool_adapter_bug, aggregator_bug, citation_gap,
+insufficient_fixture, expected_behavior_changed); NO
+automatic label mutation — runner is read-only over
+`datasets/` (`test_calibration_runner_does_not_mutate_dataset`
+mtime-snapshots before and after); `gateway_delta` is
+diagnostic only (`delta_metrics.json` carries explicit
+`delta_diagnostic_only: true` flag and a verbatim RESERVED
+warning); new replay-only
+`.github/workflows/gateway-calibration.yml` on
+`workflow_dispatch`+push-to-main with `permissions:
+contents: read`, no external provider, no MCP, no SARIF
+upload; 33 new tests including 4 anti-MCP regression locks
+(`test_no_mcp_dependency_added`, `test_no_mcp_workflow_added`,
+`test_no_jsonrpc_runtime_in_calibration_script`,
+`test_no_provider_tool_calling_enabled_in_phase5_3`)
+(ADR-38, Phase 5.3).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -200,7 +237,21 @@ timeout/tool_missing/blocked → uncertainty); 5.2-E CLI
 fixture-driven tests; 5.2-G 4 workflow tests; 5.2-H 5
 no-MCP regression locks including `test_gateway_loop_is_not_mcp`);
 ADR-37 logged;
-**730 passed, 4 skipped (V2 placeholder + 2 Phase-4
+Phase 5.3 +33 tests in
+`tests/test_phase5_3_gateway_calibration.py` covering 9
+sub-blocks (5.2.1-A canary 1 test; 5.2.1-B
+requested-tool-without-evidence blockers 4 tests including
+`test_requested_tool_missing_definition_blocks_claim_acceptance`
++ `test_tool_requested_but_no_evidence_cannot_be_verification_candidate`;
+5.2.1-C VerifierToolCallSpec.requested_by_claim_id 4 tests;
+5.3-C GatewayHoldoutExpected schemas 4 tests; 5.3-A/F
+private_holdout_v2 dataset 4 tests; 5.3-D/E calibration
+runner + failure analysis 6 tests including
+`test_calibration_runner_does_not_mutate_dataset`; 5.3-G
+no-MCP regression locks 4 tests; 5.3-H workflow 6 tests
+including `test_gateway_calibration_workflow_no_sarif_upload`);
+ADR-38 logged;
+**763 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain

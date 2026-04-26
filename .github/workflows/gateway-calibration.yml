@@ -1,0 +1,82 @@
+# Phase 5.3 (QA/A30.md, ADR-38) — gateway-grounded verifier
+# replay-only calibration smoke.
+#
+# Runs `scripts/run_gateway_calibration.py` against the
+# committed v2 holdout manifest example and uploads the four
+# artifacts (baseline / gateway / delta metrics + failure
+# analysis Markdown). Phase 5.3 deliberately keeps this
+# DIAGNOSTIC: no SARIF upload, no external provider, no MCP,
+# no network.
+#
+# Hard rules (ADR-38):
+#   * default `permissions: contents: read`
+#   * NO `pull_request_target`
+#   * NO secrets consumed (replay only)
+#   * NO external provider
+#   * NO MCP
+#   * NO network egress
+#   * NO SARIF upload (calibration is measurement, not code
+#     scanning)
+#   * runs on workflow_dispatch or push to main only
+name: gateway-calibration
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gateway-calibration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  calibration-smoke:
+    name: gateway-grounded calibration replay smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install oida-code (dev extras)
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run gateway calibration on the v2 example manifest
+        env:
+          NO_COLOR: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          python scripts/run_gateway_calibration.py \
+            --manifest datasets/private_holdout_v2/manifest.example.json \
+            --mode replay \
+            --out .oida/gateway-calibration
+
+      - name: Verify the four expected artifacts exist
+        run: |
+          for f in baseline_metrics.json gateway_metrics.json \
+                   delta_metrics.json failure_analysis.md \
+                   artifact_manifest.json; do
+            test -f .oida/gateway-calibration/$f || (
+              echo "missing artifact: $f"; exit 1
+            )
+          done
+
+      - name: Upload calibration artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gateway-calibration-${{ github.run_id }}
+          path: .oida/gateway-calibration/
+          retention-days: 14

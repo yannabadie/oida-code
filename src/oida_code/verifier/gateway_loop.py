@@ -122,13 +122,22 @@ def tool_request_from_spec(
       ``request.tool`` and the policy's ``repo_root``.
     """
     truncated_purpose = spec.purpose[:200] if spec.purpose else "tool re-run"
+    # Phase 5.3 (ADR-38): ``VerifierToolCallSpec.requested_by_claim_id``
+    # is now optional on the spec itself. The explicit kwarg still
+    # wins (operator override); otherwise the spec's own attribution
+    # flows through.
+    resolved_claim_id = (
+        requested_by_claim_id
+        if requested_by_claim_id is not None
+        else spec.requested_by_claim_id
+    )
     return VerifierToolRequest(
         tool=spec.tool,
         purpose=truncated_purpose,
         scope=tuple(spec.scope),
         max_runtime_s=default_runtime_s,
         max_output_chars=max_output_chars,
-        requested_by_claim_id=requested_by_claim_id,
+        requested_by_claim_id=resolved_claim_id,
     )
 
 
@@ -215,6 +224,12 @@ class _ToolPhaseOutput:
     audit_paths: tuple[Path, ...]
     warnings: tuple[str, ...]
     blockers: tuple[str, ...]
+    # Phase 5.3 / 5.2.1-B accounting (QA/A30 §5.2.1-B): the
+    # post-pass-2 enforcer needs to know whether forward asked
+    # for tools at all, and which specs missed a gateway
+    # definition (audit-only — never an exception path).
+    requested_count: int = 0
+    missing_definition_tools: tuple[str, ...] = ()
 
 
 def _run_tool_phase(
@@ -240,14 +255,21 @@ def _run_tool_phase(
     warnings: list[str] = []
     blockers: list[str] = []
     audit_paths: list[Path] = []
+    missing_definition_tools: list[str] = []
 
-    for spec in tuple(specs)[:max_tool_calls]:
+    bounded_specs = tuple(specs)[:max_tool_calls]
+    for spec in bounded_specs:
         definition = gateway_definitions.get(spec.tool)
         if definition is None:
-            warnings.append(
-                f"no gateway definition registered for tool {spec.tool!r}; "
-                "skipping"
+            # Phase 5.2.1-B: missing definition is a real
+            # blocker, not a soft warning. The post-pass-2
+            # enforcer demotes any claim that depended on the
+            # tool's evidence.
+            blockers.append(
+                f"requested tool {spec.tool!r} had no approved "
+                "gateway definition; skipping (Phase 5.2.1-B)"
             )
+            missing_definition_tools.append(spec.tool)
             continue
         request = tool_request_from_spec(spec)
         result = gateway.run(
@@ -277,6 +299,8 @@ def _run_tool_phase(
         audit_paths=tuple(audit_paths),
         warnings=tuple(warnings),
         blockers=tuple(blockers),
+        requested_count=len(bounded_specs),
+        missing_definition_tools=tuple(missing_definition_tools),
     )
 
 
@@ -364,11 +388,24 @@ def run_gateway_grounded_verifier(
         tuple(pass2.report.blockers) + tool_phase.blockers
     )
     enriched_refs = tuple(ev.id for ev in tool_phase.new_evidence)
-    citation_enforced = _enforce_pass2_tool_citation(
+
+    # Phase 5.2.1-B: forward asked for tools but no [E.tool_output.*]
+    # was produced (missing definition / all calls blocked /
+    # adapter emitted nothing). Run BEFORE the citation rule so
+    # the demotion is unambiguous and the report's status is
+    # downgraded if needed.
+    requested_evidence_enforced = _enforce_requested_tool_evidence(
         pass2.report,
-        enriched_refs=enriched_refs,
+        tool_phase=tool_phase,
         warnings=aggregated_warnings,
         blockers=aggregated_blockers,
+    )
+
+    citation_enforced = _enforce_pass2_tool_citation(
+        requested_evidence_enforced,
+        enriched_refs=enriched_refs,
+        warnings=tuple(requested_evidence_enforced.warnings),
+        blockers=tuple(requested_evidence_enforced.blockers),
     )
 
     return GatewayGroundedVerifierRun(
@@ -380,6 +417,100 @@ def run_gateway_grounded_verifier(
         warnings=tool_phase.warnings,
         blockers=tool_phase.blockers,
     )
+
+
+def _enforce_requested_tool_evidence(
+    pass2: VerifierAggregationReport,
+    *,
+    tool_phase: _ToolPhaseOutput,
+    warnings: tuple[str, ...],
+    blockers: tuple[str, ...],
+) -> VerifierAggregationReport:
+    """Enforce QA/A30 §5.2.1-B.
+
+    When forward requested at least one tool BUT no
+    ``[E.tool_output.*]`` evidence ended up in the enriched
+    packet, the loop must:
+
+    1. Surface a specific blocker explaining the citation gap
+       (sub-cases: missing definition, all calls blocked,
+       gateway ran with no findings).
+    2. Demote every pass-2 ``accepted_claim`` to
+       ``unsupported_claims`` — even claims whose
+       ``evidence_refs`` happen to look complete on their own.
+    3. Force the report status away from
+       ``verification_candidate`` (the loop's MEASURE rule:
+       you cannot promote a claim to the highest status if the
+       tool you asked for never spoke).
+
+    The function is a NO-OP when:
+
+    * forward did not request any tool (``requested_count==0``),
+      or
+    * tools ran AND produced at least one new EvidenceItem
+      (``tool_phase.new_evidence`` non-empty) — in that case
+      :func:`_enforce_pass2_tool_citation` is the right rule.
+    """
+    if tool_phase.requested_count == 0 or tool_phase.new_evidence:
+        return pass2.model_copy(update={
+            "warnings": warnings,
+            "blockers": blockers,
+        })
+
+    new_blockers = list(blockers)
+    new_warnings = list(warnings)
+
+    # Sub-case 1: at least one spec had no gateway definition.
+    if tool_phase.missing_definition_tools:
+        new_blockers.append(
+            "requested tool evidence unavailable: missing gateway "
+            "definition for "
+            f"{sorted(set(tool_phase.missing_definition_tools))} "
+            "(Phase 5.2.1-B)"
+        )
+
+    # Sub-case 2: every gateway call returned status=blocked.
+    if (
+        tool_phase.tool_results
+        and all(
+            r.status == "blocked" for r in tool_phase.tool_results
+        )
+    ):
+        new_blockers.append(
+            "requested tool evidence unavailable: gateway blocked "
+            "all calls (Phase 5.2.1-B)"
+        )
+    # Sub-case 3: gateway ran successfully but emitted no
+    # citable evidence (e.g. ruff with no findings, no positive
+    # item).
+    elif tool_phase.tool_results and not tool_phase.new_evidence:
+        new_blockers.append(
+            "requested tool ran but emitted no citable evidence; "
+            "cannot promote pass-2 claims (Phase 5.2.1-B)"
+        )
+
+    # Demote every accepted_claim to unsupported.
+    new_unsupported = list(pass2.unsupported_claims)
+    for claim in pass2.accepted_claims:
+        new_warnings.append(
+            f"claim {claim.claim_id} demoted: forward requested "
+            "tool evidence but the loop produced no "
+            "[E.tool_output.*] ref (Phase 5.2.1-B)"
+        )
+        new_unsupported.append(claim)
+
+    # Force status off verification_candidate.
+    new_status = pass2.status
+    if new_status == "verification_candidate":
+        new_status = "diagnostic_only"
+
+    return pass2.model_copy(update={
+        "accepted_claims": (),
+        "unsupported_claims": tuple(new_unsupported),
+        "status": new_status,
+        "warnings": tuple(new_warnings),
+        "blockers": tuple(new_blockers),
+    })
 
 
 def _enforce_pass2_tool_citation(

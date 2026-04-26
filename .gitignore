@@ -43,6 +43,15 @@ memory-bank/*.tmp
 # directories are operator-private and must stay local.
 datasets/private_holdout_v1/cases/
 
+# Phase 5.3 (QA/A30.md, ADR-38) — private_holdout_v2 cases MAY
+# contain operator code or proprietary fixtures. The schema
+# (README + manifest.example.json) IS committed; operator-
+# private cases stay local. Synthetic cases that the operator
+# explicitly chooses to commit go under
+# `datasets/private_holdout_v2/cases/<case_id>/` with a
+# `provenance.json` documenting `source: "synthetic"`.
+datasets/private_holdout_v2/cases/
+
 # IDE / editor
 .vscode/
 .idea/

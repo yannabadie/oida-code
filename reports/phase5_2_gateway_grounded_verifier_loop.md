@@ -185,9 +185,13 @@ The pytest adapter emits one `EvidenceItem` per failure (kind
 exits cleanly with non-empty stdout. The ruff / mypy / semgrep /
 codeql adapters emit `EvidenceItem(kind="tool_finding")` per
 issue. The gateway loop appends those items to a NEW packet
-(the original is frozen) so pass-2's prompt renders them as
-citable refs in the standard `<<<OIDA_EVIDENCE>>>` fence
-introduced in Phase 4.0.1.
+(the original is frozen) so pass-2's prompt renders them
+inside the named per-item fences introduced in Phase 4.0.1 —
+explicitly `<<<OIDA_EVIDENCE id="..." kind="...">>>` ... `<<<END_OIDA_EVIDENCE id="...">>>`,
+where the fence name is the `FENCE_NAME` constant exported
+from `oida_code.estimators.llm_prompt` and each tool item's
+id matches the `[E.tool_output.N]` shape. Tool stdout never
+appears as instruction text.
 
 ## 8. Deterministic contradiction handling (5.2-D)
 
