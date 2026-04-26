@@ -2,12 +2,19 @@
 
 QA directive: `QA/A33.md` (2026-04-27).
 ADR: ADR-41 (`memory-bank/decisionLog.md`).
-Status at end of phase: **35 / 35** acceptance criteria green
-locally; quality gates clean (ruff + mypy + pytest, 872
-passed / 4 skipped, was 824/4 before Phase 5.6 — exactly +48
-new tests). Criterion #35 (GitHub-hosted
-`action-gateway-smoke` run green) closes in the follow-up
-docs commit.
+Status at end of phase: **35 / 35** acceptance criteria green;
+quality gates clean (ruff + mypy + pytest, 872 passed / 4
+skipped, was 824/4 before Phase 5.6 — exactly +48 new tests);
+all six GitHub-hosted runs green on commit `8fca666`:
+
+| Workflow | Run ID | Wall time |
+|---|---|---|
+| ci | 24967291123 | 2m11s |
+| action-smoke | 24967291127 | 1m43s |
+| provider-baseline-node24-smoke | 24967291130 | 24s |
+| gateway-grounded-smoke | 24967291138 | 26s |
+| gateway-calibration | 24967291137 | 22s |
+| action-gateway-smoke | 24967291132 | 1m57s |
 
 ## 1. Diff résumé
 
@@ -313,7 +320,7 @@ stays default false. MCP remains deferred indefinitely.
 | mypy (same set) | clean (96 source files; was 92 in Phase 5.5 — +4 from the `action_gateway/` package) |
 | pytest full suite | 872 passed / 4 skipped (was 824/4 — exactly +48 new tests) |
 | `tests/test_phase5_6_action_gateway_opt_in.py` | 48 / 48 passing |
-| GitHub-hosted CI runs | (recorded in the follow-up commit once landed) |
+| GitHub-hosted CI runs | all six green on commit `8fca666` — ci (24967291123, 2m11s), action-smoke (24967291127, 1m43s), provider-baseline-node24-smoke (24967291130, 24s), gateway-grounded-smoke (24967291138, 26s), gateway-calibration (24967291137, 22s), action-gateway-smoke (24967291132, 1m57s) |
 
 ## Honesty statement
 
