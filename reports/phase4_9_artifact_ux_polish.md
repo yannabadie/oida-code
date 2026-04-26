@@ -556,7 +556,7 @@ explicitly rejected it as a runtime framework.
 | 22. ruff clean | yes — full curated scope |
 | 23. mypy clean | yes — 82 source files |
 | 24. pytest full green, skips documented | yes — 628 passed, 5 skipped (4 pre-existing + 1 NEW Phase 4.9 SARIF report skip that auto-resolves once this report lands) |
-| 25. At least one GitHub-hosted action-smoke or provider-baseline run green after 4.9 changes | pending — operator triggers post-merge |
+| 25. At least one GitHub-hosted action-smoke or provider-baseline run green after 4.9 changes | **yes** — three runs green on commit 9caf042: `ci` 24955614235 (1m12s), `action-smoke` 24955614219 (1m0s — exercised `render-artifacts` + `build-artifact-manifest` + `diagnostic_status=contract_clean` end-to-end), `provider-baseline-node24-smoke` 24955614230 (19s) |
 
 ### Skip inventory (5)
 
