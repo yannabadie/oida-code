@@ -1486,6 +1486,294 @@ def verify_grounded_cmd(
     )
 
 
+@app.command("validate-gateway-bundle")
+def validate_gateway_bundle_cmd(
+    bundle_dir: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Directory containing the eight required "
+                "gateway-bundle files (packet.json, "
+                "pass1_forward.json, pass1_backward.json, "
+                "pass2_forward.json, pass2_backward.json, "
+                "tool_policy.json, gateway_definitions.json, "
+                "approved_tools.json)."
+            ),
+        ),
+    ],
+    workspace_root: Annotated[
+        Path | None,
+        typer.Option(
+            "--workspace-root",
+            help=(
+                "GITHUB_WORKSPACE (or repo root). When set, "
+                "every entry in the bundle MUST resolve "
+                "inside this path (path-traversal guard)."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Phase 5.6 (ADR-41) §5.6-B: validate a gateway bundle.
+
+    Exits 0 on success, 2 on validation failure. Stderr
+    receives one line per finding; stdout receives a
+    summary line. The validator NEVER executes anything in
+    the bundle — it only inspects the directory listing
+    and required-file set.
+    """
+    from oida_code.action_gateway.bundle import (
+        validate_gateway_bundle,
+    )
+
+    result = validate_gateway_bundle(
+        bundle_dir, workspace_root=workspace_root,
+    )
+    if not result.ok:
+        for err in result.errors:
+            typer.echo(
+                f"FAIL [{err.code}] {err.message}", err=True,
+            )
+        typer.echo(
+            f"gateway-bundle invalid: {len(result.errors)} "
+            f"errors in {bundle_dir}",
+        )
+        raise typer.Exit(code=2)
+    typer.echo(f"gateway-bundle ok: {bundle_dir}")
+
+
+@app.command("render-gateway-summary")
+def render_gateway_summary_cmd(
+    grounded_report: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Path to the GatewayGroundedVerifierRun JSON "
+                "produced by `oida-code verify-grounded`. May be "
+                "omitted (use --absent) when the gateway path "
+                "was disabled or blocked pre-execution."
+            ),
+        ),
+    ],
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help=(
+                "Output Markdown path "
+                "(.oida/gateway-grounded/summary.md by default)."
+            ),
+        ),
+    ] = Path(".oida/gateway-grounded/summary.md"),
+    audit_log_dir: Annotated[
+        str,
+        typer.Option(
+            "--audit-log-dir",
+            help="Audit log dir to display in the summary.",
+        ),
+    ] = ".oida/gateway-grounded/audit",
+    bundle_dir: Annotated[
+        str,
+        typer.Option(
+            "--bundle-dir",
+            help="Bundle dir to display in the summary.",
+        ),
+    ] = "",
+    status: Annotated[
+        str,
+        typer.Option(
+            "--status",
+            help=(
+                "gateway-status string. One of: disabled, "
+                "diagnostic_only, contract_clean, "
+                "contract_failed, blocked."
+            ),
+        ),
+    ] = "diagnostic_only",
+    enabled: Annotated[
+        bool,
+        typer.Option(
+            "--enabled/--disabled",
+            help=(
+                "Whether the gateway path was enabled. "
+                "Default: --enabled (the action only invokes "
+                "this command when the gateway ran)."
+            ),
+        ),
+    ] = True,
+    absent: Annotated[
+        bool,
+        typer.Option(
+            "--absent",
+            help=(
+                "Render the summary as 'gateway blocked / no "
+                "report'. Use when the gateway was enabled "
+                "but blocked before producing a report."
+            ),
+        ),
+    ] = False,
+) -> None:
+    """Phase 5.6 §5.6-D — render the Markdown step-summary
+    section for the gateway-grounded action path.
+
+    The renderer scans for forbidden product-verdict tokens
+    (``merge_safe`` / ``production_safe`` / ``bug_free`` /
+    ``verified`` / ``total_v_net`` / ``debt_final`` /
+    ``corrupt_success``) before writing. Any hit raises
+    :class:`ForbiddenSummaryPhraseError`.
+    """
+    from oida_code.action_gateway.status import (
+        GATEWAY_STATUS_VALUES,
+    )
+    from oida_code.action_gateway.summary import (
+        render_gateway_summary,
+    )
+
+    if status not in GATEWAY_STATUS_VALUES:
+        _fail(
+            f"--status must be one of {GATEWAY_STATUS_VALUES}; "
+            f"got {status!r}"
+        )
+    report_payload: dict[str, object] | None = None
+    if not absent:
+        if not grounded_report.is_file():
+            _fail(
+                f"grounded report not found: {grounded_report}"
+            )
+        report_payload = json.loads(
+            grounded_report.read_text(encoding="utf-8"),
+        )
+    rendered = render_gateway_summary(
+        enabled=enabled,
+        status=status,
+        grounded_report=report_payload,
+        audit_log_dir=audit_log_dir,
+        bundle_dir=bundle_dir,
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(rendered, encoding="utf-8")
+    typer.echo(f"gateway-summary={out}")
+
+
+@app.command("emit-gateway-status")
+def emit_gateway_status_cmd(
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help=(
+                "Output file in GITHUB_OUTPUT key=value format "
+                "(default: .oida/gateway-grounded/action_outputs.txt)."
+            ),
+        ),
+    ] = Path(".oida/gateway-grounded/action_outputs.txt"),
+    enabled: Annotated[
+        bool,
+        typer.Option(
+            "--enabled/--disabled",
+            help="Whether the gateway path was enabled.",
+        ),
+    ] = False,
+    blocked: Annotated[
+        bool,
+        typer.Option(
+            "--blocked/--not-blocked",
+            help=(
+                "Whether the gateway path was blocked before "
+                "execution (PR guard / bundle validation)."
+            ),
+        ),
+    ] = False,
+    bundle_valid: Annotated[
+        bool,
+        typer.Option(
+            "--bundle-valid/--bundle-invalid",
+            help="Whether the bundle validator returned ok.",
+        ),
+    ] = True,
+    grounded_report: Annotated[
+        Path | None,
+        typer.Option(
+            "--grounded-report",
+            help=(
+                "Optional GatewayGroundedVerifierRun JSON; "
+                "the runtime official-leak scan derives "
+                "official_field_leak_count from it."
+            ),
+        ),
+    ] = None,
+    report_json: Annotated[
+        str,
+        typer.Option(
+            "--report-json",
+            help=(
+                "Path string to record as gateway-report-json "
+                "(no I/O — purely a label for the action "
+                "output)."
+            ),
+        ),
+    ] = "",
+    summary_md: Annotated[
+        str,
+        typer.Option(
+            "--summary-md",
+            help=(
+                "Path string to record as gateway-summary-md."
+            ),
+        ),
+    ] = "",
+    audit_log_dir: Annotated[
+        str,
+        typer.Option(
+            "--audit-log-dir",
+            help=(
+                "Path string to record as gateway-audit-log-dir."
+            ),
+        ),
+    ] = "",
+) -> None:
+    """Phase 5.6 §5.6-E — emit the action outputs in
+    GITHUB_OUTPUT key=value format.
+
+    The ``gateway-status`` enum is statically constrained to
+    five values; product verdicts (``merge_safe`` /
+    ``verified`` / ``production_safe`` / ``bug_free``) are
+    structurally unrepresentable.
+    """
+    from oida_code.action_gateway.status import (
+        FORBIDDEN_VERDICT_TOKENS,
+        derive_gateway_status,
+    )
+
+    leak_count = 0
+    if grounded_report is not None and grounded_report.is_file():
+        body = grounded_report.read_text(
+            encoding="utf-8",
+        ).lower()
+        leak_count = sum(
+            1 for token in FORBIDDEN_VERDICT_TOKENS
+            if token in body
+        )
+    status = derive_gateway_status(
+        enabled=enabled,
+        blocked_pre_execution=blocked,
+        bundle_valid=bundle_valid,
+        official_field_leak_count=leak_count,
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        f"gateway-status={status}",
+        f"gateway-report-json={report_json}",
+        f"gateway-summary-md={summary_md}",
+        f"gateway-audit-log-dir={audit_log_dir}",
+        f"gateway-official-field-leak-count={leak_count}",
+    ]
+    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    typer.echo(
+        f"gateway-status={status} leak-count={leak_count} "
+        f"out={out}"
+    )
+
+
 @app.command("run-tools")
 def run_tools_cmd(
     requests_path: Annotated[

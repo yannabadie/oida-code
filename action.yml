@@ -71,12 +71,49 @@ inputs:
     default: "false"
   enable-tool-gateway:
     description: |
-      RESERVED / EXPERIMENTAL (Phase 5.2, QA/A29.md, ADR-37). The
-      input is accepted for forward-compatibility but the action
-      body deliberately keeps it OFF — the gateway-grounded
-      verifier (`oida-code verify-grounded`) is invoked only by
-      operators outside the default audit path. Phase 5.2 does
-      NOT enable MCP, JSON-RPC, or any provider tool-calling.
+      EXPERIMENTAL OPT-IN (Phase 5.6, QA/A33.md, ADR-41). When
+      `"true"`, the action additionally runs the gateway-grounded
+      verifier (`oida-code verify-grounded`) against the bundle
+      under `gateway-bundle-dir`. Default stays `"false"` — the
+      gateway path is NOT the default audit path. The opt-in
+      path is replay-only by construction: no MCP, no JSON-RPC,
+      no provider tool-calling, no write or network tools, no
+      official `total_v_net` / `debt_final` / `corrupt_success`.
+      The action refuses to run the gateway path on
+      `pull_request` / `pull_request_target` events (anti-RCE
+      guard — pytest can execute repo code, so the gateway
+      MUST NOT touch unverified PR contributions).
+    required: false
+    default: "false"
+  gateway-bundle-dir:
+    description: |
+      Phase 5.6 (ADR-41): directory holding the eight required
+      gateway-bundle files (`packet.json`, `pass1_forward.json`,
+      `pass1_backward.json`, `pass2_forward.json`,
+      `pass2_backward.json`, `tool_policy.json`,
+      `gateway_definitions.json`, `approved_tools.json`). The
+      bundle MUST be inside `$GITHUB_WORKSPACE` and pass
+      `oida-code validate-gateway-bundle` (rejects path
+      traversal, secret-shaped filenames, provider/MCP config).
+      Required when `enable-tool-gateway: "true"`.
+    required: false
+    default: ""
+  gateway-output-dir:
+    description: |
+      Phase 5.6 (ADR-41): where gateway artifacts (grounded
+      report JSON, audit log dir, Markdown summary, action
+      outputs file) land. Default: `.oida/gateway-grounded`.
+    required: false
+    default: ".oida/gateway-grounded"
+  gateway-fail-on-contract:
+    description: |
+      Phase 5.6 (ADR-41): when `"true"`, exit non-zero if a
+      contract violation is detected (official-field leak
+      count > 0, bundle validation rejected, PR-context guard
+      tripped). Findings/blockers from the gateway run are
+      diagnostic only and NEVER trigger a fail-on-contract
+      exit. Default `"false"` keeps the gateway path
+      diagnostic-only.
     required: false
     default: "false"
   llm-provider:
@@ -157,6 +194,40 @@ outputs:
       Each listed artifact carries a SHA256 hash for tamper
       detection.
     value: ${{ steps.run.outputs.artifact-manifest }}
+  gateway-report-json:
+    description: |
+      Phase 5.6 (ADR-41): path to the gateway-grounded verifier
+      JSON report when `enable-tool-gateway: "true"`. Empty
+      string when the gateway path is disabled.
+    value: ${{ steps.gateway.outputs.gateway-report-json }}
+  gateway-summary-md:
+    description: |
+      Phase 5.6 (ADR-41): path to the diagnostic-only Markdown
+      summary rendered by `oida-code render-gateway-summary`.
+      Empty string when the gateway path is disabled.
+    value: ${{ steps.gateway.outputs.gateway-summary-md }}
+  gateway-audit-log-dir:
+    description: |
+      Phase 5.6 (ADR-41): path to the per-day per-tool gateway
+      audit log directory. Empty string when the gateway path
+      is disabled.
+    value: ${{ steps.gateway.outputs.gateway-audit-log-dir }}
+  gateway-status:
+    description: |
+      Phase 5.6 (ADR-41): one of `disabled` / `diagnostic_only`
+      / `contract_clean` / `contract_failed` / `blocked`. The
+      five-value enum is structurally pinned via a Python
+      `Literal[...]` in `oida_code.action_gateway.status`;
+      product verdicts (`merge_safe` / `verified` /
+      `production_safe` / `bug_free`) are unrepresentable.
+    value: ${{ steps.gateway.outputs.gateway-status }}
+  gateway-official-field-leak-count:
+    description: |
+      Phase 5.6 (ADR-41): integer count of forbidden
+      product-verdict / official-field tokens detected in the
+      grounded report. ADR-22 hard wall — any value > 0 means
+      the runtime gate fired.
+    value: ${{ steps.gateway.outputs.gateway-official-field-leak-count }}
 
 runs:
   using: composite
@@ -344,3 +415,152 @@ runs:
       with:
         sarif_file: ${{ inputs.output-dir }}/report.sarif
         category: oida-code/combined
+
+    # ------------------------------------------------------------
+    # Phase 5.6 (QA/A33.md, ADR-41) — opt-in gateway-grounded path
+    # ------------------------------------------------------------
+    # Hard rules:
+    #   * default off (`enable-tool-gateway: "false"`)
+    #   * never on `pull_request` / `pull_request_target` (pytest
+    #     can execute repo code; PR contributions are untrusted)
+    #   * replay-only — no external provider, no MCP, no
+    #     write / network tools
+    #   * NO official `total_v_net` / `debt_final` /
+    #     `corrupt_success`; the gateway-status enum is a
+    #     5-value Literal pinned in Python
+    - name: Phase 5.6 — block gateway on PR / fork PR
+      if: |
+        inputs.enable-tool-gateway == 'true'
+        && (github.event_name == 'pull_request'
+            || github.event_name == 'pull_request_target')
+      shell: bash
+      run: |
+        echo "::error::OIDA-code action: enable-tool-gateway=true is forbidden on pull_request / pull_request_target events (Phase 5.6 / ADR-41 anti-RCE guard — pytest can execute repo code)."
+        exit 2
+
+    - name: Phase 5.6 — gateway-grounded verifier (opt-in)
+      id: gateway
+      shell: bash
+      # ADR-30 + Phase 4.5.1 + Phase 5.6 §5.6-H: every
+      # operator-controlled value travels through `env:` and is
+      # referenced as a bash variable in `run:`. Direct `${{
+      # inputs.X }}` interpolation inside a `run:` block is a
+      # documented shell-injection vector. The step always runs
+      # (so `steps.gateway.outputs.gateway-status` is always set);
+      # the body branches on ENABLE_TOOL_GATEWAY.
+      env:
+        ENABLE_TOOL_GATEWAY: ${{ inputs.enable-tool-gateway }}
+        BUNDLE_DIR: ${{ inputs.gateway-bundle-dir }}
+        GATEWAY_OUTPUT_DIR: ${{ inputs.gateway-output-dir }}
+        GATEWAY_FAIL_ON_CONTRACT: ${{ inputs.gateway-fail-on-contract }}
+        GH_WORKSPACE: ${{ github.workspace }}
+      run: |
+        set -euo pipefail
+
+        # Disabled path — emit known-empty outputs so downstream
+        # callers always see the five gateway-* keys.
+        if [[ "$ENABLE_TOOL_GATEWAY" != "true" ]]; then
+          {
+            echo "gateway-status=disabled"
+            echo "gateway-report-json="
+            echo "gateway-summary-md="
+            echo "gateway-audit-log-dir="
+            echo "gateway-official-field-leak-count=0"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        if [[ -z "$BUNDLE_DIR" ]]; then
+          echo "::error::enable-tool-gateway=true requires gateway-bundle-dir to be set."
+          {
+            echo "gateway-status=blocked"
+            echo "gateway-report-json="
+            echo "gateway-summary-md="
+            echo "gateway-audit-log-dir="
+            echo "gateway-official-field-leak-count=0"
+          } >> "$GITHUB_OUTPUT"
+          exit 2
+        fi
+        mkdir -p "$GATEWAY_OUTPUT_DIR"
+        AUDIT_DIR="$GATEWAY_OUTPUT_DIR/audit"
+        REPORT_JSON="$GATEWAY_OUTPUT_DIR/grounded_report.json"
+        SUMMARY_MD="$GATEWAY_OUTPUT_DIR/summary.md"
+        OUTPUTS_FILE="$GATEWAY_OUTPUT_DIR/action_outputs.txt"
+
+        # 1) Bundle validation — contract-failed on rejection.
+        if ! python -m oida_code.cli validate-gateway-bundle \
+              "$BUNDLE_DIR" --workspace-root "$GH_WORKSPACE"; then
+          python -m oida_code.cli emit-gateway-status \
+            --out "$OUTPUTS_FILE" \
+            --enabled --not-blocked --bundle-invalid \
+            --report-json "" --summary-md "" \
+            --audit-log-dir ""
+          python -m oida_code.cli render-gateway-summary \
+            "$REPORT_JSON" \
+            --out "$SUMMARY_MD" \
+            --status contract_failed \
+            --audit-log-dir "$AUDIT_DIR" \
+            --bundle-dir "$BUNDLE_DIR" \
+            --enabled --absent
+          cat "$SUMMARY_MD" >> "$GITHUB_STEP_SUMMARY"
+          cat "$OUTPUTS_FILE" >> "$GITHUB_OUTPUT"
+          if [[ "$GATEWAY_FAIL_ON_CONTRACT" == "true" ]]; then
+            exit 3
+          fi
+          exit 0
+        fi
+
+        # 2) Run the gateway-grounded verifier.
+        python -m oida_code.cli verify-grounded \
+          "$BUNDLE_DIR/packet.json" \
+          --forward-replay-1 "$BUNDLE_DIR/pass1_forward.json" \
+          --backward-replay-1 "$BUNDLE_DIR/pass1_backward.json" \
+          --forward-replay-2 "$BUNDLE_DIR/pass2_forward.json" \
+          --backward-replay-2 "$BUNDLE_DIR/pass2_backward.json" \
+          --tool-policy "$BUNDLE_DIR/tool_policy.json" \
+          --approved-tools "$BUNDLE_DIR/approved_tools.json" \
+          --gateway-definitions "$BUNDLE_DIR/gateway_definitions.json" \
+          --audit-log-dir "$AUDIT_DIR" \
+          --out "$REPORT_JSON"
+
+        # 3) Emit the action outputs.
+        python -m oida_code.cli emit-gateway-status \
+          --out "$OUTPUTS_FILE" \
+          --enabled --not-blocked --bundle-valid \
+          --grounded-report "$REPORT_JSON" \
+          --report-json "$REPORT_JSON" \
+          --summary-md "$SUMMARY_MD" \
+          --audit-log-dir "$AUDIT_DIR"
+
+        GATEWAY_STATUS=$(grep '^gateway-status=' "$OUTPUTS_FILE" | head -n1 | cut -d= -f2)
+
+        # 4) Render the diagnostic-only summary.
+        python -m oida_code.cli render-gateway-summary \
+          "$REPORT_JSON" \
+          --out "$SUMMARY_MD" \
+          --status "$GATEWAY_STATUS" \
+          --audit-log-dir "$AUDIT_DIR" \
+          --bundle-dir "$BUNDLE_DIR" \
+          --enabled
+
+        # 5) Reuse the Phase 4.9-F manifest builder.
+        python -m oida_code.cli build-artifact-manifest \
+          "$GATEWAY_OUTPUT_DIR" || true
+
+        # 6) Append summary + emit outputs.
+        cat "$SUMMARY_MD" >> "$GITHUB_STEP_SUMMARY"
+        cat "$OUTPUTS_FILE" >> "$GITHUB_OUTPUT"
+
+        # 7) Optional fail-on-contract gate.
+        LEAK=$(grep '^gateway-official-field-leak-count=' "$OUTPUTS_FILE" | head -n1 | cut -d= -f2)
+        if [[ "$GATEWAY_FAIL_ON_CONTRACT" == "true" && "${LEAK:-0}" -gt 0 ]]; then
+          echo "::error::gateway-official-field-leak-count=$LEAK > 0 — ADR-22 hard wall breach."
+          exit 3
+        fi
+
+    - name: Phase 5.6 — upload gateway artifacts
+      if: inputs.enable-tool-gateway == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: oida-code-gateway
+        path: ${{ inputs.gateway-output-dir }}/

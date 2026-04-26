@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) + Phase 5.6 (opt-in gateway-grounded action path) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -381,8 +381,46 @@ audit-log canaries in `tests/test_phase5_4_real_calibration.py`
 + 1 Phase-5.3 test extension (now expects 10 documented
 classifications including `tool_budget_gap` +
 `uncertainty_preserved`);
-ADR-40 logged;
-**824 passed, 4 skipped (V2 placeholder + 2 Phase-4
+ADR-40 logged; opt-in gateway-grounded action path shipped —
+new `src/oida_code/action_gateway/` package
+(`bundle.py` + `status.py` + `summary.py`, ~640 LOC) plus
+three CLI subcommands (`validate-gateway-bundle`,
+`render-gateway-summary`, `emit-gateway-status`); `action.yml`
+gains three new inputs (`gateway-bundle-dir`,
+`gateway-output-dir`, `gateway-fail-on-contract`) + five
+new outputs (`gateway-report-json`, `gateway-summary-md`,
+`gateway-audit-log-dir`, `gateway-status`,
+`gateway-official-field-leak-count`) + a hard PR/fork guard
+step + an always-run gateway exec step + a conditional
+artifact-upload step; `gateway-status` is structurally
+pinned to `Literal["disabled","diagnostic_only","contract_clean","contract_failed","blocked"]`
+in `oida_code.action_gateway.status` (product verdicts
+`merge_safe`/`verified`/`production_safe`/`bug_free`
+unrepresentable); `render_gateway_summary` runs a runtime
+forbidden-phrase scan that raises
+`ForbiddenSummaryPhraseError` on any product-verdict hit;
+`emit-gateway-status --grounded-report` runs a runtime
+forbidden-token leak scan over the report JSON;
+`oida-code build-artifact-manifest` (Phase 4.9-F) is reused
+to seal every gateway artifact with SHA256; new
+`tests/fixtures/action_gateway_bundle/tool_needed_then_supported/`
+fixture with the QA-spec'd 8-file bundle layout (no
+`gateway_` prefix on replays); new
+`.github/workflows/action-gateway-smoke.yml` on
+`workflow_dispatch` + push to main, replay-only,
+`permissions: contents: read`, no secrets, no MCP, no
+external provider, calls the composite action with
+`enable-tool-gateway: "true"` and asserts the 5 expected
+gateway artifacts plus `gateway-status` enum membership;
+hard guard "Phase 5.6 — block gateway on PR / fork PR"
+fires on `pull_request` / `pull_request_target` events
+(anti-RCE — pytest can execute repo code); shell-injection
+guard via `env:` lift (Phase 4.5.1 rule applied to the
+new gateway-* inputs); 48 new tests in
+`tests/test_phase5_6_action_gateway_opt_in.py` covering 8
+sub-blocks plus end-to-end CLI flow plus an anti-mutation
+invariant on the fixture; ADR-41 logged;
+**872 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain

@@ -1,0 +1,112 @@
+# Phase 5.6 (QA/A33.md, ADR-41) — opt-in gateway-grounded
+# composite-action smoke.
+#
+# Exercises the composite GitHub Action end-to-end with
+# `enable-tool-gateway: "true"` and a committed replay bundle.
+#
+# Hard rules (ADR-41):
+#   * default `permissions: contents: read`
+#   * NO `pull_request_target` (the gateway path is forbidden
+#     on `pull_request` / `pull_request_target` events anyway —
+#     this workflow only runs on `workflow_dispatch` + push to
+#     main, the same posture as `gateway-grounded-smoke.yml`)
+#   * NO secrets consumed (replay only)
+#   * NO external provider
+#   * NO MCP / JSON-RPC
+#   * NO network egress
+#   * runs on workflow_dispatch or push to main only
+name: action-gateway-smoke
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: action-gateway-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  smoke:
+    name: composite action with enable-tool-gateway=true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      # The composite action installs Python + the package, runs
+      # the deterministic audit, then runs the opt-in gateway
+      # path against the bundle below.
+      - name: Run oida-code action with enable-tool-gateway=true
+        id: oida-action
+        uses: ./
+        with:
+          repo-path: "."
+          base-ref: "HEAD~1"
+          output-dir: ".oida"
+          enable-tool-gateway: "true"
+          gateway-bundle-dir: "tests/fixtures/action_gateway_bundle/tool_needed_then_supported"
+          gateway-output-dir: ".oida/action-gateway-smoke"
+          gateway-fail-on-contract: "false"
+
+      - name: Assert gateway artifacts produced
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=".oida/action-gateway-smoke"
+          for f in grounded_report.json summary.md action_outputs.txt; do
+            if [[ ! -f "$OUT/$f" ]]; then
+              echo "::error::expected gateway artifact $OUT/$f missing"
+              exit 1
+            fi
+          done
+          if [[ ! -d "$OUT/audit" ]]; then
+            echo "::error::expected gateway audit dir $OUT/audit missing"
+            exit 1
+          fi
+          if [[ ! -f "$OUT/artifacts/manifest.json" ]]; then
+            echo "::error::expected artifact manifest $OUT/artifacts/manifest.json missing"
+            exit 1
+          fi
+          # Inline forbidden-phrase scan against the JSON report
+          # (defence-in-depth on top of the schema pin and
+          # render-time scan).
+          for token in total_v_net debt_final corrupt_success merge_safe production_safe bug_free; do
+            if grep -q -i "\"$token\"" "$OUT/grounded_report.json" 2>/dev/null; then
+              echo "::error::forbidden token $token surfaced in grounded_report.json"
+              exit 1
+            fi
+          done
+          echo "gateway artifacts ok"
+
+      - name: Assert gateway-status is in the 5-value enum
+        shell: bash
+        env:
+          GATEWAY_STATUS: ${{ steps.oida-action.outputs.gateway-status }}
+        run: |
+          set -euo pipefail
+          case "$GATEWAY_STATUS" in
+            disabled|diagnostic_only|contract_clean|contract_failed|blocked)
+              echo "gateway-status=$GATEWAY_STATUS (ok)"
+              ;;
+            *)
+              echo "::error::gateway-status=$GATEWAY_STATUS is not in the canonical 5-value enum"
+              exit 1
+              ;;
+          esac
+
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: action-gateway-smoke
+          path: .oida/action-gateway-smoke/
