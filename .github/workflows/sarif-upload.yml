@@ -1,0 +1,73 @@
+# Phase 4.6-D (QA/A23.md, ADR-31) — SARIF upload smoke.
+#
+# Manual trigger only: `gh workflow run sarif-upload.yml` (or via the
+# Actions UI). The workflow runs `oida-code audit --format sarif`,
+# then uploads via `github/codeql-action/upload-sarif@v3` to GitHub
+# Code Scanning. This is the surface Phase 4.5 explicitly listed as
+# "structurally validated, not yet exercised against ingestion".
+#
+# Hard rules:
+#   * default `permissions: contents: read`
+#   * `security-events: write` ONLY on the upload job, not workflow-
+#     wide
+#   * NO `pull_request_target`
+#   * NO secrets, NO external provider — replay only
+#   * Manual trigger only (no `push`/`pull_request`) so an operator
+#     opts in deliberately and can attach a run_id to the report
+name: sarif-upload
+
+on:
+  workflow_dispatch:
+    inputs:
+      base-ref:
+        description: |
+          Git revision to diff against. Default `HEAD~1` is safe
+          because the smoke runs against the current checkout; an
+          operator can override for branch-vs-base diffs.
+        required: false
+        default: "HEAD~1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sarif-upload-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  upload:
+    name: generate + upload SARIF
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # `security-events: write` is required by
+    # github/codeql-action/upload-sarif. We grant it ONLY on this
+    # job, never at the workflow scope, per ADR-30 §A.
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Run oida-code audit (SARIF format)
+        env:
+          BASE_REF: ${{ inputs.base-ref }}
+        run: |
+          mkdir -p .oida
+          python -m oida_code.cli audit . \
+            --base "$BASE_REF" \
+            --format sarif \
+            --out .oida/report.sarif \
+            --fail-on none
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: .oida/report.sarif
+          category: oida-code

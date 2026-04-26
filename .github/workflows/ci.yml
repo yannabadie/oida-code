@@ -132,3 +132,35 @@ jobs:
       - run: python -m pip install -e ".[dev]"
       - name: Validate workflow files
         run: python scripts/validate_github_workflows.py
+
+  # Phase 4.6-A (QA/A23.md, ADR-31) — verify the workflow + the
+  # composite action survive the GitHub-announced switch to Node 24.
+  # GitHub will start defaulting JavaScript-action runtimes to Node 24
+  # on 2026-06-02; the opt-in env var lets us test it today. The job
+  # is non-destructive: it only runs the validator and the Phase 4.5
+  # invariant tests, which are the surfaces most likely to break if
+  # an action vendor (checkout / setup-python / upload-artifact /
+  # codeql-upload-sarif) ships a Node-24-incompatible build.
+  node24-compat:
+    name: Node 24 compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Validate workflow files (Node 24 mode)
+        run: python scripts/validate_github_workflows.py
+      - name: Phase 4.5 invariants (Node 24 mode)
+        run: python -m pytest tests/test_phase4_5_ci_github_action.py -q
+      - name: Phase 4.6 invariants (Node 24 mode)
+        run: python -m pytest tests/test_phase4_6_real_runner_smoke.py -q

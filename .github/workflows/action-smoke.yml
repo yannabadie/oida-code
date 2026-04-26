@@ -1,0 +1,59 @@
+# Phase 4.6-B (QA/A23.md, ADR-31) — composite-action consumer smoke.
+#
+# Phase 4.5 validated `action.yml` structurally (YAML walk + 17
+# invariant tests). This workflow exercises the action *as an
+# operator would*: it does `uses: ./` against the local checkout
+# with replay-only inputs, captures the artifact, and confirms the
+# step summary is populated.
+#
+# Hard rules (ADR-30 + ADR-31):
+#   * default `permissions: contents: read`
+#   * NO `pull_request_target`
+#   * NO secrets passed to the action
+#   * `llm-provider: replay` (default)
+#   * `upload-sarif: false` (separate workflow handles SARIF
+#     ingestion)
+#   * `fail-on: none` so an audit finding in the diff doesn't break
+#     the smoke (the smoke tests action plumbing, not audit verdicts)
+name: action-smoke
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: action-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  consumer-smoke:
+    name: composite action smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # `base-ref: HEAD~1` needs the previous commit available.
+          # Default fetch-depth is 1, which would fail; 2 is enough
+          # for HEAD~1 and keeps the checkout cheap.
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Run oida-code action against itself
+        uses: ./
+        with:
+          repo-path: "."
+          base-ref: "HEAD~1"
+          output-dir: ".oida/action-smoke"
+          upload-sarif: "false"
+          fail-on: "none"
+          surface: "impact"
+          enable-shadow: "false"
+          llm-provider: "replay"
+          max-provider-cases: "0"
