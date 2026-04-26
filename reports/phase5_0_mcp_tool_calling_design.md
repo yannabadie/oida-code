@@ -511,7 +511,7 @@ the Phase 5.1 (or 5.2) ADR explicitly removes them.
 | 17. ruff clean | yes — full curated CI scope |
 | 18. mypy clean | yes — `src/` source files |
 | 19. pytest full green, skips documented | yes — N passed, 4 skipped (V2 placeholder + 2 Phase-4 observability markers + 1 optional external-provider smoke); N updated post-runner |
-| 20. At least one GitHub-hosted CI / action-smoke run green after Phase 5.0 docs | pending — operator triggers post-merge |
+| 20. At least one GitHub-hosted CI / action-smoke run green after Phase 5.0 docs | **yes** — three runs green on commit ee9661b: `ci` 24956952399 (1m13s), `action-smoke` 24956952403 (59s), `provider-baseline-node24-smoke` 24956952386 (23s) |
 
 ### Skip inventory (4 — unchanged from Phase 4.9)
 
