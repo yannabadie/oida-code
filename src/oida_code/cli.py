@@ -1122,9 +1122,12 @@ def calibration_eval_cmd(
         except LLMProviderUnavailable as exc:
             _fail(f"calibration-eval: external provider unavailable: {exc}")
         # Phase 4.8-A — redacted IO directory under
-        # <out>/<provider_profile>/redacted_io/ when opted in.
-        if store_redacted_provider_io and provider_profile:
-            redacted_io_dir = out / provider_profile / "redacted_io"
+        # <out>/redacted_io/ when opted in. The workflow / operator
+        # is responsible for the parent path (e.g.,
+        # `.oida/provider-baseline/<provider>/`); the CLI just nests
+        # one fixed `redacted_io/` directory inside <out>.
+        if store_redacted_provider_io:
+            redacted_io_dir = out / "redacted_io"
     elif llm_provider == "fake":
         shared_provider = FakeLLMProvider()
     elif llm_provider != "replay":
