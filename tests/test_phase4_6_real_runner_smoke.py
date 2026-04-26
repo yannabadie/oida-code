@@ -294,6 +294,36 @@ def test_sarif_upload_uses_codeql_action(_yaml_required: None) -> None:
     assert "github/codeql-action/upload-sarif" in body
 
 
+def test_action_inputs_descriptions_have_no_expression_interpolation(
+    _yaml_required: None,
+) -> None:
+    """4.6 real-runner regression: GitHub's action manifest loader
+    REJECTS ``${{ ... }}`` expressions inside ``inputs.<name>.
+    description``. The first action-smoke run on commit d32fc1f
+    (id 24948235707) failed with ``Unrecognized named-value:
+    'github'`` because ``inputs.repo-path.description`` contained
+    ``${{ github.workspace }}``. Phase 4.5 tests parsed the YAML
+    but never executed the action, so the latent bug went unseen.
+
+    Walk every ``inputs.<name>.description`` and reject any
+    ``${{ ... }}`` substring."""
+    payload = _load(_ACTION)
+    inputs = payload.get("inputs")
+    assert isinstance(inputs, dict)
+    bad: list[str] = []
+    for name, spec in inputs.items():
+        if not isinstance(spec, dict):
+            continue
+        desc = spec.get("description")
+        if isinstance(desc, str) and "${{" in desc:
+            bad.append(name)
+    assert not bad, (
+        f"action.yml inputs.{bad}.description contains `${{ ... }}` "
+        "expression — GitHub's manifest loader rejects expression "
+        "interpolation in input descriptions; use plain text"
+    )
+
+
 def test_sarif_upload_no_external_provider(_yaml_required: None) -> None:
     """ADR-30 + ADR-31: SARIF smoke MUST stay replay-only — no
     `openai-compatible`, no API-key env var, no provider profile."""

@@ -16,7 +16,9 @@ branding:
 
 inputs:
   repo-path:
-    description: Path to the repo to audit (relative to ${{ github.workspace }}).
+    description: |
+      Path to the repo to audit, relative to the workflow's
+      `github.workspace`. Default `"."` audits the checkout root.
     required: false
     default: "."
   base-ref:
