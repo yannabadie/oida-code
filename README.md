@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -38,7 +38,20 @@ Phase 4.9-D action outputs (`diagnostic-status` enum +
 recommended actions + `missing_capture` classification,
 Phase 4.9-F artifact bundle manifest with SHA256 hashes and
 three Literal pins (mode / official_fields_emitted /
-contains_secrets) (ADR-34, Phase 4.9).**
+contains_secrets) (ADR-34, Phase 4.9); MCP / provider
+tool-calling design ADR shipped as design-only (no MCP
+runtime code, no provider tool-calling enabled, no
+dependency added) — six security documents under
+`docs/security/` (threat model + admission policy + tool
+schema pinning + tool-call execution model + audit log
+schema + unlock criteria), Pydantic-AI Phase 5 assessment
+(recommendation: `pydantic_ai_adapter_experiment` documentary
+follow-on, NOT migration), 16 non-regression tests
+re-affirming the Phase 4.7 anti-MCP / anti-tool-calling
+locks under SCOPED checks (`pyproject.toml` +
+`.github/workflows/` + `src/oida_code/` only — `docs/` and
+`reports/` intentionally contain the protected words)
+(ADR-35, Phase 5.0).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -104,7 +117,18 @@ invariant), Phase 4.9-F artifact bundle manifest (11 tests
 including Pydantic Literal pin checks); SARIF uploader
 inconsistency closed (action.yml bumped from `@v3` → `@v4`
 matching README claim); ADR-34 logged;
-**629 passed, 4 skipped (V2 placeholder + 2 Phase-4
+Phase 5.0 +16 design-only tests in
+`tests/test_phase5_0_design.py` covering design-doc
+existence, threat-model keyword presence (tool poisoning /
+rug pull / confused deputy), schema-hash requirement,
+unlock-criteria phrase, scoped negative checks (no MCP /
+Pydantic-AI dep in `pyproject.toml`, no MCP workflow, no
+`supports_tools=True` in `src/`, no MCP / `pydantic_ai`
+runtime imports in `src/`, no numeric assignment to official
+fields anywhere in `src/`), anti-MCP-locks-still-active
+sanity check, honesty-statement verbatim lock, and "no
+runtime code" declaration; ADR-35 logged;
+**645 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -152,6 +176,43 @@ provider regression baseline green end-to-end on run id
 `official_field_leak_count == 0`, contract clean, accuracy
 delta vs replay captured as data per ADR-28 (NOT as a verdict
 on the provider).**
+
+**Phase 5.0 MCP / provider tool-calling design ADR-only shipped
+(ADR-35). NO MCP runtime code, NO provider tool-calling
+enabled, NO MCP / Pydantic-AI dependency added, NO MCP
+workflow added. Six security design documents land under
+`docs/security/`: `mcp_threat_model.md` (8-section structure
+covering OWASP MCP01-MCP10 + confused deputy + token
+passthrough; 14 abuse cases; 12 required controls; 6 open
+questions); `mcp_admission_policy.md` (`MCPServerStatus` enum,
+12-item approval checklist, 9 auto-rejection triggers,
+quarantine-as-one-way semantics, authz policy enforcing
+one-token-per-server + no GITHUB_TOKEN passthrough +
+confused-deputy guard); `tool_schema_pinning.md`
+(`ToolSchemaFingerprint` Pydantic schema with three
+SHA256 hashes per tool, JCS RFC 8785 canonicalisation,
+rug-pull rule); `tool_call_execution_model.md` (5 execution
+modes — Phase 5.0 only authorises modes 0 + 1 in design;
+provider tool-calling forbidden by default; LLM-proposes /
+OIDA-code-executes pipeline preserved unchanged);
+`mcp_audit_log_schema.md` (`MCPAuditEvent` schema with 4-value
+`PolicyDecision` Literal + capability sentinel flags +
+redaction rules + per-day per-server append-only JSONL
+storage); `mcp_unlock_criteria.md` (10-item criteria list;
+**Anti-MCP and anti-tool-calling tests remain active after
+Phase 5.0**). Pydantic-AI Phase 5 assessment under
+`experiments/pydantic_ai_spike/phase5_assessment.md`: 7
+evaluation questions answered "yes, with configuration";
+recommendation = `pydantic_ai_adapter_experiment` documentary
+follow-on, NOT runtime migration. The existing Phase 4.7 lock
+tests (`test_no_mcp_workflow_or_dependency_added`,
+`test_no_provider_tool_calling_enabled`) STAY ACTIVE; Phase
+5.0 ADDS to them via 16 new tests in
+`tests/test_phase5_0_design.py` with proper SCOPED checks
+(negative tests scan `pyproject.toml` + `.github/workflows/`
++ `src/oida_code/` only, deliberately NOT `docs/` or
+`reports/` which contain the protected words by design).
+Quality gates: ruff clean, mypy clean, 645 passed / 4 skipped.**
 
 **Phase 4.9 artifact UX polish + failure-path diagnostics shipped
 (ADR-34). Phase 4.9.0 closes the V4 Pro 6/8 missing-capture gap
@@ -228,7 +289,8 @@ commit) per QA/A23.md "ne fake pas le résultat".**
 `reports/phase4_6_real_runner_operator_smoke.md`,
 `reports/phase4_7_provider_regression_baseline.md`,
 `reports/phase4_8_provider_regression_deepening.md`,
-`reports/phase4_9_artifact_ux_polish.md`.
+`reports/phase4_9_artifact_ux_polish.md`,
+`reports/phase5_0_mcp_tool_calling_design.md`.
 
 ## Install (dev)
 
