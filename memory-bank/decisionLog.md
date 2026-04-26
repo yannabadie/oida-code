@@ -75,6 +75,107 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-29 03:00:00] - **ADR-31: Real-runner / operator smoke before MCP / tool-calling.**
+
+**Why:** Phase 4.5 was accepted end-to-end on commit f625b1c (CI
+run #3 green on a real GitHub-hosted runner). The Phase 4.5
+report explicitly listed three operational gaps that remained
+structural-only: (1) the composite action had never been invoked
+from a real consumer workflow, (2) the fork-PR fence was
+asserted by string match in the action body — never exercised on
+a real fork PR, (3) the SARIF upload step had never been
+exercised against GitHub Code Scanning's ingestion. QA/A23.md
+requires Phase 4.6 to close those operational gaps before opening
+the MCP / tool-calling chantier.
+
+**Decision (Phase 4.6 surface):**
+
+* `.github/workflows/ci.yml` — adds a `node24-compat` job that
+  pins `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` at job scope and
+  re-runs the validator + Phase 4.5 + Phase 4.6 invariant suites
+  under the Node 24 runtime. GitHub announced runners switch to
+  Node 24 by default on 2026-06-02; this job tests it today.
+* `.github/workflows/action-smoke.yml` — composite-action
+  consumer smoke. Fires on `push:main` and `workflow_dispatch`.
+  Uses `uses: ./` against the local checkout with replay-only
+  inputs (`upload-sarif: false`, `fail-on: none`,
+  `llm-provider: replay`). `fetch-depth: 2` so `base-ref:
+  HEAD~1` resolves. Read-only workflow permissions, no secrets.
+  This is the first surface that ACTUALLY EXECUTES `action.yml`'s
+  composite body on a real runner.
+* `.github/workflows/sarif-upload.yml` — manual `workflow_dispatch`
+  only. The upload job grants `security-events: write` at JOB
+  scope, never at workflow level. Uses
+  `github/codeql-action/upload-sarif@v3` for the canonical
+  ingestion path.
+* Phase 4.5 latent bug surfaced and fixed:
+  `inputs.repo-path.description` in `action.yml` interpolated
+  `${{ github.workspace }}`. GitHub's manifest loader rejects
+  `${{ ... }}` expressions inside input descriptions
+  (descriptions are static metadata, not runtime). Phase 4.5
+  tests parsed the YAML structurally but never executed the
+  action. Fixed in this commit; new regression test
+  `test_action_inputs_descriptions_have_no_expression_interpolation`
+  walks every `inputs.<name>.description` and rejects any
+  `${{ ... }}` substring so the same shape of bug never re-ships.
+
+**Accepted:**
+
+* Node 24 compat job (job-scoped env var, read-only perms, no
+  external provider) — green on real runner
+* composite action consumer smoke (`uses: ./`, replay-only) —
+  green on real runner in 51s
+* SARIF upload smoke via `workflow_dispatch` — green on real
+  runner; ingestion confirmed via
+  `gh api repos/.../code-scanning/analyses` (6 SARIF analyses
+  visible: ruff 125 results, mypy 215 results, plus pytest,
+  semgrep, hypothesis, codeql shells)
+* `security-events: write` lives at JOB scope only (not workflow
+  scope); validator §4 still enforces this
+* fork-PR fence smoke + provider regression baseline marked
+  explicitly `not_run` — no real fork of yannabadie/oida-code
+  exists at this commit; no API budget allocated
+
+**Rejected:**
+
+* MCP integration in Phase 4.6 (separate ADR required when the
+  time comes)
+* provider tool-calling at the verifier layer in Phase 4.6
+* GitHub App / Checks API custom annotations
+* external provider as default on push or pull_request
+* external provider on PR events from forks (already blocked
+  structurally in 4.5; remains untested on real fork PR until an
+  operator opens one)
+* `pull_request_target` anywhere
+* official `V_net` / `debt_final` / `corrupt_success` /
+  `verdict` / `merge_safe` / `production_safe` / `bug_free` /
+  `security_verified` emission
+* faking the fork-PR or provider-regression smoke results
+  (QA/A23.md: "ne fake pas le résultat. Marque not_run et garde
+  Phase 4.6 partiellement ouverte.")
+
+**Outcome:** all 20 acceptance criteria from QA/A23.md met. 15
+new tests in `tests/test_phase4_6_real_runner_smoke.py`
+(node24-compat job invariants ×4, action-smoke workflow
+invariants ×5, sarif-upload workflow invariants ×5,
+action-input-description regression ×1). Three real-runner runs
+green on commit a9de514: ci (id 24948296296), action-smoke (id
+24948296297), sarif-upload (id 24948316005). Fork-PR fence smoke
++ provider regression baseline both marked `not_run` with
+explicit reasons in `reports/phase4_6_real_runner_operator_smoke.md`
+§5 + §7. Full suite **541 passed + 4 skipped** (V2 placeholder +
+2 Phase-4 observability markers + 1 optional external smoke).
+ruff + mypy clean. ADR-22 + ADR-25..30 + ADR-31 all hold;
+production CLI and the composite action emit no `V_net` /
+`debt_final` / `corrupt_success`. Two non-blocking annotations
+remain in CI runs: Node 20 deprecation on
+checkout/setup-python/upload-artifact (mitigated by the
+node24-compat job; full action-vendor bumps when their releases
+land), and `github/codeql-action/upload-sarif@v3` deprecation
+announced for December 2026 (Phase 4.7 ticket: bump to v4 when
+released). Report:
+`reports/phase4_6_real_runner_operator_smoke.md`.
+
 [2026-04-28 09:00:00] - **ADR-30: CI workflow + composite GitHub Action under least-privilege; no Checks API; fork PR fence; replay default.**
 
 **Why:** Phase 4.4 delivered a real OpenAI-compatible provider behind

@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -14,7 +14,10 @@ defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
 provider binding behind explicit opt-in (ADR-29); calibration-eval
 external path aligned (Phase 4.4.1); CI workflow + reusable
 composite GitHub Action under least-privilege with fork-PR fence
-and replay default (ADR-30).**
+and replay default (ADR-30); real-runner / operator smoke shipped
+with Node 24 compat job, composite action consumer smoke, and
+SARIF upload to GitHub Code Scanning all green on real runners
+(ADR-31, Phase 4.6).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -48,8 +51,13 @@ Phase 4.4.1 9 mandatory tests for `calibration-eval` external path
 PASS; Phase 4.5 17 invariant tests on workflow + composite action
 PASS (including Phase 4.5.1 shell-injection hardening:
 PR-controlled `${{ ... }}` lifted into `env:`, validator §6 +
-2 regression tests); `validate_github_workflows.py` green;
-**526 passed, 4 skipped (V2 placeholder + 2 Phase-4
+2 regression tests); Phase 4.6 15 invariant tests on Node 24
+compat + action-smoke + sarif-upload; three real-runner runs
+green on commit a9de514 (ci: all 6 jobs incl. Node 24 compat;
+action-smoke: composite action smoke 51s; sarif-upload: 6
+analyses ingested into GitHub Code Scanning);
+`validate_github_workflows.py` green;
+**541 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -77,6 +85,20 @@ in its first step, gates SARIF upload on
 SARIF / calibration-metrics — none carry `total_v_net` /
 `debt_final` / `corrupt_success` (ADR-22 hard wall).**
 
+**Phase 4.6 real-runner / operator smoke shipped (ADR-31). Three
+new workflows, all green on real GitHub-hosted runners:
+`ci.yml` gains a `node24-compat` job (FORCE_JAVASCRIPT_ACTIONS_TO_
+NODE24=true at job scope; tests today the 2026-06-02 default
+switch); `action-smoke.yml` invokes the composite action via
+`uses: ./` (replay-only, surfaced + fixed a latent
+`${{ github.workspace }}` bug in input descriptions);
+`sarif-upload.yml` uploads via `github/codeql-action/upload-
+sarif@v3` with `security-events: write` job-scoped only —
+ingestion confirmed via the `code-scanning/analyses` API.
+Fork-PR fence smoke + provider regression baseline marked
+`not_run` with reasons (no fork exists; no API budget) per
+QA/A23.md "ne fake pas le résultat".**
+
 **Not production-ready.** See `memory-bank/progress.md`,
 `reports/block_d_validation.md`, `reports/e0_fusion_readiness.md`,
 `reports/e1_shadow_fusion.md`, `reports/e2_shadow_formula_decision.md`,
@@ -86,7 +108,8 @@ SARIF / calibration-metrics — none carry `total_v_net` /
 `reports/phase4_2_tool_grounded_verifier_loop.md`,
 `reports/phase4_3_calibration_dataset_design.md`,
 `reports/phase4_4_real_provider_binding.md`,
-`reports/phase4_5_ci_github_action.md`.
+`reports/phase4_5_ci_github_action.md`,
+`reports/phase4_6_real_runner_operator_smoke.md`.
 
 ## Install (dev)
 
