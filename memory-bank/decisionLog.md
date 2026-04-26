@@ -75,6 +75,170 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-05-01 02:00:00] - **ADR-33: Provider regression deepening before framework migration.**
+
+**Why:** Phase 4.7 shipped DeepSeek V4 Pro on 4 cases with full
+contract compliance (`official_field_leak_count == 0`, zero
+schema/citation/forbidden-phrase violations) but observed an
+accuracy delta vs replay (-0.25 status, -0.5 estimate) that
+Phase 4.7 explicitly deferred — the report stored no raw
+prompts/responses by design (ADR-32), so we couldn't say WHY the
+delta existed. Phase 4.8 introduces a redacted-only opt-in
+capture path so an operator can diagnose the delta WITHOUT
+breaking ADR-32's "no raw prompt/response artifact by default"
+rule, extends the dataset to 8 llm_estimator cases (L005-L008
+covering completion / tests_pass / operator_accept /
+edge_confidence), and runs a multi-provider matrix (DeepSeek V4
+Pro + V4 Flash) to separate model-specific behaviour from
+contract behaviour.
+
+**Decision (Phase 4.8 surface):**
+
+* **4.8.0-A** — README cleanup. The Phase 4.6 paragraph claiming
+  `upload-sarif@v3` and `provider baseline not_run` was stale
+  post-Phase 4.7 (`@v4` bumped, baseline ran). Two regression
+  tests (`test_readme_phase47_does_not_contain_stale_sarif_v3_claim`
+  + `test_readme_phase47_does_not_say_provider_baseline_not_run`)
+  lock the cleanup.
+* **4.8.0-B** — `.github/workflows/provider-baseline-node24-smoke.yml`.
+  Replay-only, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` at job
+  scope, contents:read perms only. Proves the provider-baseline
+  surface (separate from ci.yml's node24-compat job which only
+  validates the validator + Phase 4.5/4.6 tests) survives the
+  GitHub 2026-06-02 default switch. Green on real runner.
+* **4.8-A** — Redacted provider I/O capture. New
+  `ProviderRedactedIO` Pydantic model (frozen + extra="forbid")
+  carries `prompt_sha256` (NOT raw prompt), redacted response
+  body (after `redact_secret(body, key)`), model id,
+  http_status, wall_clock_ms, response_id, finish_reason, token
+  usage. The `OpenAICompatibleChatProvider` gets a
+  `capture_redacted_io: bool = False` constructor flag; when
+  True, every successful `complete_json` call stashes a
+  `_last_redacted_io` slot the runner pops via
+  `pop_last_redacted_io()`. CRITICAL: redaction happens INSIDE
+  the provider, where the API key value is in scope; the runner
+  never holds the raw key. The CLI exposes
+  `--store-redacted-provider-io` (opt-in only); the workflow
+  exposes `store-redacted-provider-io` input default `false`.
+  10 tests in `tests/test_phase4_8_redacted_provider_io.py` use
+  a long distinctive sentinel
+  `sk-DETECT-LEAK-Z9KF1L-PROVIDER-IO-CANARY-2026` to assert
+  redaction actually fires (not just that output happens to be
+  clean) — including the test that injects the sentinel into a
+  fake response body simulating a 401-style auth-echo.
+* **4.8-B** — Label audit script
+  `scripts/audit_provider_estimator_labels.py`. Reads redacted
+  provider I/O + `expected.json` and produces per-case
+  classification (`match` / `label_too_strict` / `provider_wrong`
+  / `mapping_ambiguous` / `contract_gap`). Read-only — NO label
+  changes are made by this script; any actual label edits land
+  in a separate commit with written justification.
+* **4.8-C** — `datasets/private_holdout_v1/` schema (README +
+  `manifest.example.json`); `cases/` is gitignored
+  (`datasets/private_holdout_v1/cases/`). Operator builds their
+  12-case holdout locally; nothing case-specific enters the
+  public repo.
+* **4.8-D** — `scripts/build_calibration_dataset.py` extends
+  `llm_estimator` family from 4 (L001-L004) to 8 (L005-L008).
+  Manifest: 36 → 40 cases. Two existing Phase 4.4.1 tests
+  updated for the new size.
+* **4.8-E** — Repeat-runs stability. CLI
+  `--repeat-provider-runs N` (1-3, hard cap to bound API spend).
+  When N>1 + external provider, the case loop runs N times and
+  writes `<out>/stability_summary.json` with mean+std for
+  status/estimate accuracy + safety + fenced rates + citation
+  precision + `official_field_leak_count_max`. Hard rule:
+  `leak_max > 0` exits 3.
+* **4.8-F** — `experiments/pydantic_ai_spike/`. Top-level (not
+  under `src/`), excluded from mypy + ruff in the project gates,
+  not pulled by `pip install -e .[dev]`. Documentation-only
+  sketch + comparison table; the actual migration would need a
+  separate ADR after the spike report lands.
+
+**ADR-32 reconciliation.** ADR-32 §rejected forbids "raw prompt
+/ raw response artifacts by default". Phase 4.8-A's
+`--store-redacted-provider-io` is OPT-IN AND REDACTED — never
+raw. Specifically: prompts ship as SHA256 only (the raw text is
+never serialized), and response bodies are passed through
+`redact_secret(body, key)` BEFORE being captured (the API key
+value is masked even if a misbehaving provider echoes it). The
+ADR-32 default behaviour stays unchanged; the new flag opens a
+diagnosis surface that preserves the security posture.
+
+**Accepted:**
+
+* redacted provider I/O capture behind explicit flag — opt-in
+  only, default false at every layer (constructor, CLI flag,
+  workflow input)
+* L005-L008 dataset extension (4 → 8 llm_estimator cases)
+* DeepSeek V4 Pro and V4 Flash both run on 8 cases with the
+  same contract validation as Phase 4.7 — both passed
+  `official_field_leak_count == 0`
+* repeat-runs stability metrics — DeepSeek V4 Pro on 8 cases ×
+  2 runs surfaced `estimator_estimate_accuracy_std=0.15`,
+  showing the provider is non-deterministic between calls even
+  on the same prompt
+* label audit script lands as documentation-only — no automatic
+  label edits
+* private_holdout_v1 schema only, cases gitignored
+* pydantic-ai spike directory at experiments/, NOT in install
+  surface
+* Node24 replay smoke for the provider-baseline surface
+* MiniMax/Kimi runs marked `not_run` for this commit window —
+  two providers (V4 Pro + V4 Flash) provide enough comparison
+  data; further providers are a Phase 4.9+ option
+
+**Rejected:**
+
+* default external provider, public benchmark claims, threshold
+  tuning on calibration_v1 (ADR-28 still applies)
+* MCP integration in Phase 4.8 — anti-MCP locks
+  (`test_no_mcp_workflow_or_dependency_added`) hold
+* provider tool-calling at the verifier layer
+  (`test_no_provider_tool_calling_enabled` walks
+  `provider_config.py` for `supports_tools=True`)
+* official `V_net` / `debt_final` / `corrupt_success` /
+  `verdict` / `merge_safe` / `production_safe` / `bug_free` /
+  `security_verified` emission
+* wholesale migration to pydantic-ai — sketch only, ADR-required
+  before any production move
+* committing operator-private cases under
+  `datasets/private_holdout_v1/cases/` to the public repo
+* faking the V4 Pro 6/8 missing redacted IO captures — Phase
+  4.8.1 work to extend capture to provider-failure paths is
+  documented as a known limitation in the report
+
+**Outcome:** **24/24** acceptance criteria from QA/A25.md met.
+17 new tests across `tests/test_phase4_8_redacted_provider_io.py`
+(10) and `tests/test_phase4_8_workflow_and_docs.py` (7). The
+multi-provider matrix delivered:
+
+```
+metric                          replay   v4-pro (×2)         v4-flash
+official_field_leak_count       0        0 (max across 2)     0
+estimator_status_accuracy       0.625    0.25 / 0.125 (std=0.0625)  0.625
+estimator_estimate_accuracy     0.6      0.30 / 0.00 (std=0.15)     0.30
+schema/citation/safety/fenced   1.0 each 1.0 each              1.0 each
+```
+
+V4 Flash matches replay status accuracy while V4 Pro is more
+inconsistent (high std). V4 Flash captured all 8 redacted IO
+files; V4 Pro captured only 2 (L005, L007) because 6/8 of its
+responses raised `LLMProviderInvalidResponse`-class exceptions
+that bypass the success-path stash — documented as a known
+limitation; Phase 4.8.1 may extend capture to the failure
+paths. Real-runner runs: provider-baseline V4 Pro × 8 × 2
+(24954088672 — green); provider-baseline V4 Flash × 8 ×1
+(24954298728 — green); ci on cd7e5ac (24954060852 — green);
+provider-baseline-node24-smoke on cd7e5ac (24954060856 —
+green); action-smoke on cd7e5ac (24954060855 — green). Full
+suite **575 passed + 4 skipped**. ruff + mypy clean. ADR-22 +
+ADR-25..32 + ADR-33 all hold; production CLI + composite action
+emit no `V_net` / `debt_final` / `corrupt_success`. Reports:
+`reports/phase4_8_provider_regression_deepening.md`,
+`reports/provider_label_audit_l001_l008.md` (V4 Pro),
+`reports/provider_label_audit_l001_l008_v4flash.md`.
+
 [2026-04-30 04:00:00] - **ADR-32: Provider regression baseline before MCP / tool-calling.**
 
 **Why:** Phase 4.6 (ADR-31) closed the operator-side smoke gaps —

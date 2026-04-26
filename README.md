@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -20,7 +20,13 @@ SARIF upload to GitHub Code Scanning all green on real runners
 (ADR-31, Phase 4.6); provider regression baseline workflow
 shipped + SARIF uploader bumped to v4 + DeepSeek V4 Pro real
 provider regression run green on real runner with zero contract
-violations (ADR-32, Phase 4.7).**
+violations (ADR-32, Phase 4.7); provider regression deepening
+shipped — opt-in redacted I/O capture, L005-L008 dataset
+extension (40 cases), label audit script, private holdout
+protocol, repeat-runs stability, pydantic-ai spike directory,
+multi-provider matrix (DeepSeek V4 Pro vs V4 Flash both green
+on 8 cases with `official_field_leak_count == 0` end-to-end)
+(ADR-33, Phase 4.8).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -68,7 +74,12 @@ official_field_leak_count == 0, 0 schema violations / 0 missing
 citations / 0 forbidden phrases / 0 timeouts; accuracy delta vs
 replay captured as data, not as verdict);
 `validate_github_workflows.py` green;
-**558 passed, 4 skipped (V2 placeholder + 2 Phase-4
+Phase 4.8 17 invariant tests on redacted provider I/O (with
+sentinel-key assertion) + Node 24 replay smoke + workflow
+input wiring + README contradiction cleanup; multi-provider
+matrix runs green on real runner (DeepSeek V4 Pro 8×2 stability
+run id 24954088672, DeepSeek V4 Flash 8×1 run id 24954298728);
+**575 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -145,7 +156,8 @@ commit) per QA/A23.md "ne fake pas le résultat".**
 `reports/phase4_4_real_provider_binding.md`,
 `reports/phase4_5_ci_github_action.md`,
 `reports/phase4_6_real_runner_operator_smoke.md`,
-`reports/phase4_7_provider_regression_baseline.md`.
+`reports/phase4_7_provider_regression_baseline.md`,
+`reports/phase4_8_provider_regression_deepening.md`.
 
 ## Install (dev)
 

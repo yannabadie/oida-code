@@ -1,4 +1,4 @@
-# Provider/replay label audit — L001-L008 (replay-only-baseline)
+# Provider/replay label audit — L001-L008 (deepseek-v4-pro)
 
 Phase 4.8-B (QA/A25.md, ADR-33). Read-only diagnosis — no label changes are made by this script. Any actual label edits land in a separate commit with written justification per case.
 
@@ -18,9 +18,9 @@ Classification key:
 | L003 | benefit | missing | — | — | `contract_gap` | no provider response captured |
 | L003 | observability | missing | — | — | `contract_gap` | no provider response captured |
 | L004 | capability | accepted | [0.5, 1.0] | [E.intent.1] | `contract_gap` | no provider response captured |
-| L005 | completion | accepted | [0.5, 1.0] | [E.intent.1] | `contract_gap` | no provider response captured |
+| L005 | completion | accepted | [0.5, 1.0] | [E.intent.1] | `contract_gap` | no estimate emitted for the field |
 | L006 | tests_pass | accepted | [0.6, 1.0] | [E.intent.1] | `contract_gap` | no provider response captured |
-| L007 | operator_accept | accepted | [0.5, 1.0] | [E.intent.1] | `contract_gap` | no provider response captured |
+| L007 | operator_accept | accepted | [0.5, 1.0] | [E.intent.1] | `contract_gap` | no estimate emitted for the field |
 | L008 | edge_confidence | accepted | [0.0, 0.4] | [E.intent.1] | `contract_gap` | no provider response captured |
 
 ## Summary
