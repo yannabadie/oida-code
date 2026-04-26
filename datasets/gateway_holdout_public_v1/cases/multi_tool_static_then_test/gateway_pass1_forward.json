@@ -1,0 +1,34 @@
+{
+  "event_id": "evt-1",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [],
+  "requested_tools": [
+    {
+      "tool": "ruff",
+      "purpose": "static lint",
+      "expected_evidence_kind": "lint_finding",
+      "scope": [
+        "src"
+      ]
+    },
+    {
+      "tool": "mypy",
+      "purpose": "static type check",
+      "expected_evidence_kind": "type_finding",
+      "scope": [
+        "src"
+      ]
+    },
+    {
+      "tool": "pytest",
+      "purpose": "test scope",
+      "expected_evidence_kind": "test_result",
+      "scope": [
+        "tests"
+      ]
+    }
+  ]
+}

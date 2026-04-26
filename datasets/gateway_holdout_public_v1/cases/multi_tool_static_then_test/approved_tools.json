@@ -1,0 +1,48 @@
+{
+  "approved": [
+    {
+      "tool_id": "oida-code/ruff",
+      "status": "approved_read_only",
+      "reason": "synthetic public holdout approval (Phase 5.5)",
+      "fingerprint": {
+        "tool_id": "oida-code/ruff",
+        "tool_name": "ruff",
+        "adapter_version": "0.4.0",
+        "description_sha256": "43138b55d35c960ee25fd625faac198c380cf05dcf67d61f585330de2c3a12bf",
+        "input_schema_sha256": "670153ef31c426139cc4234280dff172579a136b187dabb67064670a1503f793",
+        "output_schema_sha256": "c0c2eeb06783383e6eadec2cdd682ce2f33468051952b39d94ef352e629a1698",
+        "combined_sha256": "c946883d396e82119b8699a23964712b50ce62e1a1d13dcfae68a7d09a415301"
+      }
+    },
+    {
+      "tool_id": "oida-code/mypy",
+      "status": "approved_read_only",
+      "reason": "synthetic public holdout approval (Phase 5.5)",
+      "fingerprint": {
+        "tool_id": "oida-code/mypy",
+        "tool_name": "mypy",
+        "adapter_version": "0.4.0",
+        "description_sha256": "015551a200cdd40107a8c3153953541cab5c412dfe51b457ac83754e73009eef",
+        "input_schema_sha256": "670153ef31c426139cc4234280dff172579a136b187dabb67064670a1503f793",
+        "output_schema_sha256": "c0c2eeb06783383e6eadec2cdd682ce2f33468051952b39d94ef352e629a1698",
+        "combined_sha256": "3e5e6172e267f6a443aa6d4c1ecb34ab760e21490baa5a00793f1b59b374db3e"
+      }
+    },
+    {
+      "tool_id": "oida-code/pytest",
+      "status": "approved_read_only",
+      "reason": "synthetic public holdout approval (Phase 5.5)",
+      "fingerprint": {
+        "tool_id": "oida-code/pytest",
+        "tool_name": "pytest",
+        "adapter_version": "0.4.0",
+        "description_sha256": "7f0121e7d91d3779beff6cedfa218a97e60032f50cd5e807873c1417f839d990",
+        "input_schema_sha256": "670153ef31c426139cc4234280dff172579a136b187dabb67064670a1503f793",
+        "output_schema_sha256": "c0c2eeb06783383e6eadec2cdd682ce2f33468051952b39d94ef352e629a1698",
+        "combined_sha256": "6d3fa08a9f7be722f8911282e0829b8baaf332866dd0f495f3339d95c1bb2140"
+      }
+    }
+  ],
+  "quarantined": [],
+  "rejected": []
+}

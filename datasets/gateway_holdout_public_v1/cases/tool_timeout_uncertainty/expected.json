@@ -1,0 +1,30 @@
+{
+  "case_id": "tool_timeout_uncertainty",
+  "expected_baseline": {
+    "accepted_claim_ids": [
+      "C.cap"
+    ],
+    "unsupported_claim_ids": [],
+    "rejected_claim_ids": [],
+    "blockers_expected": [],
+    "warnings_expected": []
+  },
+  "expected_gateway": {
+    "accepted_claim_ids": [],
+    "unsupported_claim_ids": [
+      "C.cap"
+    ],
+    "rejected_claim_ids": [],
+    "blockers_expected": [
+      "requested tool ran but emitted no citable evidence"
+    ],
+    "warnings_expected": [
+      "pytest exceeded budget"
+    ]
+  },
+  "expected_delta": "improves",
+  "required_tool_evidence_refs": [],
+  "forbidden_acceptance_reasons": [
+    "timeout must not be a deterministic contradiction"
+  ]
+}

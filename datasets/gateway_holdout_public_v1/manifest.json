@@ -1,6 +1,6 @@
 {
-  "manifest_version": "gateway_holdout_public_v1.1",
-  "description": "Phase 5.4 (QA/A31.md, ADR-39) — runnable public synthetic holdout for the gateway-grounded verifier calibration. Every case is fully committed; the runner produces non-stub metrics + a decision_summary.json on this manifest.",
+  "manifest_version": "gateway_holdout_public_v1.2",
+  "description": "Phase 5.5 (QA/A32.md, ADR-40) — runnable public synthetic holdout for the gateway-grounded verifier calibration, expanded from 8 to 12 cases. Every case is fully committed; the runner produces non-stub metrics + a decision_summary.json on this manifest. Phase 5.4 added the original 8; Phase 5.5 added tool_missing_uncertainty / tool_timeout_uncertainty / multi_tool_static_then_test / duplicate_tool_request_budget.",
   "headline_metrics_exclude": [],
   "cases": [
     {
@@ -74,6 +74,42 @@
       "contamination_risk": "synthetic",
       "expected_delta": "improves",
       "notes": "Pytest reports a P2P-style failure; aggregator rejects the C.fix claim. Baseline accepts. SWE-bench F2P/P2P discipline preserved semantically (canned executor stdout)."
+    },
+    {
+      "case_id": "tool_missing_uncertainty",
+      "family": "gateway_grounded",
+      "directory": "cases/tool_missing_uncertainty",
+      "provenance": "synthetic",
+      "contamination_risk": "synthetic",
+      "expected_delta": "improves",
+      "notes": "Phase 5.5: executor returns returncode=null; adapter emits status=tool_missing; Phase 5.2.1-B enforcer demotes the pass-2 claim. Uncertainty preserved, never treated as code failure."
+    },
+    {
+      "case_id": "tool_timeout_uncertainty",
+      "family": "gateway_grounded",
+      "directory": "cases/tool_timeout_uncertainty",
+      "provenance": "synthetic",
+      "contamination_risk": "synthetic",
+      "expected_delta": "improves",
+      "notes": "Phase 5.5: executor returns timed_out=true; adapter emits status=timeout; Phase 5.2.1-B enforcer demotes; budget warning emitted. Timeout is uncertainty, not deterministic contradiction."
+    },
+    {
+      "case_id": "multi_tool_static_then_test",
+      "family": "gateway_grounded",
+      "directory": "cases/multi_tool_static_then_test",
+      "provenance": "synthetic",
+      "contamination_risk": "synthetic",
+      "expected_delta": "improves",
+      "notes": "Phase 5.5: pass-1 requests ruff + mypy + pytest. Static checkers come back ok; pytest comes back rc=1. Aggregator rejects the C.fix claim — the deterministic test failure dominates the green static signals."
+    },
+    {
+      "case_id": "duplicate_tool_request_budget",
+      "family": "gateway_grounded",
+      "directory": "cases/duplicate_tool_request_budget",
+      "provenance": "synthetic",
+      "contamination_risk": "synthetic",
+      "expected_delta": "same",
+      "notes": "Phase 5.5: pass-1 requests pytest three times with identical scope; tool_policy.max_tool_calls=2 caps invocations. The discriminator is the audit log (no autonomous loop), not the verdict — both modes converge on accepting the claim."
     }
   ]
 }

@@ -749,8 +749,10 @@ def test_calibration_failure_classifications_are_documented(
     tmp_path: Path,
 ) -> None:
     """The seven QA/A30 §5.3-E classifications + the Phase 5.4
-    addition (``tool_request_policy_gap``) MUST be documented
-    in the runner's classification vocabulary."""
+    addition (``tool_request_policy_gap``) + the two Phase 5.5
+    additions (``tool_budget_gap``, ``uncertainty_preserved``)
+    MUST be documented in the runner's classification
+    vocabulary."""
     from oida_code.calibration.gateway_calibration import (
         FAILURE_CLASSIFICATIONS,
     )
@@ -763,6 +765,8 @@ def test_calibration_failure_classifications_are_documented(
         "tool_request_policy_gap",
         "insufficient_fixture",
         "expected_behavior_changed",
+        "tool_budget_gap",
+        "uncertainty_preserved",
     }
     assert set(FAILURE_CLASSIFICATIONS) == expected
 

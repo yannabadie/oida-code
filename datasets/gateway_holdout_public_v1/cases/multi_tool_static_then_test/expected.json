@@ -1,0 +1,28 @@
+{
+  "case_id": "multi_tool_static_then_test",
+  "expected_baseline": {
+    "accepted_claim_ids": [
+      "C.fix"
+    ],
+    "unsupported_claim_ids": [],
+    "rejected_claim_ids": [],
+    "blockers_expected": [],
+    "warnings_expected": []
+  },
+  "expected_gateway": {
+    "accepted_claim_ids": [],
+    "unsupported_claim_ids": [],
+    "rejected_claim_ids": [
+      "C.fix"
+    ],
+    "blockers_expected": [],
+    "warnings_expected": []
+  },
+  "expected_delta": "improves",
+  "required_tool_evidence_refs": [
+    "[E.tool.pytest.0]"
+  ],
+  "forbidden_acceptance_reasons": [
+    "pytest reported a deterministic test failure; static checks alone cannot promote past it"
+  ]
+}

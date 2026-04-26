@@ -1,0 +1,25 @@
+{
+  "by_tool": {
+    "ruff": {
+      "returncode": 0,
+      "stdout": "[]",
+      "stderr": "",
+      "timed_out": false,
+      "runtime_ms": 8
+    },
+    "mypy": {
+      "returncode": 0,
+      "stdout": "Success: no issues found in 1 source file\n",
+      "stderr": "",
+      "timed_out": false,
+      "runtime_ms": 11
+    },
+    "pytest": {
+      "returncode": 1,
+      "stdout": "FAILED tests/test_feature.py::test_critical_fix\n=== 1 failed, 4 passed in 0.4s ===",
+      "stderr": "",
+      "timed_out": false,
+      "runtime_ms": 14
+    }
+  }
+}

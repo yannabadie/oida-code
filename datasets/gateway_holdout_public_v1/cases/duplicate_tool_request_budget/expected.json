@@ -1,0 +1,26 @@
+{
+  "case_id": "duplicate_tool_request_budget",
+  "expected_baseline": {
+    "accepted_claim_ids": [
+      "C.cap"
+    ],
+    "unsupported_claim_ids": [],
+    "rejected_claim_ids": [],
+    "blockers_expected": [],
+    "warnings_expected": []
+  },
+  "expected_gateway": {
+    "accepted_claim_ids": [
+      "C.cap"
+    ],
+    "unsupported_claim_ids": [],
+    "rejected_claim_ids": [],
+    "blockers_expected": [],
+    "warnings_expected": []
+  },
+  "expected_delta": "same",
+  "required_tool_evidence_refs": [
+    "[E.tool.pytest.0]"
+  ],
+  "forbidden_acceptance_reasons": []
+}

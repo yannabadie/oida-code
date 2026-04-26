@@ -1,0 +1,34 @@
+{
+  "event_id": "evt-1",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [],
+  "requested_tools": [
+    {
+      "tool": "pytest",
+      "purpose": "first request",
+      "expected_evidence_kind": "test_result",
+      "scope": [
+        "tests"
+      ]
+    },
+    {
+      "tool": "pytest",
+      "purpose": "duplicate request (no new info)",
+      "expected_evidence_kind": "test_result",
+      "scope": [
+        "tests"
+      ]
+    },
+    {
+      "tool": "pytest",
+      "purpose": "duplicate request (no new info)",
+      "expected_evidence_kind": "test_result",
+      "scope": [
+        "tests"
+      ]
+    }
+  ]
+}

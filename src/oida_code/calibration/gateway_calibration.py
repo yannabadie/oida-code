@@ -1,13 +1,15 @@
 """Phase 5.3 (QA/A30.md, ADR-38) — gateway-grounded verifier
 calibration runner.
 Phase 5.4 (QA/A31.md, ADR-39) — real-execution upgrade.
+Phase 5.5 (QA/A32.md, ADR-40) — runnable holdout expansion +
+true macro-F1 + diagnostic-only recommendation lock.
 
 The runner pairs each holdout case's
 :class:`GatewayHoldoutExpected` labels with two actual runs:
 
 * ``baseline`` — :func:`run_verifier` (Phase 4.1) with no
   gateway. Forward + backward replays only; no tool execution.
-* ``gateway``  — :func:`run_gateway_grounded_verifier`
+* ``gateway``  — :func:`run_gateway_grounded_verifier``
   (Phase 5.2) routed through the local deterministic gateway.
 
 Phase 5.4 replaces the stub metric emitters with real
@@ -19,6 +21,15 @@ to the stub for cases that don't ship the full file set
 ``insufficient_fixture`` rows; private/example slates can use
 the fallback).
 
+Phase 5.5 replaces the symmetric-difference proxy macro-F1
+(which was numerically equal to F1 but did not expose
+precision and recall separately) with a real per-class
+confusion matrix tracking TP/FP/FN for accepted, unsupported,
+and rejected. ``claim_macro_f1`` is now the mean of three
+per-class F1 scores, and ``decision_summary.json`` carries
+``promotion_allowed: false`` as a STRUCTURAL pin — Phase 5.5
+decides the next phase, not the action's default.
+
 It computes per-mode metrics and a ``gateway_delta`` and emits:
 
 * ``baseline_metrics.json``      — per-case + macro metrics (no
@@ -26,23 +37,31 @@ It computes per-mode metrics and a ``gateway_delta`` and emits:
 * ``gateway_metrics.json``       — per-case + macro metrics
   (gateway-grounded).
 * ``delta_metrics.json``         — gateway minus baseline.
-* ``decision_summary.json``      — Phase 5.4 recommendation
-  (``integrate_opt_in`` / ``revise_prompts`` /
+* ``decision_summary.json``      — Phase 5.5 recommendation
+  (``integrate_opt_in_candidate`` / ``revise_prompts`` /
   ``revise_labels`` / ``revise_tool_policy`` /
   ``insufficient_data``). The recommendation is an INPUT for
-  the operator, never a production threshold.
+  the operator, never a production threshold;
+  ``promotion_allowed`` is hardcoded ``False``.
 * ``failure_analysis.md``        — per-case classification +
-  proposed action + ``label_change_proposed`` flag. **NO
-  automatic label mutation.**
+  proposed action + three "proposed change" flags
+  (``label_change_proposed``,
+  ``tool_request_policy_change_proposed``,
+  ``prompt_change_proposed``). **NO automatic label / policy /
+  prompt mutation.**
 * ``artifact_manifest.json``     — SHA256 hashes of all written
   artifacts so a future run can prove integrity.
 
-ADR-38 + ADR-39 + QA/A30 + QA/A31 hard rules enforced here:
+ADR-38 + ADR-39 + ADR-40 + QA/A30 + QA/A31 + QA/A32 hard rules
+enforced here:
 
 * The runner NEVER writes anywhere under ``datasets/``.
 * Per-case audit logs land under ``<out_dir>/audit/<case_id>/``
   to keep calibration runs from polluting the operator's
-  ``.oida/tool-gateway/audit/`` namespace.
+  ``.oida/tool-gateway/audit/`` namespace. Concrete example::
+
+      .oida/gateway-calibration/audit/tool_needed_then_supported/2026-04-26/pytest.jsonl
+
 * No external provider, no MCP, no remote-procedure-call
   runtime, no network. The whole module imports from existing
   replay-only paths.
@@ -70,10 +89,14 @@ FAILURE_CLASSIFICATIONS: tuple[str, ...] = (
     "tool_request_policy_gap",
     "insufficient_fixture",
     "expected_behavior_changed",
+    # Phase 5.5 (QA/A32 §5.5-D) — added only because the
+    # expanded slate actually exercises these paths.
+    "tool_budget_gap",
+    "uncertainty_preserved",
 )
 
 _RECOMMENDATION_LITERAL: tuple[str, ...] = (
-    "integrate_opt_in",
+    "integrate_opt_in_candidate",
     "revise_prompts",
     "revise_labels",
     "revise_tool_policy",
@@ -86,6 +109,7 @@ _ManifestMode = Literal["replay", "fake"]
 
 _DELTA_POSITIVE_THRESHOLD = 0.05
 _DELTA_NEGATIVE_THRESHOLD = -0.05
+_RUNNABLE_THRESHOLD = 12
 
 
 class CalibrationCaseEntry(BaseModel):
@@ -136,19 +160,78 @@ class GatewayCalibrationManifest(BaseModel):
 
 
 @dataclass
+class _PerClassConfusion:
+    """Phase 5.5 (QA/A32 §5.5.0-B) — per-class confusion
+    counters. A claim_id is a TP for class C iff it appears in
+    BOTH the expected_C and actual_C sets, FP for class C iff
+    it appears in actual_C but not expected_C (predicted as C
+    but should have been a different class), FN for class C
+    iff it appears in expected_C but not actual_C (should have
+    been C but the verifier classified it elsewhere).
+
+    Phase 5.4 used a single ``correct``/``wrong`` count
+    (correct = TP, wrong = FP+FN as a symmetric difference);
+    that produced a NUMERICALLY correct F1 via the
+    ``2*TP/(2*TP + FP + FN)`` identity but did NOT expose
+    precision and recall to the operator. Phase 5.5 keeps the
+    numerical agreement and adds the structural P/R surface."""
+
+    tp: int = 0
+    fp: int = 0
+    fn: int = 0
+
+    def precision(self) -> float:
+        if self.tp + self.fp == 0:
+            return 0.0
+        return self.tp / (self.tp + self.fp)
+
+    def recall(self) -> float:
+        if self.tp + self.fn == 0:
+            return 0.0
+        return self.tp / (self.tp + self.fn)
+
+    def f1(self) -> float:
+        p, r = self.precision(), self.recall()
+        if p + r == 0:
+            return 0.0
+        return 2 * p * r / (p + r)
+
+    @property
+    def correct(self) -> int:
+        """Phase 5.4 backward-compat alias — same as ``tp``."""
+        return self.tp
+
+    @property
+    def wrong(self) -> int:
+        """Phase 5.4 backward-compat alias — same as
+        ``fp + fn``; this is what Phase 5.4 stored as
+        ``accepted_wrong`` etc. via the symmetric difference."""
+        return self.fp + self.fn
+
+
+@dataclass
 class _PerModeMetrics:
     """Lightweight per-mode metric bundle used internally by
-    the runner. The serialised form lives in the JSON files."""
+    the runner. The serialised form lives in the JSON files.
+
+    Phase 5.5 — the three classification buckets are now full
+    confusion counters (TP/FP/FN). The Phase 5.4 ``*_correct``
+    / ``*_wrong`` keys remain in :meth:`to_json` for backward
+    compatibility (they are derived properties on
+    :class:`_PerClassConfusion`)."""
 
     cases_evaluated: int = 0
-    accepted_correct: int = 0
-    accepted_wrong: int = 0
-    unsupported_correct: int = 0
-    unsupported_wrong: int = 0
-    rejected_correct: int = 0
-    rejected_wrong: int = 0
+    accepted: _PerClassConfusion = field(
+        default_factory=_PerClassConfusion,
+    )
+    unsupported: _PerClassConfusion = field(
+        default_factory=_PerClassConfusion,
+    )
+    rejected: _PerClassConfusion = field(
+        default_factory=_PerClassConfusion,
+    )
     official_field_leak_count: int = 0
-    # Phase 5.4 additions.
+    # Phase 5.4 additions (unchanged).
     fresh_tool_ref_citations: int = 0
     accepted_claims_total: int = 0
     tool_contradiction_rejections: int = 0
@@ -158,37 +241,31 @@ class _PerModeMetrics:
     evidence_refs_required_satisfied: int = 0
 
     def claim_accept_accuracy(self) -> float:
-        total = self.accepted_correct + self.accepted_wrong
+        # Same shape as Phase 5.4 — TP / (TP + FP + FN) for the
+        # accepted bucket. This is the Jaccard similarity of the
+        # accepted set, not strict accuracy.
+        total = (
+            self.accepted.tp + self.accepted.fp + self.accepted.fn
+        )
         if total == 0:
             return 0.0
-        return self.accepted_correct / total
+        return self.accepted.tp / total
 
     def claim_macro_f1(self) -> float:
-        scores: list[float] = []
-        for tp, fp_fn in (
-            (
-                self.accepted_correct,
-                self.accepted_wrong,
-            ),
-            (
-                self.unsupported_correct,
-                self.unsupported_wrong,
-            ),
-            (
-                self.rejected_correct,
-                self.rejected_wrong,
-            ),
-        ):
-            if tp == 0 and fp_fn == 0:
-                scores.append(0.0)
-                continue
-            # Symmetric proxy for macro-F1 in the
-            # accept/unsupported/reject one-vs-one bucket.
-            # Real F1 needs precision/recall; we don't have
-            # full per-class P/R here, so we use 2tp / (2tp +
-            # fp_fn) as a balanced score.
-            scores.append((2 * tp) / (2 * tp + fp_fn))
-        return sum(scores) / 3 if scores else 0.0
+        """Phase 5.5 — true macro-F1 = mean of per-class F1.
+
+        Numerically equal to the Phase 5.4 proxy when FP and FN
+        are reported as a single ``wrong`` count
+        (``2*TP/(2*TP + FP + FN) ≡ 2*P*R/(P+R)``). The change is
+        structural: precision and recall are now exposed
+        independently, so the report can flag asymmetric
+        precision/recall splits that the symmetric proxy
+        hid."""
+        return (
+            self.accepted.f1()
+            + self.unsupported.f1()
+            + self.rejected.f1()
+        ) / 3
 
     def fresh_tool_ref_citation_rate(self) -> float:
         if self.accepted_claims_total == 0:
@@ -222,14 +299,44 @@ class _PerModeMetrics:
         )
 
     def to_json(self) -> dict[str, int | float]:
-        return {
+        payload: dict[str, int | float] = {
             "cases_evaluated": self.cases_evaluated,
-            "accepted_correct": self.accepted_correct,
-            "accepted_wrong": self.accepted_wrong,
-            "unsupported_correct": self.unsupported_correct,
-            "unsupported_wrong": self.unsupported_wrong,
-            "rejected_correct": self.rejected_correct,
-            "rejected_wrong": self.rejected_wrong,
+            # Phase 5.4 backward-compat keys (derived).
+            "accepted_correct": self.accepted.correct,
+            "accepted_wrong": self.accepted.wrong,
+            "unsupported_correct": self.unsupported.correct,
+            "unsupported_wrong": self.unsupported.wrong,
+            "rejected_correct": self.rejected.correct,
+            "rejected_wrong": self.rejected.wrong,
+            # Phase 5.5 — explicit per-class confusion +
+            # precision/recall/f1.
+            "accepted_tp": self.accepted.tp,
+            "accepted_fp": self.accepted.fp,
+            "accepted_fn": self.accepted.fn,
+            "accepted_precision": round(
+                self.accepted.precision(), 4,
+            ),
+            "accepted_recall": round(self.accepted.recall(), 4),
+            "accepted_f1": round(self.accepted.f1(), 4),
+            "unsupported_tp": self.unsupported.tp,
+            "unsupported_fp": self.unsupported.fp,
+            "unsupported_fn": self.unsupported.fn,
+            "unsupported_precision": round(
+                self.unsupported.precision(), 4,
+            ),
+            "unsupported_recall": round(
+                self.unsupported.recall(), 4,
+            ),
+            "unsupported_f1": round(self.unsupported.f1(), 4),
+            "rejected_tp": self.rejected.tp,
+            "rejected_fp": self.rejected.fp,
+            "rejected_fn": self.rejected.fn,
+            "rejected_precision": round(
+                self.rejected.precision(), 4,
+            ),
+            "rejected_recall": round(self.rejected.recall(), 4),
+            "rejected_f1": round(self.rejected.f1(), 4),
+            # Aggregate metrics.
             "claim_accept_accuracy": round(
                 self.claim_accept_accuracy(), 4,
             ),
@@ -248,6 +355,7 @@ class _PerModeMetrics:
             ),
             "official_field_leak_count": self.official_field_leak_count,
         }
+        return payload
 
 
 @dataclass
@@ -261,7 +369,12 @@ class _CaseClassification:
     classification: str
     root_cause: str
     proposed_action: str
+    # Phase 5.4 — single proposal flag.
     label_change_proposed: bool = False
+    # Phase 5.5 (QA/A32 §5.5-D) — two more proposal flags. The
+    # runner ONLY proposes; no automatic mutation.
+    tool_request_policy_change_proposed: bool = False
+    prompt_change_proposed: bool = False
 
 
 @dataclass
@@ -429,23 +542,47 @@ def _run_one_case(
     # default executor is a no-op that returns rc=0 with empty
     # stdout (so the gateway hits the adapter's "no findings"
     # path and produces no evidence).
+    #
+    # Phase 5.5 — ``executor.json`` may carry a ``by_tool`` key
+    # mapping tool names to per-tool outcomes. This lets a
+    # single case exercise multiple adapters with distinct
+    # results (e.g. ``multi_tool_static_then_test`` runs ruff +
+    # mypy + pytest in pass-1 and needs the static checkers to
+    # come back ``ok`` while pytest comes back with a finding).
     executor_path = case_dir / "executor.json"
-    canned_outcome: ExecutionOutcome | None = None
+    default_outcome: ExecutionOutcome | None = None
+    by_tool_outcomes: dict[str, ExecutionOutcome] = {}
     if executor_path.is_file():
         raw_executor = json.loads(
             executor_path.read_text(encoding="utf-8"),
         )
-        canned_outcome = ExecutionOutcome(
-            returncode=raw_executor.get("returncode"),
-            stdout=raw_executor.get("stdout", ""),
-            stderr=raw_executor.get("stderr", ""),
-            timed_out=raw_executor.get("timed_out", False),
-            runtime_ms=raw_executor.get("runtime_ms", 0),
-        )
+        if "by_tool" in raw_executor:
+            for tool_name, tool_outcome in raw_executor[
+                "by_tool"
+            ].items():
+                by_tool_outcomes[tool_name] = ExecutionOutcome(
+                    returncode=tool_outcome.get("returncode"),
+                    stdout=tool_outcome.get("stdout", ""),
+                    stderr=tool_outcome.get("stderr", ""),
+                    timed_out=tool_outcome.get("timed_out", False),
+                    runtime_ms=tool_outcome.get("runtime_ms", 0),
+                )
+        else:
+            default_outcome = ExecutionOutcome(
+                returncode=raw_executor.get("returncode"),
+                stdout=raw_executor.get("stdout", ""),
+                stderr=raw_executor.get("stderr", ""),
+                timed_out=raw_executor.get("timed_out", False),
+                runtime_ms=raw_executor.get("runtime_ms", 0),
+            )
 
-    def _executor(_ctx: ExecutionContext) -> ExecutionOutcome:
-        if canned_outcome is not None:
-            return canned_outcome
+    def _executor(ctx: ExecutionContext) -> ExecutionOutcome:
+        if by_tool_outcomes:
+            keyed = by_tool_outcomes.get(ctx.binary)
+            if keyed is not None:
+                return keyed
+        if default_outcome is not None:
+            return default_outcome
         return ExecutionOutcome(
             returncode=0, stdout="", stderr="",
             timed_out=False, runtime_ms=1,
@@ -470,6 +607,10 @@ def _run_one_case(
     # ---- gateway ----
     audit_dir = audit_dir_root / case.case_id
     gateway = LocalDeterministicToolGateway(executor=_executor)
+    # Phase 5.5 — wire ``tool_policy.max_tool_calls`` through
+    # to the gateway loop so the per-case budget acts as the
+    # cap. The Phase 5.4 default (5) is still used when the
+    # policy doesn't constrain it further.
     gateway_run = run_gateway_grounded_verifier(
         packet,
         forward_pass1=FileReplayVerifierProvider(
@@ -489,6 +630,7 @@ def _run_one_case(
         admission_registry=registry,
         gateway_definitions=gateway_definitions,
         audit_log_dir=audit_dir,
+        max_tool_calls=tool_policy.max_tool_calls,
     )
     out.gateway_runnable = True
     out.gateway_outcome = _summarise_outcome(gateway_run.report)
@@ -518,14 +660,25 @@ def _run_one_case(
         baseline_outcome=out.baseline_outcome,
         gateway_outcome=out.gateway_outcome,
     )
-    classification, root_cause, proposed_action, label_change = (
-        _classify_case(
-            expected=expected,
-            actual_baseline=baseline_run.report,
-            actual_gateway=gateway_run.report,
-            expected_delta=case.expected_delta,
-            actual_delta=actual_delta,
-        )
+    # Phase 5.5 — the classifier can detect
+    # uncertainty_preserved / tool_budget_gap when the
+    # corresponding code paths were exercised.
+    pass1_forward_raw = json.loads(
+        (case_dir / "gateway_pass1_forward.json").read_text(
+            encoding="utf-8",
+        ),
+    )
+    pass1_requested_tools_count = len(
+        pass1_forward_raw.get("requested_tools", []),
+    )
+    classification = _classify_case(
+        expected=expected,
+        actual_baseline=baseline_run.report,
+        actual_gateway=gateway_run.report,
+        expected_delta=case.expected_delta,
+        actual_delta=actual_delta,
+        gateway_tool_results=tuple(gateway_run.tool_results),
+        pass1_requested_tools_count=pass1_requested_tools_count,
     )
     out.classifications.append(
         _CaseClassification(
@@ -535,10 +688,18 @@ def _run_one_case(
             actual_delta=actual_delta,
             baseline_result=out.baseline_outcome,
             gateway_result=out.gateway_outcome,
-            classification=classification,
-            root_cause=root_cause,
-            proposed_action=proposed_action,
-            label_change_proposed=label_change,
+            classification=classification.classification,
+            root_cause=classification.root_cause,
+            proposed_action=classification.proposed_action,
+            label_change_proposed=(
+                classification.label_change_proposed
+            ),
+            tool_request_policy_change_proposed=(
+                classification.tool_request_policy_change_proposed
+            ),
+            prompt_change_proposed=(
+                classification.prompt_change_proposed
+            ),
         ),
     )
 
@@ -618,24 +779,27 @@ def _update_metrics(
     }
     actual_rejected = {c.claim_id for c in actual_rejected_claims}
 
-    metrics.accepted_correct += len(
-        expected_accepted & actual_accepted,
-    )
-    metrics.accepted_wrong += len(
-        expected_accepted ^ actual_accepted,
-    )
-    metrics.unsupported_correct += len(
+    # Phase 5.5 — explicit per-class confusion counters. For
+    # class C: TP = expected_C ∩ actual_C, FP = actual_C only,
+    # FN = expected_C only. The earlier symmetric-difference
+    # form was numerically equivalent to FP + FN (so the proxy
+    # F1 matched the true F1) but did not surface precision
+    # and recall separately.
+    metrics.accepted.tp += len(expected_accepted & actual_accepted)
+    metrics.accepted.fp += len(actual_accepted - expected_accepted)
+    metrics.accepted.fn += len(expected_accepted - actual_accepted)
+    metrics.unsupported.tp += len(
         expected_unsupported & actual_unsupported,
     )
-    metrics.unsupported_wrong += len(
-        expected_unsupported ^ actual_unsupported,
+    metrics.unsupported.fp += len(
+        actual_unsupported - expected_unsupported,
     )
-    metrics.rejected_correct += len(
-        expected_rejected & actual_rejected,
+    metrics.unsupported.fn += len(
+        expected_unsupported - actual_unsupported,
     )
-    metrics.rejected_wrong += len(
-        expected_rejected ^ actual_rejected,
-    )
+    metrics.rejected.tp += len(expected_rejected & actual_rejected)
+    metrics.rejected.fp += len(actual_rejected - expected_rejected)
+    metrics.rejected.fn += len(expected_rejected - actual_rejected)
 
     metrics.accepted_claims_total += len(actual_accepted_claims)
     enriched_set = set(enriched_evidence_refs)
@@ -679,6 +843,24 @@ def _classify_actual_delta(
     return "different"
 
 
+@dataclass
+class _ClassificationResult:
+    """Phase 5.5 — bundle returned by :func:`_classify_case`.
+
+    Carries the four classification fields plus the three
+    proposal booleans. ``label_change_proposed`` /
+    ``tool_request_policy_change_proposed`` /
+    ``prompt_change_proposed`` are HINTS only; the runner
+    NEVER mutates labels, policy, or prompts."""
+
+    classification: str
+    root_cause: str
+    proposed_action: str
+    label_change_proposed: bool = False
+    tool_request_policy_change_proposed: bool = False
+    prompt_change_proposed: bool = False
+
+
 def _classify_case(
     *,
     expected: object,
@@ -686,9 +868,21 @@ def _classify_case(
     actual_gateway: object,
     expected_delta: str,
     actual_delta: str,
-) -> tuple[str, str, str, bool]:
-    """Return (classification, root_cause, proposed_action,
-    label_change_proposed)."""
+    gateway_tool_results: tuple[object, ...] = (),
+    pass1_requested_tools_count: int = 0,
+) -> _ClassificationResult:
+    """Return a :class:`_ClassificationResult` describing what
+    the actual baseline + gateway outcomes say about the case.
+
+    Phase 5.5 — when both modes match expected, the classifier
+    can still UPGRADE the row to ``uncertainty_preserved`` (a
+    tool_missing or timeout was correctly absorbed as
+    uncertainty rather than rejected as code failure) or
+    ``tool_budget_gap`` (the gateway loop's budget cap fired
+    on a duplicate / wasteful request stream). These two
+    classifications are documented in the legend AND actually
+    emitted by the runner when the corresponding code paths
+    were exercised."""
 
     expected_baseline_accepted = set(
         getattr(getattr(expected, "expected_baseline", None),
@@ -712,70 +906,116 @@ def _classify_case(
         actual_gateway_accepted == expected_gateway_accepted
     )
 
+    # Phase 5.5 — detect uncertainty_preserved AND tool_budget_gap
+    # signals BEFORE falling back to expected_behavior_changed.
+    has_uncertainty_status = any(
+        getattr(r, "status", None) in ("tool_missing", "timeout")
+        for r in gateway_tool_results
+    )
+    budget_capped = (
+        pass1_requested_tools_count > 0
+        and len(gateway_tool_results) < pass1_requested_tools_count
+    )
+
     if baseline_match and gateway_match:
-        return (
-            "label_too_strict" if False else "expected_behavior_changed",
-            "actual outcomes match expected on both modes",
-            (
+        if has_uncertainty_status:
+            return _ClassificationResult(
+                classification="uncertainty_preserved",
+                root_cause=(
+                    "gateway encountered a tool_missing or "
+                    "timeout result; Phase 5.2.1-B enforcer "
+                    "demoted the requested-but-uncited claim "
+                    "to unsupported (uncertainty preserved, "
+                    "NOT rejected as code failure)"
+                ),
+                proposed_action=(
+                    "no action required; case demonstrates "
+                    "correct uncertainty handling"
+                ),
+            )
+        if budget_capped:
+            return _ClassificationResult(
+                classification="tool_budget_gap",
+                root_cause=(
+                    f"forward requested {pass1_requested_tools_count} "
+                    f"tool calls but the gateway loop ran "
+                    f"{len(gateway_tool_results)} (budget cap "
+                    "via tool_policy.max_tool_calls)"
+                ),
+                proposed_action=(
+                    "no action required; case demonstrates "
+                    "the cap fires and audit log is bounded"
+                ),
+            )
+        return _ClassificationResult(
+            classification="expected_behavior_changed",
+            root_cause="actual outcomes match expected on both modes",
+            proposed_action=(
                 "no action required; case demonstrates the "
                 "expected behaviour"
             ),
-            False,
         )
 
     # Only baseline diverges → the LLM-replay layer is at
     # fault, not the gateway.
     if not baseline_match and gateway_match:
-        return (
-            "aggregator_bug",
-            (
+        return _ClassificationResult(
+            classification="aggregator_bug",
+            root_cause=(
                 "baseline mode produced a different verdict than "
                 "the operator labelled; the gateway side matches "
                 "— investigate the no-gateway aggregator path"
             ),
-            (
+            proposed_action=(
                 "review run_verifier replay handling for this case"
             ),
-            False,
+            prompt_change_proposed=True,
         )
 
     # Only gateway diverges → either the gateway loop, the
     # tool adapter, or the citation rule produced an
     # unexpected result.
     if baseline_match and not gateway_match:
-        return (
-            "gateway_bug",
-            (
+        return _ClassificationResult(
+            classification="gateway_bug",
+            root_cause=(
                 "gateway mode produced a different verdict than "
                 "the operator labelled; the baseline side matches"
             ),
-            (
+            proposed_action=(
                 "review run_gateway_grounded_verifier flow "
                 "(admission, fingerprint, citation rule, "
                 "requested-tool-evidence enforcer)"
             ),
-            False,
+            tool_request_policy_change_proposed=True,
         )
 
     # Both diverge → the labels themselves may be miscalibrated.
-    return (
-        "label_too_strict",
-        "both modes diverged from expected; investigate label",
-        (
+    return _ClassificationResult(
+        classification="label_too_strict",
+        root_cause=(
+            "both modes diverged from expected; investigate label"
+        ),
+        proposed_action=(
             "review the operator-supplied expected.json; if the "
             "labels turn out to be too strict, propose a label "
             "change but DO NOT mutate it automatically"
         ),
-        True,
+        label_change_proposed=True,
     )
 
 
 def _emit_failure_analysis(
     rows: list[_CaseClassification], path: Path,
 ) -> None:
-    """Phase 5.4 — extended Markdown table per QA/A31 §5.4-D.
-    Now carries ``actual_delta`` and ``label_change_proposed``
-    columns."""
+    """Phase 5.5 — Markdown failure-analysis table.
+
+    Phase 5.5 (QA/A32 §5.5-D) extends the Phase 5.4 table with
+    two more proposal columns
+    (``tool_request_policy_change_proposed``,
+    ``prompt_change_proposed``) plus two new classification
+    rows in the legend (``tool_budget_gap``,
+    ``uncertainty_preserved``)."""
     legend_lines = [
         "| Classification | Meaning |",
         "|---|---|",
@@ -814,13 +1054,25 @@ def _emit_failure_analysis(
             "intentionally changed; label needs operator update "
             "(propose, never auto-mutate) |"
         ),
+        (
+            "| `tool_budget_gap` | Pass-1 requested a duplicate "
+            "or wasteful tool call; the budget cap fired and "
+            "audit log is clear |"
+        ),
+        (
+            "| `uncertainty_preserved` | Tool missing or timed "
+            "out; gateway preserved the uncertainty (claim "
+            "remains unsupported, NOT rejected as code failure) |"
+        ),
     ]
 
     table_header = (
         "| case_id | family | expected_delta | actual_delta "
         "| baseline_result | gateway_result | classification "
-        "| root_cause | proposed_action | label_change_proposed |\n"
-        "|---|---|---|---|---|---|---|---|---|---|"
+        "| root_cause | proposed_action | label_change_proposed "
+        "| tool_request_policy_change_proposed "
+        "| prompt_change_proposed |\n"
+        "|---|---|---|---|---|---|---|---|---|---|---|---|"
     )
     table_rows = [
         (
@@ -828,20 +1080,22 @@ def _emit_failure_analysis(
             f"| {r.actual_delta} | {r.baseline_result} "
             f"| {r.gateway_result} | `{r.classification}` "
             f"| {r.root_cause} | {r.proposed_action} "
-            f"| {str(r.label_change_proposed).lower()} |"
+            f"| {str(r.label_change_proposed).lower()} "
+            f"| {str(r.tool_request_policy_change_proposed).lower()} "
+            f"| {str(r.prompt_change_proposed).lower()} |"
         )
         for r in rows
     ]
 
     body = "\n".join([
-        "# Phase 5.3 / 5.4 — gateway calibration failure analysis",
+        "# Phase 5.3 / 5.4 / 5.5 — gateway calibration failure analysis",
         "",
-        "Per QA/A30 §5.3-E + QA/A31 §5.4-D. Every row is a",
-        "per-case proposal. Labels are NEVER mutated",
-        "automatically; any change to operator-supplied",
-        "expected.json files MUST be a human review followed by",
-        "an explicit commit. The `label_change_proposed`",
-        "boolean is a hint, not an instruction.",
+        "Per QA/A30 §5.3-E + QA/A31 §5.4-D + QA/A32 §5.5-D.",
+        "Every row is a per-case PROPOSAL. Labels, tool-request",
+        "policies, and prompts are NEVER mutated automatically;",
+        "any change MUST be a human review followed by an",
+        "explicit commit. The three `*_change_proposed` booleans",
+        "are hints, not instructions.",
         "",
         "## Classification legend",
         "",
@@ -851,7 +1105,7 @@ def _emit_failure_analysis(
         "",
         table_header,
         *(table_rows or [
-            "| _no rows_ | — | — | — | — | — | — | — | — | — |",
+            "| _no rows_ | — | — | — | — | — | — | — | — | — | — | — |",
         ]),
         "",
     ])
@@ -863,23 +1117,43 @@ def _decide_recommendation(
     cases_runnable: int,
     cases_insufficient_fixture: int,
     official_leak_count: int,
-    gateway_delta_accept_acc: float,
+    gateway_delta_macro_f1: float,
+    gateway_delta_tool_contradiction: float,
+    gateway_delta_evidence_precision: float,
+    has_critical_gateway_bug: bool,
 ) -> str:
-    """Phase 5.4 §5.4-C decision rules.
+    """Phase 5.5 (QA/A32 §5.5-C) decision rules.
 
-    The recommendation literal is exactly five values
-    (QA/A31 line 219). The conflicting line-226 wording
-    (`revise_policy`) and line-238 wording
-    (`revise_gateway_or_labels`) are folded into the canonical
-    five-value set per the advisor's read.
-    """
+    Order matches the QA/A32 specification:
+
+    1. ``official_field_leak_count > 0`` → ``revise_tool_policy``.
+    2. ``cases_runnable < 12`` → ``insufficient_data``.
+    3. macro-F1 positive AND tool-contradiction non-negative
+       AND evidence-ref precision non-negative AND no critical
+       gateway bug → ``integrate_opt_in_candidate``.
+    4. macro-F1 negative → ``revise_labels``.
+    5. otherwise → ``revise_prompts``.
+
+    The macro-F1 delta is the TRUE per-class F1 from
+    :class:`_PerClassConfusion`, not the Phase 5.4 symmetric
+    proxy (the values are numerically equal in expectation;
+    the change is structural — see :class:`_PerClassConfusion`
+    docstring).
+
+    These rules are operator hints — they choose the next
+    phase, NOT a production threshold."""
     if official_leak_count > 0:
         return "revise_tool_policy"
-    if cases_runnable < 12:
+    if cases_runnable < _RUNNABLE_THRESHOLD:
         return "insufficient_data"
-    if gateway_delta_accept_acc > _DELTA_POSITIVE_THRESHOLD:
-        return "integrate_opt_in"
-    if gateway_delta_accept_acc < _DELTA_NEGATIVE_THRESHOLD:
+    if (
+        gateway_delta_macro_f1 > _DELTA_POSITIVE_THRESHOLD
+        and gateway_delta_tool_contradiction >= 0
+        and gateway_delta_evidence_precision >= 0
+        and not has_critical_gateway_bug
+    ):
+        return "integrate_opt_in_candidate"
+    if gateway_delta_macro_f1 < _DELTA_NEGATIVE_THRESHOLD:
         return "revise_labels"
     return "revise_prompts"
 
@@ -939,11 +1213,18 @@ def _emit_decision_summary(
         and c.actual_delta != "not_run"
     )
 
+    has_critical_gateway_bug = any(
+        c.classification == "gateway_bug"
+        for c in case_classifications
+    )
     recommendation = _decide_recommendation(
         cases_runnable=cases_runnable,
         cases_insufficient_fixture=cases_insufficient_fixture,
         official_leak_count=leak_count,
-        gateway_delta_accept_acc=delta_accept_acc,
+        gateway_delta_macro_f1=delta_macro_f1,
+        gateway_delta_tool_contradiction=delta_contradiction,
+        gateway_delta_evidence_precision=delta_evidence_precision,
+        has_critical_gateway_bug=has_critical_gateway_bug,
     )
 
     payload = {
@@ -969,11 +1250,19 @@ def _emit_decision_summary(
         "official_field_leak_count": leak_count,
         "recommendation": recommendation,
         "recommendation_diagnostic_only": True,
+        # Phase 5.5 (QA/A32 §5.5.0-C + §5.5-C) — STRUCTURAL
+        # pin. Hardcoded ``False`` regardless of recommendation.
+        # Phase 5.5 decides the next phase, NOT the action's
+        # default. Even if the recommendation is
+        # ``integrate_opt_in_candidate``, integration must
+        # happen in a SUBSEQUENT phase under explicit review.
+        "promotion_allowed": False,
         "reserved": (
-            "Phase 5.4 recommendations are operator-facing "
+            "Phase 5.5 recommendations are operator-facing "
             "hints. They are NOT production thresholds and do "
             "NOT promote any score to official total_v_net / "
-            "debt_final / corrupt_success."
+            "debt_final / corrupt_success. promotion_allowed "
+            "is hardcoded False."
         ),
     }
     (out_dir / "decision_summary.json").write_text(

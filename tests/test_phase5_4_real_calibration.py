@@ -172,7 +172,7 @@ def test_decision_summary_recommendation_is_literal(
         (out / "decision_summary.json").read_text(encoding="utf-8"),
     )
     allowed = {
-        "integrate_opt_in",
+        "integrate_opt_in_candidate",
         "revise_prompts",
         "revise_labels",
         "revise_tool_policy",
@@ -561,4 +561,56 @@ def test_runner_does_not_mutate_public_holdout(tmp_path: Path) -> None:
     }
     assert before == after, (
         "calibration runner mutated the public holdout"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 5.5 §5.5.0-A — Phase 5.4 audit-log path wording fix canaries
+# ---------------------------------------------------------------------------
+
+
+_PHASE5_4_REPORT = (
+    _REPO_ROOT / "reports" / "phase5_4_real_gateway_calibration.md"
+)
+
+
+def test_phase5_4_report_audit_log_path_is_not_malformed() -> None:
+    """5.5.0-A — the rendered Phase 5.4 report must not carry a
+    truncated audit-log path like ``/audit///.jsonl`` (placeholder
+    angle-brackets stripped by the Markdown renderer)."""
+    body = _PHASE5_4_REPORT.read_text(encoding="utf-8")
+    assert "/audit///.jsonl" not in body, (
+        "Phase 5.4 report still contains the malformed "
+        "/audit///.jsonl path; rewrite it to literal example "
+        "values"
+    )
+    assert "/audit//" not in body, (
+        "Phase 5.4 report has empty path components in the "
+        "audit-log example"
+    )
+
+
+def test_phase5_4_report_mentions_case_id_date_tool_path() -> None:
+    """5.5.0-A — the audit-log example MUST cover all four
+    semantic components: an output dir, a case_id, an ISO date,
+    and a tool name. The test scans for each component
+    independently rather than running a regex over slashes (the
+    advisor's guidance)."""
+    body = _PHASE5_4_REPORT.read_text(encoding="utf-8")
+    # Output dir.
+    assert ".oida/gateway-calibration" in body, (
+        "Phase 5.4 report should ground the example path in "
+        "the runner's actual output dir"
+    )
+    # Case id from the public slate.
+    assert "tool_needed_then_supported" in body
+    # ISO date — match YYYY-MM-DD.
+    assert re.search(r"20\d\d-\d\d-\d\d", body), (
+        "Phase 5.4 report should ground the audit-log path in "
+        "an ISO-format date"
+    )
+    # Tool name.
+    assert "pytest.jsonl" in body, (
+        "Phase 5.4 report should ground the audit-log path "
+        "with a concrete tool filename"
     )

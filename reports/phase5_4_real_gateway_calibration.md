@@ -212,7 +212,22 @@ workflow uploads it as part of the calibration artifacts.
 ## 8. Audit-log review
 
 Every gateway-mode case that requested a tool wrote at least
-one audit JSONL under `<out>/audit/<case_id>/<yyyy-mm-dd>/<tool>.jsonl`:
+one audit JSONL. The path layout is
+`OUT/audit/CASE_ID/YYYY-MM-DD/TOOL.jsonl`. A concrete example
+from this run on 2026-04-26:
+
+```
+.oida/gateway-calibration/audit/tool_needed_then_supported/2026-04-26/pytest.jsonl
+```
+
+The components are:
+
+* `OUT` — runner output dir (here `.oida/gateway-calibration`).
+* `CASE_ID` — manifest case id (here `tool_needed_then_supported`).
+* `YYYY-MM-DD` — UTC date the tool ran (here `2026-04-26`).
+* `TOOL` — tool name (here `pytest`).
+
+Per-case `policy_decision` summary across the 8-case slate:
 
 | Case | Audit `policy_decision` |
 |---|---|

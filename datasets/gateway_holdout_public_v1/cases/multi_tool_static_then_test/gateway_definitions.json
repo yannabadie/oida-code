@@ -1,0 +1,86 @@
+{
+  "ruff": {
+    "tool_id": "oida-code/ruff",
+    "tool_name": "ruff",
+    "adapter_version": "0.4.0",
+    "description": "Run ruff (read-only).",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "array"
+        }
+      }
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "risk_level": "read_only",
+    "allowed_scopes": [
+      "repo:read"
+    ],
+    "requires_network": false,
+    "allows_write": false
+  },
+  "mypy": {
+    "tool_id": "oida-code/mypy",
+    "tool_name": "mypy",
+    "adapter_version": "0.4.0",
+    "description": "Run mypy (read-only).",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "array"
+        }
+      }
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "risk_level": "read_only",
+    "allowed_scopes": [
+      "repo:read"
+    ],
+    "requires_network": false,
+    "allows_write": false
+  },
+  "pytest": {
+    "tool_id": "oida-code/pytest",
+    "tool_name": "pytest",
+    "adapter_version": "0.4.0",
+    "description": "Run pytest (read-only).",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "array"
+        }
+      }
+    },
+    "output_schema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "risk_level": "read_only",
+    "allowed_scopes": [
+      "repo:read"
+    ],
+    "requires_network": false,
+    "allows_write": false
+  }
+}

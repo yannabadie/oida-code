@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -178,7 +178,54 @@ audit-log review tests
 `test_quarantined_tool_call_has_audit_event`,
 `test_audit_log_contains_no_secret_like_values`) and 4
 anti-MCP locks reaffirming the chain
-(ADR-39, Phase 5.4).**
+(ADR-39, Phase 5.4); runnable holdout expansion shipped —
+Phase 5.5.0-A fixes the audit-log path wording in the
+Phase 5.4 report (literal example values + 2 canary tests),
+Phase 5.5.0-B replaces the symmetric `claim_macro_f1` proxy
+with a true per-class confusion matrix
+(`_PerClassConfusion` dataclass tracking TP/FP/FN; the
+metric JSON now exposes `accepted_precision`,
+`accepted_recall`, `accepted_f1` and similar for each
+class), Phase 5.5.0-C renames the recommendation literal
+`integrate_opt_in` -> `integrate_opt_in_candidate` and adds
+a STRUCTURAL `promotion_allowed: false` pin (hardcoded
+False, not derived from the recommendation) so even a
+positive diagnostic does not promote the action path; new
+`scripts/_build_phase5_5_cases.py` builds four mandatory
+new public synthetic cases — `tool_missing_uncertainty`
+(executor `returncode: null` -> tool_missing -> demote;
+uncertainty preserved), `tool_timeout_uncertainty`
+(`timed_out: true` -> timeout -> demote + budget warning),
+`multi_tool_static_then_test` (pass-1 requests ruff + mypy
++ pytest via new `by_tool` executor schema; pytest fails
+while static checks pass; aggregator rejects `C.fix` as the
+test failure dominates), `duplicate_tool_request_budget`
+(pass-1 requests pytest 3 times with
+`tool_policy.max_tool_calls=2`; budget cap leaves only 2
+audit events; runner now wires `tool_policy.max_tool_calls`
+through to `run_gateway_grounded_verifier`); manifest
+extended to `gateway_holdout_public_v1.2` with all 12
+cases; `failure_analysis.md` extended with two more
+proposal columns (`tool_request_policy_change_proposed`,
+`prompt_change_proposed`) and two new classifications
+(`tool_budget_gap`, `uncertainty_preserved`); 12-case run
+produces `claim_macro_f1_delta=+0.6667`,
+`tool_contradiction_rejection_rate_delta=+0.4286`,
+`evidence_ref_precision_delta=+0.4`,
+`evidence_ref_recall_delta=+0.2857`,
+`fresh_tool_ref_citation_rate=0.6667`, official leak count
+0 -> recommendation `integrate_opt_in_candidate` with
+`promotion_allowed: false`; 35 new tests in
+`tests/test_phase5_5_holdout_expansion.py` + 2 audit-log
+canaries in `tests/test_phase5_4_real_calibration.py` + 6
+re-stated anti-MCP locks
+(`test_no_mcp_dependency_added_phase5_5`,
+`test_no_mcp_workflow_added_phase5_5`,
+`test_no_jsonrpc_tools_list_or_tools_call_runtime_phase5_5`,
+`test_no_provider_tool_calling_enabled_phase5_5`,
+`test_action_yml_does_not_default_enable_tool_gateway_true_phase5_5`,
+`test_calibration_module_does_not_import_mcp_runtime`)
+(ADR-40, Phase 5.5).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -317,8 +364,25 @@ plus 1 anti-mutation invariant test
 (`test_runner_does_not_mutate_public_holdout`); plus 2
 Phase-5.3 test updates aligning with the schema extension
 (extended failure_analysis columns + 8th classification);
-ADR-39 logged;
-**786 passed, 4 skipped (V2 placeholder + 2 Phase-4
+ADR-39 logged; Phase 5.5 +35 tests in
+`tests/test_phase5_5_holdout_expansion.py` (5.5.0-B true
+macro-F1 per-class confusion 5 tests; 5.5.0-C
+recommendation rename + `promotion_allowed` pin 3 tests;
+5.5-A runnable slate >= 12 + 4 mandatory cases 4 tests;
+5.5-C recommendation rule order 6 tests; 5.5-D failure
+analysis with three proposal columns + new
+classifications 3 tests; 5.5-F anti-MCP locks 6 tests;
+plus 1 anti-mutation invariant + 4 case-specific
+discriminator tests + 3 emission tests verifying the new
+classifications actually fire: `uncertainty_preserved` on
+`tool_missing_uncertainty` and `tool_timeout_uncertainty`,
+`tool_budget_gap` on `duplicate_tool_request_budget`) + 2
+audit-log canaries in `tests/test_phase5_4_real_calibration.py`
++ 1 Phase-5.3 test extension (now expects 10 documented
+classifications including `tool_budget_gap` +
+`uncertainty_preserved`);
+ADR-40 logged;
+**824 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
