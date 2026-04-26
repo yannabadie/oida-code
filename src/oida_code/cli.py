@@ -74,6 +74,23 @@ app = typer.Typer(
     add_completion=False,
 )
 
+# Phase 5.1-F (QA/A28.md, ADR-36) — local deterministic tool
+# gateway sub-app. Two subcommands: `fingerprint` (compute the
+# expected hashes) and `run` (execute one or more tool requests
+# through the gateway). NOT MCP — the sub-app speaks Python
+# objects + JSON files, never JSON-RPC.
+tool_gateway_app = typer.Typer(
+    name="tool-gateway",
+    help=(
+        "Phase 5.1 local deterministic tool gateway. Wraps "
+        "ruff / mypy / pytest behind admission + fingerprinting + "
+        "audit log. NOT MCP."
+    ),
+    no_args_is_help=True,
+    add_completion=False,
+)
+app.add_typer(tool_gateway_app, name="tool-gateway")
+
 
 def _fail(msg: str, code: int = 2) -> NoReturn:
     typer.echo(f"oida-code: {msg}", err=True)
@@ -738,6 +755,289 @@ def render_artifacts_cmd(
         )
     written = write_diagnostic_markdown(input_dir, out)
     typer.echo(f"diagnostic-markdown={written}")
+
+
+# ---------------------------------------------------------------------------
+# Phase 5.1 (QA/A28.md, ADR-36) — local deterministic tool gateway CLI.
+# ---------------------------------------------------------------------------
+
+
+def _builtin_gateway_definitions() -> list[Any]:
+    """Return the static :class:`GatewayToolDefinition` set the
+    gateway ships with. Phase 5.1 covers ruff / mypy / pytest —
+    the same three Phase 4.2 already supports via
+    :func:`oida_code.verifier.tools.registry.get_adapter`.
+
+    Defined here (not in the gateway package itself) so the CLI
+    can grow the set without forcing the runtime layer to know
+    about every adapter version. The runtime resolves a
+    definition by ``tool_id`` against an operator-supplied JSON
+    file in production; this builtin set is the default fallback
+    for ``oida-code tool-gateway fingerprint``.
+    """
+    from oida_code import __version__ as adapter_version
+    from oida_code.verifier.tool_gateway.contracts import (
+        GatewayToolDefinition,
+    )
+    return [
+        GatewayToolDefinition(
+            tool_id="oida-code/ruff",
+            tool_name="ruff",
+            adapter_version=adapter_version,
+            description=(
+                "Run `ruff check` over the requested scope. "
+                "Read-only; emits findings as evidence items."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "scope": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "max_runtime_s": {
+                        "type": "integer", "minimum": 1, "maximum": 600,
+                    },
+                },
+            },
+            output_schema={
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "enum": ["ok", "failed", "error", "timeout"],
+                    },
+                    "findings": {"type": "array"},
+                },
+            },
+            risk_level="read_only",
+            allowed_scopes=("repo:read",),
+        ),
+        GatewayToolDefinition(
+            tool_id="oida-code/mypy",
+            tool_name="mypy",
+            adapter_version=adapter_version,
+            description=(
+                "Run `mypy` over the requested scope. Read-only; "
+                "type errors emitted as evidence items."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "scope": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "max_runtime_s": {
+                        "type": "integer", "minimum": 1, "maximum": 600,
+                    },
+                },
+            },
+            output_schema={
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "enum": ["ok", "failed", "error", "timeout"],
+                    },
+                    "findings": {"type": "array"},
+                },
+            },
+            risk_level="read_only",
+            allowed_scopes=("repo:read",),
+        ),
+        GatewayToolDefinition(
+            tool_id="oida-code/pytest",
+            tool_name="pytest",
+            adapter_version=adapter_version,
+            description=(
+                "Run `pytest` over the requested scope. Read-only "
+                "in the sense that the gateway never grants write "
+                "access; tests themselves may exercise their "
+                "subject-under-test."
+            ),
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "scope": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "max_runtime_s": {
+                        "type": "integer", "minimum": 1, "maximum": 600,
+                    },
+                },
+            },
+            output_schema={
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "enum": ["ok", "failed", "error", "timeout"],
+                    },
+                    "findings": {"type": "array"},
+                },
+            },
+            risk_level="read_only",
+            allowed_scopes=("repo:read",),
+        ),
+    ]
+
+
+@tool_gateway_app.command("fingerprint")
+def tool_gateway_fingerprint_cmd(
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help=(
+                "Where to write the fingerprints JSON file. "
+                "Default: .oida/tool-gateway/fingerprints.json"
+            ),
+        ),
+    ] = Path(".oida/tool-gateway/fingerprints.json"),
+) -> None:
+    """Phase 5.1-F: compute fingerprints for the builtin tool set.
+
+    Outputs a JSON file mapping each ``tool_id`` to its
+    :class:`ToolSchemaFingerprint`. The operator reviews and
+    promotes selected fingerprints into the admission registry
+    before invoking ``tool-gateway run``.
+    """
+    from oida_code.verifier.tool_gateway.fingerprints import (
+        fingerprint_tool_definition,
+    )
+
+    definitions = _builtin_gateway_definitions()
+    fingerprints = [
+        fingerprint_tool_definition(d).model_dump()
+        for d in definitions
+    ]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(fingerprints, indent=2), encoding="utf-8",
+    )
+    typer.echo(f"fingerprints={out} count={len(fingerprints)}")
+
+
+@tool_gateway_app.command("run")
+def tool_gateway_run_cmd(
+    requests_path: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "JSON file: list of "
+                "VerifierToolRequest dicts to run through the "
+                "gateway."
+            ),
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    policy_path: Annotated[
+        Path,
+        typer.Option(
+            "--policy",
+            help="JSON file containing the ToolPolicy to enforce.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    approved_tools_path: Annotated[
+        Path,
+        typer.Option(
+            "--approved-tools",
+            help=(
+                "JSON file with the operator-signed "
+                "ToolAdmissionRegistry. The gateway refuses any "
+                "tool whose tool_id is not in `approved`."
+            ),
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    audit_log_dir: Annotated[
+        Path,
+        typer.Option(
+            "--audit-log-dir",
+            help=(
+                "Directory for the per-day per-tool JSONL audit "
+                "log. Default: .oida/tool-gateway/audit"
+            ),
+        ),
+    ] = Path(".oida/tool-gateway/audit"),
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help=(
+                "Where to write the JSON list of "
+                "VerifierToolResult dicts. Default: "
+                ".oida/tool-gateway/results.json"
+            ),
+        ),
+    ] = Path(".oida/tool-gateway/results.json"),
+) -> None:
+    """Phase 5.1-F: execute a batch of tool requests through the
+    gateway. Each request is admitted against
+    ``--approved-tools``, sandbox-validated against ``--policy``,
+    and dispatched to the existing adapter. One audit event per
+    decision lands under ``--audit-log-dir``.
+    """
+    from oida_code.verifier.tool_gateway.contracts import (
+        ToolAdmissionRegistry,
+    )
+    from oida_code.verifier.tool_gateway.gateway import (
+        LocalDeterministicToolGateway,
+    )
+    from oida_code.verifier.tools.contracts import (
+        ToolPolicy,
+        VerifierToolRequest,
+    )
+
+    raw_requests = json.loads(requests_path.read_text(encoding="utf-8"))
+    if not isinstance(raw_requests, list):
+        _fail("--requests JSON MUST be a list of VerifierToolRequest objects")
+    requests = [
+        VerifierToolRequest.model_validate(r) for r in raw_requests
+    ]
+    policy = ToolPolicy.model_validate_json(
+        policy_path.read_text(encoding="utf-8"),
+    )
+    registry = ToolAdmissionRegistry.model_validate_json(
+        approved_tools_path.read_text(encoding="utf-8"),
+    )
+    definitions = {
+        d.tool_id: d for d in _builtin_gateway_definitions()
+    }
+    gateway = LocalDeterministicToolGateway()
+    results: list[dict[str, Any]] = []
+    for request in requests:
+        # The CLI maps each request to a definition by tool_name.
+        # Operators with custom registries can point at their
+        # own definition source via a future flag; Phase 5.1
+        # ships builtins only.
+        chosen_def = next(
+            (
+                d for d in definitions.values()
+                if d.tool_name == request.tool
+            ),
+            None,
+        )
+        if chosen_def is None:
+            _fail(
+                f"no builtin GatewayToolDefinition for tool "
+                f"{request.tool!r}",
+            )
+        result = gateway.run(
+            request,
+            policy=policy,
+            admission_registry=registry,
+            audit_log_dir=audit_log_dir,
+            gateway_definition=chosen_def,
+            requested_by="operator",
+        )
+        results.append(result.model_dump())
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(results, indent=2), encoding="utf-8")
+    typer.echo(
+        f"results={out} count={len(results)} "
+        f"audit-log-dir={audit_log_dir}"
+    )
 
 
 @app.command("estimate-llm")

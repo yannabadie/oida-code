@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -51,7 +51,21 @@ re-affirming the Phase 4.7 anti-MCP / anti-tool-calling
 locks under SCOPED checks (`pyproject.toml` +
 `.github/workflows/` + `src/oida_code/` only — `docs/` and
 `reports/` intentionally contain the protected words)
-(ADR-35, Phase 5.0).**
+(ADR-35, Phase 5.0); local deterministic tool gateway
+shipped — wraps existing `ruff` / `mypy` / `pytest`
+adapters behind admission, schema fingerprinting (4-hash
+JCS-approximation) + audit-log layers; new package
+`src/oida_code/verifier/tool_gateway/` (~1200 LOC across
+6 modules); two CLI subcommands (`oida-code tool-gateway
+fingerprint` / `tool-gateway run`); per-day per-tool
+JSONL audit log at `.oida/tool-gateway/audit/` (NOT
+`mcp/` namespace — gateway is NOT MCP); 40 new tests
+including 6 no-MCP regression locks (no `tools/list` /
+`tools/call` JSON-RPC; no `import mcp` / `import
+pydantic_ai`; no remote-transport imports under the
+gateway package); `Literal[False]` pins on
+`requires_network` and `allows_write` make write/network
+tools structurally unrepresentable (ADR-36, Phase 5.1).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -128,7 +142,25 @@ runtime imports in `src/`, no numeric assignment to official
 fields anywhere in `src/`), anti-MCP-locks-still-active
 sanity check, honesty-statement verbatim lock, and "no
 runtime code" declaration; ADR-35 logged;
-**645 passed, 4 skipped (V2 placeholder + 2 Phase-4
+Phase 5.1 +40 tests in
+`tests/test_phase5_1_tool_gateway.py` covering all 8
+sub-blocks (5.1.0 doc sync regression checks; 5.1-A
+contracts including 2 `Literal[False]` pin tests; 5.1-B
+fingerprinting key-order stability + drift on each of
+description/input/output schemas; 5.1-C admission with all 7
+QA rules including 4 suspicious-pattern variants; 5.1-D
+audit log allow/block/quarantine/reject + JSONL round-trip
++ no-secret-fields-in-schema; 5.1-E gateway 8 tests
+including reuse of existing sandbox path-traversal +
+secret-path blocks + `tool_missing` is uncertainty + no
+`shell=True` in gateway code + `VerifierToolResult` exact
+return type; 5.1-F CLI 4 tests including e2e fingerprint +
+run-with-empty-registry + audit-log-emission +
+no-official-fields; 5.1-G no-MCP regression locks 6 tests
+including no `import mcp`/`pydantic_ai`, no `tools/list`/
+`tools/call` JSON-RPC strings, no remote-transport imports);
+ADR-36 logged;
+**685 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -176,6 +208,38 @@ provider regression baseline green end-to-end on run id
 `official_field_leak_count == 0`, contract clean, accuracy
 delta vs replay captured as data per ADR-28 (NOT as a verdict
 on the provider).**
+
+**Phase 5.1 local deterministic tool gateway shipped (ADR-36).
+Wraps OIDA-code's existing `ruff` / `mypy` / `pytest`
+adapters behind admission, schema-fingerprinting, and
+audit-log layers — without adding MCP runtime, remote
+servers, or provider tool-calling. New package
+`src/oida_code/verifier/tool_gateway/` (~1200 LOC across 6
+modules): `contracts.py` (Pydantic schemas with two
+`Literal[False]` pins on `requires_network` / `allows_write`
+making write/network tools structurally unrepresentable);
+`fingerprints.py` (4-hash JCS-approximation: description /
+input_schema / output_schema / combined SHA256 — documented
+as approximation, not strict RFC 8785; future MCP
+integration must swap); `admission.py` (7 admission rules in
+QA-prescribed order; suspicious-pattern detection precedes
+fingerprint check); `audit_log.py` (per-day per-tool JSONL
+under `.oida/tool-gateway/audit/<yyyy-mm-dd>/<tool_name>.jsonl`
+— NOT `mcp/` namespace, this is NOT MCP);
+`gateway.py` (`LocalDeterministicToolGateway.run()` returns
+existing `VerifierToolResult` exactly — no new wrapper
+type; reuses `validate_request` from existing sandbox; reuses
+`get_adapter()` from existing registry; one audit event per
+Stage-2 decision). Two CLI subcommands under `oida-code
+tool-gateway`: `fingerprint` computes the four-hash
+fingerprint set for ruff/mypy/pytest; `run` drives a batch
+of `VerifierToolRequest` objects through the gateway with
+`--policy` + `--approved-tools` + `--audit-log-dir`.
+40 new tests + Phase 5.1.0 doc sync (Phase 5.0 report
+`~13 → 16` test count fix + enumerated test list expanded;
+audit log path namespace differentiated). Quality gates: ruff
+clean, mypy clean (88 source files, +6 from Phase 5.0's 82),
+685 passed / 4 skipped.**
 
 **Phase 5.0 MCP / provider tool-calling design ADR-only shipped
 (ADR-35). NO MCP runtime code, NO provider tool-calling
@@ -290,7 +354,8 @@ commit) per QA/A23.md "ne fake pas le résultat".**
 `reports/phase4_7_provider_regression_baseline.md`,
 `reports/phase4_8_provider_regression_deepening.md`,
 `reports/phase4_9_artifact_ux_polish.md`,
-`reports/phase5_0_mcp_tool_calling_design.md`.
+`reports/phase5_0_mcp_tool_calling_design.md`,
+`reports/phase5_1_local_deterministic_tool_gateway.md`.
 
 ## Install (dev)
 

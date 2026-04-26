@@ -358,7 +358,7 @@ GitHub's published guidance reinforces this:
 
 ## 10. Tests and static checks
 
-Phase 5.0 adds `tests/test_phase5_0_design.py` (~13 tests).
+Phase 5.0 adds `tests/test_phase5_0_design.py` (16 tests).
 Per QA/A27.md lines 929-930, these tests are SCOPED:
 
 * `pyproject.toml` (no `"mcp"` / `"model-context-protocol"` /
@@ -375,7 +375,7 @@ The tests **deliberately do NOT** check `docs/` or
 this phase ships. Scoping the negative checks prevents
 self-fire on the docs they protect.
 
-The 13 tests:
+The 16 tests:
 
 1. `test_phase5_design_docs_exist` — all 7 design files
    present at the documented paths.
@@ -394,13 +394,22 @@ The 13 tests:
 10. `test_no_provider_tool_calling_enabled` — re-affirms
     Phase 4.7 lock; checks `provider_config.py` only.
 11. `test_no_supports_tools_true` — same scoping; explicit
-    Phase 5.0 lock.
-12. `test_anti_mcp_locks_still_active` — imports the two
+    Phase 5.0 lock; broader (every `src/oida_code/*.py`).
+12. `test_no_mcp_runtime_import_in_src` — regex check on
+    `import mcp` / `from mcp` / `import pydantic_ai` /
+    `from pydantic_ai` under `src/`.
+13. `test_anti_mcp_locks_still_active` — imports the two
     Phase 4.7 lock-tests, asserts they are still defined as
     callables in `tests/test_phase4_7_provider_baseline.py`.
-13. `test_phase5_report_honesty_statement` — the exact 8
+14. `test_no_official_fields_emitted` — regex check no
+    numeric assignment to `total_v_net` / `debt_final` /
+    `corrupt_success` anywhere in `src/oida_code/`.
+15. `test_phase5_report_honesty_statement` — the exact 8
     lines of the QA/A27.md lines 899-908 honesty statement
     appear in `reports/phase5_0_mcp_tool_calling_design.md`.
+16. `test_phase5_report_declares_no_code_mcp` — the report
+    explicitly declares "design-only" + the no-runtime-code
+    invariant.
 
 ---
 
