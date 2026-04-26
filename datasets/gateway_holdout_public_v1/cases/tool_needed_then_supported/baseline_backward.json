@@ -1,0 +1,13 @@
+[
+  {
+    "event_id": "evt-1",
+    "claim_id": "C.cap",
+    "requirement": {
+      "claim_id": "C.cap",
+      "required_evidence_kinds": ["event"],
+      "satisfied_evidence_refs": ["[E.event.1]"],
+      "missing_requirements": []
+    },
+    "necessary_conditions_met": true
+  }
+]

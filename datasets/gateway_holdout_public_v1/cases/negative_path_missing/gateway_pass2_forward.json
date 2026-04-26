@@ -1,0 +1,11 @@
+{
+  "event_id": "evt-1",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [
+    "no negative-path test in pytest scope"
+  ],
+  "warnings": [],
+  "requested_tools": []
+}

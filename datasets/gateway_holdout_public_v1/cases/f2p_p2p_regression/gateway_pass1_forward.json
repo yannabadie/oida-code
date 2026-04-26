@@ -1,0 +1,18 @@
+{
+  "event_id": "evt-1",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [],
+  "requested_tools": [
+    {
+      "tool": "pytest",
+      "purpose": "re-run pytest scoped to tests/",
+      "expected_evidence_kind": "test_result",
+      "scope": [
+        "tests"
+      ]
+    }
+  ]
+}

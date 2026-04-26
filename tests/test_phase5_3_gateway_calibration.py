@@ -719,7 +719,9 @@ def test_calibration_runner_does_not_mutate_dataset(
 
 def test_failure_analysis_md_lists_required_columns(tmp_path: Path) -> None:
     """The Markdown table emitted by the runner MUST include
-    the seven canonical columns from QA/A30 §5.3-E."""
+    the canonical columns from QA/A30 §5.3-E + QA/A31 §5.4-D
+    extensions (Phase 5.4 added ``actual_delta`` +
+    ``label_change_proposed``)."""
     from oida_code.calibration.gateway_calibration import (
         run_calibration,
     )
@@ -735,8 +737,10 @@ def test_failure_analysis_md_lists_required_columns(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     for column in (
-        "case_id", "mode", "expected", "actual",
-        "classification", "root_cause", "recommended_action",
+        "case_id", "expected_delta", "actual_delta",
+        "baseline_result", "gateway_result",
+        "classification", "root_cause", "proposed_action",
+        "label_change_proposed",
     ):
         assert column in body, f"failure_analysis.md missing column {column!r}"
 
@@ -744,9 +748,9 @@ def test_failure_analysis_md_lists_required_columns(tmp_path: Path) -> None:
 def test_calibration_failure_classifications_are_documented(
     tmp_path: Path,
 ) -> None:
-    """The seven classifications listed in QA/A30 §5.3-E MUST
-    be documented in the failure analysis output (either as
-    examples or as part of a legend)."""
+    """The seven QA/A30 §5.3-E classifications + the Phase 5.4
+    addition (``tool_request_policy_gap``) MUST be documented
+    in the runner's classification vocabulary."""
     from oida_code.calibration.gateway_calibration import (
         FAILURE_CLASSIFICATIONS,
     )
@@ -756,6 +760,7 @@ def test_calibration_failure_classifications_are_documented(
         "tool_adapter_bug",
         "aggregator_bug",
         "citation_gap",
+        "tool_request_policy_gap",
         "insufficient_fixture",
         "expected_behavior_changed",
     }

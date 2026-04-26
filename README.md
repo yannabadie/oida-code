@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -127,7 +127,58 @@ upload; 33 new tests including 4 anti-MCP regression locks
 (`test_no_mcp_dependency_added`, `test_no_mcp_workflow_added`,
 `test_no_jsonrpc_runtime_in_calibration_script`,
 `test_no_provider_tool_calling_enabled_in_phase5_3`)
-(ADR-38, Phase 5.3).**
+(ADR-38, Phase 5.3); real gateway calibration shipped —
+Phase 5.4 rewrites `run_calibration` from stub-emit to actual
+end-to-end execution: per case loads packet + 6 replays + tool
+policy/definitions/admissions + optional canned executor,
+drives `run_verifier` baseline and
+`run_gateway_grounded_verifier` gateway, compares actual vs
+`GatewayHoldoutExpected.expected_baseline`/`expected_gateway`,
+and accumulates 14-field `_PerModeMetrics` (claim accept
+accuracy, macro-F1 proxy, fresh tool-ref citation rate, tool
+contradiction rejection rate, evidence-ref precision/recall,
+official-field leak count); per-case audit logs land at
+`<out>/audit/<case_id>/` to keep calibration runs out of
+`.oida/tool-gateway/audit/`; new
+`datasets/gateway_holdout_public_v1/` ships 8 fully-committed
+synthetic cases (the seven mandatory from QA/A31 §5.4-B plus
+one `claim_supported_no_tool_needed` sentinel) — every case
+directory carries 11 required files + optional executor.json
++ per-case README; cases exercise the happy path
+(tool_needed_then_supported), tool-contradiction rejection
+(tool_failed_contradicts_claim), 5.2.1-B blockers
+(tool_requested_but_blocked + hash_drift_quarantine),
+prompt-injection-as-data (prompt_injection_in_tool_output),
+observability claim demotion (negative_path_missing), and
+SWE-bench F2P/P2P discipline preserved semantically via
+canned executor stdout (f2p_p2p_regression); new
+`decision_summary.json` artifact with 5-value recommendation
+Literal (`integrate_opt_in` / `revise_prompts` /
+`revise_labels` / `revise_tool_policy` / `insufficient_data`)
+and `recommendation_diagnostic_only=true` flag — pilot run
+on the 8-case slate shows positive secondary deltas
+(claim_macro_f1_delta=+0.6667, evidence_ref_precision_delta=+0.3333,
+evidence_ref_recall_delta=+0.2,
+tool_contradiction_rejection_rate_delta=+0.4,
+fresh_tool_ref_citation_rate=0.5) but
+`recommendation=insufficient_data` because n=8 is below the
+12-case threshold; failure analysis Markdown table extended
+with `actual_delta` + `label_change_proposed` columns and a
+new `tool_request_policy_gap` classification (8 total); NO
+automatic label mutation — runner is read-only over BOTH
+public and private datasets (`test_runner_does_not_mutate_public_holdout`
+mtime-snapshots both); `gateway-calibration.yml` workflow
+updated to point at the public dataset, asserts SIX expected
+artifacts (added `decision_summary.json`), runs an inline
+`official_field_leak_count == 0` gate, uploads via
+`actions/upload-artifact@v4`; 23 new tests including 4
+audit-log review tests
+(`test_every_gateway_case_writes_audit_log`,
+`test_blocked_tool_call_has_audit_event`,
+`test_quarantined_tool_call_has_audit_event`,
+`test_audit_log_contains_no_secret_like_values`) and 4
+anti-MCP locks reaffirming the chain
+(ADR-39, Phase 5.4).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -251,7 +302,23 @@ runner + failure analysis 6 tests including
 no-MCP regression locks 4 tests; 5.3-H workflow 6 tests
 including `test_gateway_calibration_workflow_no_sarif_upload`);
 ADR-38 logged;
-**763 passed, 4 skipped (V2 placeholder + 2 Phase-4
+Phase 5.4 +23 tests in
+`tests/test_phase5_4_real_calibration.py` covering 7
+sub-blocks (5.4-A public dataset present + cases loadable 3
+tests including `test_public_holdout_every_case_has_full_fixture`;
+5.4-B mandatory cases present 1 test; 5.4-C decision_summary
+schema 5 tests including
+`test_decision_summary_recommendation_is_literal` +
+`test_public_holdout_runs_with_zero_insufficient_fixture`;
+5.4-D failure analysis 2 tests; 5.4-E audit log review 5
+tests; 5.4-F workflow 2 tests; 5.4-G no-MCP locks 4 tests
+including `test_action_yml_does_not_default_enable_tool_gateway_true`)
+plus 1 anti-mutation invariant test
+(`test_runner_does_not_mutate_public_holdout`); plus 2
+Phase-5.3 test updates aligning with the schema extension
+(extended failure_analysis columns + 8th classification);
+ADR-39 logged;
+**786 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain

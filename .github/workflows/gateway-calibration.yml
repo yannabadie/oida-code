@@ -54,25 +54,36 @@ jobs:
       - name: Install oida-code (dev extras)
         run: python -m pip install -e ".[dev]"
 
-      - name: Run gateway calibration on the v2 example manifest
+      - name: Run gateway calibration on the public runnable subset
         env:
           NO_COLOR: "1"
           PYTHONIOENCODING: "utf-8"
         run: |
           python scripts/run_gateway_calibration.py \
-            --manifest datasets/private_holdout_v2/manifest.example.json \
+            --manifest datasets/gateway_holdout_public_v1/manifest.json \
             --mode replay \
             --out .oida/gateway-calibration
 
-      - name: Verify the four expected artifacts exist
+      - name: Verify the six expected artifacts exist
         run: |
           for f in baseline_metrics.json gateway_metrics.json \
-                   delta_metrics.json failure_analysis.md \
-                   artifact_manifest.json; do
+                   delta_metrics.json decision_summary.json \
+                   failure_analysis.md artifact_manifest.json; do
             test -f .oida/gateway-calibration/$f || (
               echo "missing artifact: $f"; exit 1
             )
           done
+
+      - name: Assert no official-field leak across modes
+        run: |
+          python -c "
+          import json, sys
+          ds = json.load(open('.oida/gateway-calibration/decision_summary.json'))
+          if ds.get('official_field_leak_count', 0) != 0:
+              print(f'official field leak detected: {ds}', file=sys.stderr)
+              sys.exit(1)
+          print('official_field_leak_count == 0 (ok)')
+          "
 
       - name: Upload calibration artifacts
         uses: actions/upload-artifact@v4

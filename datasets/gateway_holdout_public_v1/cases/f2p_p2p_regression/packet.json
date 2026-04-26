@@ -1,0 +1,19 @@
+{
+  "event_id": "evt-1",
+  "allowed_fields": [
+    "capability",
+    "benefit",
+    "observability"
+  ],
+  "intent_summary": "ship feature with passing tests",
+  "evidence_items": [
+    {
+      "id": "[E.event.1]",
+      "kind": "event",
+      "summary": "feature event captured from intent doc",
+      "source": "ticket",
+      "confidence": 0.9
+    }
+  ],
+  "deterministic_estimates": []
+}

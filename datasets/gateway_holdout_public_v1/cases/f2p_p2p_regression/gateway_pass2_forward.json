@@ -1,0 +1,22 @@
+{
+  "event_id": "evt-1",
+  "supported_claims": [
+    {
+      "claim_id": "C.fix",
+      "event_id": "evt-1",
+      "claim_type": "capability_sufficient",
+      "statement": "fix lands without regression",
+      "confidence": 0.55,
+      "evidence_refs": [
+        "[E.event.1]",
+        "[E.tool.pytest.1]"
+      ],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [],
+  "requested_tools": []
+}

@@ -1,0 +1,9 @@
+{
+  "event_id": "evt-1",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [],
+  "requested_tools": []
+}
