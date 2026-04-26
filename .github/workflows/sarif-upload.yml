@@ -1,10 +1,13 @@
 # Phase 4.6-D (QA/A23.md, ADR-31) — SARIF upload smoke.
+# Phase 4.7.0 (QA/A24.md, ADR-32) — bumped uploader to v4.
 #
 # Manual trigger only: `gh workflow run sarif-upload.yml` (or via the
 # Actions UI). The workflow runs `oida-code audit --format sarif`,
-# then uploads via `github/codeql-action/upload-sarif@v3` to GitHub
+# then uploads via `github/codeql-action/upload-sarif@v4` to GitHub
 # Code Scanning. This is the surface Phase 4.5 explicitly listed as
-# "structurally validated, not yet exercised against ingestion".
+# "structurally validated, not yet exercised against ingestion";
+# Phase 4.6 closed the ingestion gap, Phase 4.7.0 closes the action-
+# version gap (v3 deprecated December 2026).
 #
 # Hard rules:
 #   * default `permissions: contents: read`
@@ -66,8 +69,12 @@ jobs:
             --format sarif \
             --out .oida/report.sarif \
             --fail-on none
+      # Phase 4.7.0 (QA/A24.md, ADR-32): bumped to v4 — GitHub
+      # announced v3 sunset for December 2026 and v4 ships with Node
+      # 24 native runtime. The interface for `sarif_file` + `category`
+      # is unchanged across the bump.
       - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: .oida/report.sarif
           category: oida-code
