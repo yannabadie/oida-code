@@ -50,6 +50,17 @@ on:
           no cap (NOT recommended for the first few runs).
         required: true
         default: "4"
+      model:
+        description: |
+          Optional model id override. Empty string = use the
+          profile's default_model. For DeepSeek today (2026-04-26)
+          the available ids are `deepseek-v4-pro` (default,
+          max-capability) and `deepseek-v4-flash` (cheaper). The
+          legacy `deepseek-chat` / `deepseek-reasoner` aliases will
+          be discontinued 2026-07-24 per DeepSeek's official
+          changelog.
+        required: false
+        default: ""
       compare-replay:
         description: |
           When `true` (default), the replay baseline runs FIRST and
@@ -86,6 +97,7 @@ jobs:
       PROVIDER_PROFILE: ${{ inputs.provider-profile }}
       MAX_PROVIDER_CASES: ${{ inputs.max-provider-cases }}
       COMPARE_REPLAY: ${{ inputs.compare-replay }}
+      MODEL: ${{ inputs.model }}
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
       KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
       MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
@@ -145,12 +157,17 @@ jobs:
           # The CLI's existing 4.4 guard rejects an unset key with a
           # clear LLMProviderUnavailable; we don't re-check here to
           # avoid touching the secret value in bash.
+          EXTRA=()
+          if [[ -n "${MODEL:-}" ]]; then
+            EXTRA+=("--model" "$MODEL")
+          fi
           python -m oida_code.cli calibration-eval datasets/calibration_v1 \
             --llm-provider openai-compatible \
             --provider-profile "$PROVIDER_PROFILE" \
             --api-key-env "$API_KEY_ENV_NAME" \
             --max-provider-cases "$MAX_PROVIDER_CASES" \
-            --out ".oida/provider-baseline/$PROVIDER_PROFILE"
+            --out ".oida/provider-baseline/$PROVIDER_PROFILE" \
+            "${EXTRA[@]}"
 
       # Render a tiny redacted summary alongside metrics.json. Phase
       # 4.7 explicitly forbids storing the raw prompt or raw provider

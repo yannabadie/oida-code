@@ -65,11 +65,22 @@ class ProviderProfile(BaseModel):
 
 
 _PREDEFINED: dict[ProviderName, ProviderProfile] = {
+    # Phase 4.7 (QA/A24.md): default bumped from `deepseek-chat` to
+    # `deepseek-v4-pro` because (a) DeepSeek announced legacy model
+    # name deprecation on 2026-07-24 — `deepseek-chat` currently
+    # aliases to `deepseek-v4-flash` and stops working entirely after
+    # that date; (b) the operator's explicit choice for the Phase 4.7
+    # baseline run is V4 Pro (max-capability, OpenAI-format Chat
+    # Completions, 1M context, thinking + non-thinking modes, JSON
+    # output, tool calls). Base URL `https://api.deepseek.com/v1` is
+    # unchanged. Flash is a cheaper alternative for cost-sensitive
+    # operators; override via `--model deepseek-v4-flash` when
+    # invoking the CLI.
     "deepseek": ProviderProfile(
         name="deepseek",
         base_url="https://api.deepseek.com/v1",
         api_key_env="DEEPSEEK_API_KEY",
-        default_model="deepseek-chat",
+        default_model="deepseek-v4-pro",
         supports_json_mode=True,
     ),
     "kimi": ProviderProfile(
