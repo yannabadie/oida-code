@@ -4,7 +4,16 @@ QA directive: `QA/A32.md` (2026-04-27).
 ADR: ADR-40 (`memory-bank/decisionLog.md`).
 Status at end of phase: **36 / 36** acceptance criteria green;
 quality gates clean (ruff + mypy + pytest, 824 passed / 4
-skipped, was 786/4 before Phase 5.5 — exactly +38 new tests).
+skipped, was 786/4 before Phase 5.5 — exactly +38 new tests);
+all five GitHub-hosted runs green on commit `23017cb`:
+
+| Workflow | Run ID | Wall time |
+|---|---|---|
+| ci | 24965538661 | 1m25s |
+| action-smoke | 24965538659 | 1m03s |
+| provider-baseline-node24-smoke | 24965538667 | 25s |
+| gateway-grounded-smoke | 24965538670 | 31s |
+| gateway-calibration | 24965538668 | 22s |
 
 ## 1. Diff résumé
 
@@ -416,10 +425,10 @@ green in production for an operator-defined soak window.
 |---|---|
 | ruff (full curated CI scope incl. `scripts/_build_phase5_5_cases.py`) | clean |
 | mypy (same set) | clean (92 source files) |
-| pytest full suite | 821 passed / 4 skipped (was 786/4 — exactly +35 new tests) |
+| pytest full suite | 824 passed / 4 skipped (was 786/4 — exactly +38 new tests) |
 | `tests/test_phase5_5_holdout_expansion.py` | 36 / 36 passing |
 | Phase 5.4 audit-log canaries | 2 / 2 passing |
-| GitHub-hosted CI runs | (recorded in the follow-up commit once landed) |
+| GitHub-hosted CI runs | all five green on commit `23017cb` — ci (24965538661, 1m25s), action-smoke (24965538659, 1m03s), provider-baseline-node24-smoke (24965538667, 25s), gateway-grounded-smoke (24965538670, 31s), gateway-calibration (24965538668, 22s) |
 
 ## Honesty statement
 
