@@ -1309,6 +1309,183 @@ def verify_claims_cmd(
     out.write_text(text, encoding="utf-8")
 
 
+@app.command("verify-grounded")
+def verify_grounded_cmd(
+    packet_path: Annotated[
+        Path,
+        typer.Argument(
+            help="Path to an LLMEvidencePacket JSON.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    forward_replay_1: Annotated[
+        Path,
+        typer.Option(
+            "--forward-replay-1",
+            help="Forward verifier replay JSON for pass 1.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    backward_replay_1: Annotated[
+        Path,
+        typer.Option(
+            "--backward-replay-1",
+            help="Backward verifier replay JSON for pass 1.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    forward_replay_2: Annotated[
+        Path,
+        typer.Option(
+            "--forward-replay-2",
+            help="Forward verifier replay JSON for pass 2.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    backward_replay_2: Annotated[
+        Path,
+        typer.Option(
+            "--backward-replay-2",
+            help="Backward verifier replay JSON for pass 2.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    tool_policy_path: Annotated[
+        Path,
+        typer.Option(
+            "--tool-policy",
+            help="ToolPolicy JSON to enforce for every gateway call.",
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    approved_tools_path: Annotated[
+        Path,
+        typer.Option(
+            "--approved-tools",
+            help=(
+                "Operator-signed ToolAdmissionRegistry. Pass-1 "
+                "tool requests for tools NOT in this registry are "
+                "blocked, never executed."
+            ),
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    gateway_definitions_path: Annotated[
+        Path,
+        typer.Option(
+            "--gateway-definitions",
+            help=(
+                "JSON object mapping ToolName → "
+                "GatewayToolDefinition. Phase 5.2 ships builtins "
+                "but accepts an external map for parity."
+            ),
+            exists=True, file_okay=True, dir_okay=False,
+        ),
+    ],
+    audit_log_dir: Annotated[
+        Path,
+        typer.Option(
+            "--audit-log-dir",
+            help=(
+                "Per-day per-tool JSONL audit log directory. "
+                "Default: .oida/tool-gateway/audit"
+            ),
+        ),
+    ] = Path(".oida/tool-gateway/audit"),
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help="Where to write GatewayGroundedVerifierRun JSON.",
+        ),
+    ] = Path(".oida/verifier/grounded_report.json"),
+    max_tool_calls: Annotated[
+        int,
+        typer.Option(
+            "--max-tool-calls",
+            help="Per-run cap on gateway invocations (default 5).",
+            min=1, max=50,
+        ),
+    ] = 5,
+) -> None:
+    """Phase 5.2 (ADR-37): two-pass gateway-grounded verifier.
+
+    Forward proposes tool requests in pass 1. Each request is
+    routed through the local deterministic tool gateway
+    (admission + fingerprinting + audit log + sandbox). Tool
+    evidence is appended to a new packet; pass 2 validates
+    claims against the enriched evidence. Phase 5.2 does NOT
+    enable MCP, JSON-RPC, provider tool-calling, or any external
+    tool runtime.
+    """
+    from oida_code.estimators.llm_prompt import LLMEvidencePacket
+    from oida_code.verifier.gateway_loop import (
+        run_gateway_grounded_verifier,
+    )
+    from oida_code.verifier.replay import (
+        FileReplayVerifierProvider,
+    )
+    from oida_code.verifier.tool_gateway.contracts import (
+        GatewayToolDefinition,
+        ToolAdmissionRegistry,
+    )
+    from oida_code.verifier.tool_gateway.gateway import (
+        LocalDeterministicToolGateway,
+    )
+    from oida_code.verifier.tools.contracts import ToolPolicy
+
+    packet = LLMEvidencePacket.model_validate_json(
+        packet_path.read_text(encoding="utf-8"),
+    )
+    tool_policy = ToolPolicy.model_validate_json(
+        tool_policy_path.read_text(encoding="utf-8"),
+    )
+    registry = ToolAdmissionRegistry.model_validate_json(
+        approved_tools_path.read_text(encoding="utf-8"),
+    )
+    raw_definitions = json.loads(
+        gateway_definitions_path.read_text(encoding="utf-8"),
+    )
+    if not isinstance(raw_definitions, dict):
+        _fail(
+            "--gateway-definitions JSON MUST be an object mapping "
+            "tool name → GatewayToolDefinition",
+        )
+    definitions = {
+        name: GatewayToolDefinition.model_validate(payload)
+        for name, payload in raw_definitions.items()
+    }
+    gateway = LocalDeterministicToolGateway()
+    run = run_gateway_grounded_verifier(
+        packet,
+        forward_pass1=FileReplayVerifierProvider(
+            fixture_path=forward_replay_1,
+        ),
+        backward_pass1=FileReplayVerifierProvider(
+            fixture_path=backward_replay_1,
+        ),
+        forward_pass2=FileReplayVerifierProvider(
+            fixture_path=forward_replay_2,
+        ),
+        backward_pass2=FileReplayVerifierProvider(
+            fixture_path=backward_replay_2,
+        ),
+        gateway=gateway,
+        tool_policy=tool_policy,
+        admission_registry=registry,
+        gateway_definitions=definitions,
+        audit_log_dir=audit_log_dir,
+        max_tool_calls=max_tool_calls,
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(run.model_dump_json(indent=2), encoding="utf-8")
+    typer.echo(
+        f"grounded-report={out} status={run.report.status} "
+        f"tool-calls={len(run.tool_results)} "
+        f"audit-log-dir={audit_log_dir}"
+    )
+
+
 @app.command("run-tools")
 def run_tools_cmd(
     requests_path: Annotated[

@@ -1,0 +1,20 @@
+{
+  "approved": [
+    {
+      "tool_id": "oida-code/pytest",
+      "status": "approved_read_only",
+      "reason": "operator-signed approval for the original definition (description = 'Run pytest (read-only).').",
+      "fingerprint": {
+        "tool_id": "oida-code/pytest",
+        "tool_name": "pytest",
+        "adapter_version": "0.4.0",
+        "description_sha256": "ce21ee3deb95061da9e5fb4f17dba3c7ff90fa5eb71fc52f1ce0eb4a47dee4fc",
+        "input_schema_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "output_schema_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "combined_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    }
+  ],
+  "quarantined": [],
+  "rejected": []
+}

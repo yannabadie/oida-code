@@ -1,0 +1,16 @@
+{
+  "event_id": "evt-loop",
+  "supported_claims": [
+    {
+      "claim_id": "C.cap",
+      "event_id": "evt-loop",
+      "claim_type": "capability_sufficient",
+      "statement": "feature satisfies its event-level intent",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.event.1]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "requested_tools": []
+}

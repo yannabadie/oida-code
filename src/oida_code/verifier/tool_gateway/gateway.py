@@ -103,6 +103,11 @@ class LocalDeterministicToolGateway:
 
         Failure modes (each emits one audit event):
 
+        * Mismatch between ``request.tool`` and
+          ``gateway_definition.tool_name`` → block (status
+          ``blocked``). 5.1.1 hardening — guards against a
+          mis-wired call where the caller fingerprints a ruff
+          definition but asks the engine to run pytest.
         * No approved decision for ``tool_id`` → block (status
           ``blocked``).
         * Hash drift vs. approved fingerprint → quarantine
@@ -116,6 +121,31 @@ class LocalDeterministicToolGateway:
           completeness.)*
         """
         observed = fingerprint_tool_definition(gateway_definition)
+
+        # Stage 0 (5.1.1 hardening): request.tool must equal
+        # gateway_definition.tool_name. Without this lock, a
+        # mis-wired caller could audit/fingerprint a ruff
+        # definition while the engine executes pytest because
+        # ``request.tool`` says so.
+        if request.tool != gateway_definition.tool_name:
+            reason = (
+                "request.tool != gateway_definition.tool_name "
+                f"(got {request.tool!r} vs "
+                f"{gateway_definition.tool_name!r})"
+            )
+            event = build_audit_event(
+                tool_id=gateway_definition.tool_id,
+                tool_name=gateway_definition.tool_name,
+                fingerprint=observed,
+                requested_by=requested_by,
+                request_summary=_summarise_request(request),
+                allowed=False,
+                policy_decision="block",
+                reason=reason,
+                case_id=case_id,
+            )
+            append_audit_event(event, audit_log_dir)
+            return self._blocked_result(request, reason)
 
         # Stage 1: registry lookup.
         approved = self._lookup_approved(
@@ -247,10 +277,17 @@ class LocalDeterministicToolGateway:
         *,
         runtime_ms: int = 0,
     ) -> VerifierToolResult:
+        # 5.1.1 hardening — the gateway-loop integrator (Phase
+        # 5.2) treats VerifierToolResult.blockers as a hard
+        # blocker on the corresponding claim. Populating BOTH
+        # warnings and blockers gives operator-facing tooling
+        # the human-readable signal AND gives the loop the
+        # machine-readable one.
         return VerifierToolResult(
             tool=request.tool,
             status="blocked",
             warnings=(reason,),
+            blockers=(reason,),
             runtime_ms=runtime_ms,
         )
 

@@ -1,0 +1,13 @@
+{
+  "event_id": "evt-loop",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "requested_tools": [
+    {
+      "tool": "ruff",
+      "purpose": "lint scope outside the repo root",
+      "expected_evidence_kind": "tool_finding",
+      "scope": ["../etc/passwd"]
+    }
+  ]
+}

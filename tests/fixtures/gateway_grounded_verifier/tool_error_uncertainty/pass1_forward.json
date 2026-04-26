@@ -1,0 +1,13 @@
+{
+  "event_id": "evt-loop",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "requested_tools": [
+    {
+      "tool": "pytest",
+      "purpose": "re-run pytest",
+      "expected_evidence_kind": "test_result",
+      "scope": ["tests/"]
+    }
+  ]
+}

@@ -69,6 +69,16 @@ inputs:
       non-authoritative by ADR-22 / ADR-23.
     required: false
     default: "false"
+  enable-tool-gateway:
+    description: |
+      RESERVED / EXPERIMENTAL (Phase 5.2, QA/A29.md, ADR-37). The
+      input is accepted for forward-compatibility but the action
+      body deliberately keeps it OFF — the gateway-grounded
+      verifier (`oida-code verify-grounded`) is invoked only by
+      operators outside the default audit path. Phase 5.2 does
+      NOT enable MCP, JSON-RPC, or any provider tool-calling.
+    required: false
+    default: "false"
   llm-provider:
     description: |
       Phase 4.4.1 / 4.5: provider for the optional `llm_estimator`

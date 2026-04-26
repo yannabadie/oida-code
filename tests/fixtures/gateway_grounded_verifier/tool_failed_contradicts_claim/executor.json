@@ -1,0 +1,7 @@
+{
+  "returncode": 1,
+  "stdout": "FAILED tests/test_feature.py::test_payment_capture_idempotent\n=== 1 failed, 4 passed in 0.5s ===",
+  "stderr": "",
+  "timed_out": false,
+  "runtime_ms": 18
+}

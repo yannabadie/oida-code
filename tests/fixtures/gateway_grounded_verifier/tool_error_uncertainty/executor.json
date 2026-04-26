@@ -1,0 +1,7 @@
+{
+  "returncode": 2,
+  "stdout": "ERROR collecting tests/test_feature.py — unable to import module",
+  "stderr": "ImportError: No module named 'feature_under_test'",
+  "timed_out": false,
+  "runtime_ms": 8
+}

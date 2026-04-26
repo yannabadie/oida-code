@@ -122,6 +122,11 @@ class ForwardVerificationResult(BaseModel):
     conclusions can I support?". It does NOT enumerate what would
     be required to support a hypothetical claim — that's the
     backward verifier's job.
+
+    Phase 5.2 (ADR-37): the forward agent may also request that
+    a deterministic tool be re-run via the local gateway through
+    ``requested_tools``. Phase 4.1 replay fixtures predate the
+    field, so the default is the empty tuple.
     """
 
     model_config = ConfigDict(
@@ -134,6 +139,7 @@ class ForwardVerificationResult(BaseModel):
     missing_evidence_refs: tuple[str, ...] = ()
     contradictions: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    requested_tools: tuple[VerifierToolCallSpec, ...] = ()
 
 
 class BackwardRequirement(BaseModel):

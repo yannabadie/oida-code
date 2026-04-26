@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -65,7 +65,32 @@ including 6 no-MCP regression locks (no `tools/list` /
 pydantic_ai`; no remote-transport imports under the
 gateway package); `Literal[False]` pins on
 `requires_network` and `allows_write` make write/network
-tools structurally unrepresentable (ADR-36, Phase 5.1).**
+tools structurally unrepresentable (ADR-36, Phase 5.1);
+gateway-grounded verifier loop shipped — Phase 5.1.1
+hardening (`request.tool == gateway_definition.tool_name`
+locked + blocked results populate `blockers` alongside
+`warnings`); `ForwardVerificationResult.requested_tools`
+field added with empty-tuple default for replay backward-
+compat; new module `src/oida_code/verifier/gateway_loop.py`
+(~340 LOC) with `tool_request_from_spec` mapper (no argv
+from LLM, scope verbatim, purpose length-bounded),
+`deterministic_estimates_from_tool_result` (failed → one
+negative tool estimate; error/timeout/tool_missing/blocked →
+uncertainty), and `run_gateway_grounded_verifier` two-pass
+runner with `max_tool_calls=5` and pass-2 citation rule
+(claim demoted to unsupported when tools ran but the claim
+doesn't cite any new `[E.tool_output.*]` ref); new CLI
+subcommand `oida-code verify-grounded`; `enable-tool-gateway`
+reserved input added to `action.yml` with default `"false"`
+(verify-grounded is NOT the default audit path); 8 hermetic
+fixtures under `tests/fixtures/gateway_grounded_verifier/`;
+new replay-only `gateway-grounded-smoke.yml` workflow on
+`workflow_dispatch`+push-to-main with `permissions:
+contents: read`; 45 new tests including
+`test_gateway_loop_is_not_mcp` regression lock that the new
+module's body cannot reference `modelcontextprotocol` /
+`mcp.server` / `stdio_server` / `json_rpc` / `jsonrpc`
+(ADR-37, Phase 5.2).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -160,7 +185,22 @@ no-official-fields; 5.1-G no-MCP regression locks 6 tests
 including no `import mcp`/`pydantic_ai`, no `tools/list`/
 `tools/call` JSON-RPC strings, no remote-transport imports);
 ADR-36 logged;
-**685 passed, 4 skipped (V2 placeholder + 2 Phase-4
+Phase 5.2 +45 tests in
+`tests/test_phase5_2_gateway_grounded_verifier.py` covering
+9 sub-blocks (5.1.1 hardening with 4 tests including
+`test_gateway_blocks_request_tool_definition_mismatch` and
+`test_gateway_adapter_exception_sets_blockers`; 5.2-A
+forward-result `requested_tools` field with default empty
+tuple; 5.2-B mapper rejecting argv/shell fields; 5.2-C
+two-pass runner with citation enforcement; 5.2-D
+deterministic estimate mapping (failed → negative; error/
+timeout/tool_missing/blocked → uncertainty); 5.2-E CLI
+`verify-grounded` 6 tests including
+`test_action_enable_tool_gateway_default_false`; 5.2-F 5
+fixture-driven tests; 5.2-G 4 workflow tests; 5.2-H 5
+no-MCP regression locks including `test_gateway_loop_is_not_mcp`);
+ADR-37 logged;
+**730 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain

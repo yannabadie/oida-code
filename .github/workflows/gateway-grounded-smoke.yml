@@ -1,0 +1,58 @@
+# Phase 5.2 (QA/A29.md, ADR-37) — gateway-grounded verifier
+# replay-only smoke.
+#
+# Exercises `oida-code verify-grounded` end-to-end with replay
+# fixtures only. There is NO live LLM provider, NO live tool
+# subprocess (the executor is the deterministic ruff/pytest
+# adapter scoped to a tiny in-repo file), and NO MCP.
+#
+# Hard rules (ADR-37):
+#   * default `permissions: contents: read`
+#   * NO `pull_request_target`
+#   * NO secrets consumed (replay only)
+#   * NO external provider
+#   * NO MCP / JSON-RPC
+#   * NO network egress
+#   * runs on workflow_dispatch or push to main only
+name: gateway-grounded-smoke
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gateway-grounded-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  replay-smoke:
+    name: gateway-grounded verifier replay smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install oida-code (dev extras)
+        run: python -m pip install -e ".[dev]"
+
+      - name: Run gateway-grounded verifier replay tests
+        env:
+          NO_COLOR: "1"
+          PYTHONIOENCODING: "utf-8"
+        run: |
+          python -m pytest tests/test_phase5_2_gateway_grounded_verifier.py -q

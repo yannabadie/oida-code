@@ -1,0 +1,13 @@
+[
+  {
+    "event_id": "evt-loop",
+    "claim_id": "C.tests_pass",
+    "requirement": {
+      "claim_id": "C.tests_pass",
+      "required_evidence_kinds": ["event", "test_result"],
+      "satisfied_evidence_refs": ["[E.event.1]", "[E.tool_output.0]"],
+      "missing_requirements": []
+    },
+    "necessary_conditions_met": true
+  }
+]
