@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 complete + Phase 4.7 partially accepted — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -18,9 +18,9 @@ and replay default (ADR-30); real-runner / operator smoke shipped
 with Node 24 compat job, composite action consumer smoke, and
 SARIF upload to GitHub Code Scanning all green on real runners
 (ADR-31, Phase 4.6); provider regression baseline workflow
-shipped + SARIF uploader bumped to v4 (ADR-32, Phase 4.7) —
-empirical provider run remains `not_run` until operator API
-budget is allocated.**
+shipped + SARIF uploader bumped to v4 + DeepSeek V4 Pro real
+provider regression run green on real runner with zero contract
+violations (ADR-32, Phase 4.7).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -62,8 +62,11 @@ analyses ingested into GitHub Code Scanning); Phase 4.7 17
 invariant tests on SARIF v4 + provider-baseline workflow + no
 MCP / no provider tool-calling; SARIF v4 upload green on commit
 c49a155 (sarif_id 11ad3390-…, ruff 125 results, mypy 221
-results); provider regression real run `not_run` (no API budget
-allocated; per QA/A24.md criterion 12);
+results); DeepSeek V4 Pro provider regression real run green
+on commit c1a39b8 (run id 24953163352, 4 provider calls,
+official_field_leak_count == 0, 0 schema violations / 0 missing
+citations / 0 forbidden phrases / 0 timeouts; accuracy delta vs
+replay captured as data, not as verdict);
 `validate_github_workflows.py` green;
 **558 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
@@ -93,7 +96,7 @@ in its first step, gates SARIF upload on
 SARIF / calibration-metrics — none carry `total_v_net` /
 `debt_final` / `corrupt_success` (ADR-22 hard wall).**
 
-**Phase 4.7 provider regression baseline (partially accepted —
+**Phase 4.7 provider regression baseline (fully accepted —
 ADR-32). New workflow `.github/workflows/provider-baseline.yml`
 ships `workflow_dispatch` only (no push/pull_request/schedule),
 with workflow + job permissions held to `contents: read`, replay
@@ -107,10 +110,12 @@ prompt, no raw provider response). SARIF uploader bumped from
 `@v3` to `@v4` (v3 deprecated December 2026); v4 ingestion
 confirmed live on commit c49a155 (sarif_id
 `11ad3390-414e-11f1-86c6-63dd82cf10f5`). 17 new tests including
-2 anti-MCP / anti-tool-calling locks. The empirical provider
-regression run remains `not_run` until operator API budget is
-allocated — per QA/A24.md acceptance criterion 12, Phase 4.7 is
-NOT marked fully accepted until that run lands.**
+2 anti-MCP / anti-tool-calling locks. DeepSeek V4 Pro real
+provider regression baseline green end-to-end on run id
+24953163352 (commit c1a39b8): 4 provider calls,
+`official_field_leak_count == 0`, contract clean, accuracy
+delta vs replay captured as data per ADR-28 (NOT as a verdict
+on the provider).**
 
 **Phase 4.6 real-runner / operator smoke shipped (ADR-31). Three
 new workflows, all green on real GitHub-hosted runners:

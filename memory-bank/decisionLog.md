@@ -193,24 +193,31 @@ provider run lands green per QA/A24.md acceptance criterion 12.
 * faking the provider regression baseline result — Phase 4.7
   ships partially accepted until a real provider run lands
 
-**Outcome:** 23/24 acceptance criteria from QA/A24.md met
-structurally — the 24th (real-runner provider-baseline run is
-green) is `not_run` with explicit reason. 17 new tests in
-`tests/test_phase4_7_provider_baseline.py` (3 SARIF v4, 12
-provider-baseline structural, 2 anti-MCP/tool-calling). One
-real-runner run green: sarif-upload v4 (id 24952767492). Three
-real-runner runs from the structural commit also green: ci on
-c49a155 (id 24952744508), action-smoke on c49a155 (id
-24952744506), sarif-upload on c49a155 (id 24952767492). Full
-suite **558 passed + 4 skipped** (V2 placeholder + 2 Phase-4
-observability markers + 1 optional external smoke). ruff +
-mypy clean. ADR-22 + ADR-25..31 + ADR-32 all hold; production
-CLI and the composite action emit no `V_net` / `debt_final` /
+**Outcome:** **24/24** acceptance criteria from QA/A24.md met.
+17 new tests in `tests/test_phase4_7_provider_baseline.py` (3
+SARIF v4, 12 provider-baseline structural, 2 anti-MCP/tool-
+calling). FOUR real-runner runs green: ci on c49a155 (id
+24952744508), action-smoke on c49a155 (id 24952744506), sarif-
+upload v4 on c49a155 (id 24952767492), and provider-baseline
+DeepSeek V4 Pro on c1a39b8 (id 24953163352). The provider
+regression baseline run was made possible by commit c1a39b8
+which (a) bumped the DeepSeek default model from the soon-to-
+be-deprecated `deepseek-chat` to `deepseek-v4-pro` (DeepSeek
+announced 2026-07-24 sunset for the legacy aliases) and (b)
+added a `model` workflow input. The empirical run produced:
+`official_field_leak_count == 0` (gate clean), 4 provider
+calls (no skips, no timeouts, no provider_unavailable), 0
+schema violations, 0 missing citations, 0 forbidden phrases.
+Accuracy delta vs replay (-0.25 status accuracy, -0.5 estimate
+accuracy) captured as DATA for Phase 4.8 — explicitly NOT a
+verdict on the provider per ADR-28 + ADR-32. Full suite **558
+passed + 4 skipped** (V2 placeholder + 2 Phase-4 observability
+markers + 1 optional external smoke). ruff + mypy clean. ADR-
+22 + ADR-25..31 + ADR-32 all hold; production CLI and the
+composite action emit no `V_net` / `debt_final` /
 `corrupt_success`. Report:
 `reports/phase4_7_provider_regression_baseline.md`. Phase 4.7
-status: **partially accepted** (structural complete; empirical
-provider run pending API-budget allocation per acceptance
-criterion 12).
+status: **fully accepted**.
 
 [2026-04-29 03:00:00] - **ADR-31: Real-runner / operator smoke before MCP / tool-calling.**
 
