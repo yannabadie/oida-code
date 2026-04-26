@@ -1,4 +1,5 @@
-"""Phase 4.8-B (QA/A25.md, ADR-33) — provider/replay label audit.
+"""Phase 4.8-B + 4.9-E (QA/A25.md + QA/A26.md, ADR-33 + ADR-34) —
+provider/replay label audit.
 
 Reads the redacted provider I/O captured by
 ``oida-code calibration-eval --store-redacted-provider-io`` and
@@ -10,6 +11,7 @@ Output: ``reports/provider_label_audit_l001_l008.md`` (default).
 
 Classification per (case, expected_estimate label):
 
+* ``match`` — provider observation matches the label.
 * ``label_too_strict`` — the provider returned a value/status the
   current label rejects, but the value is plausibly correct
   (operator should consider widening the label).
@@ -21,11 +23,31 @@ Classification per (case, expected_estimate label):
   the runner derives differently than the case expects.
 * ``contract_gap`` — the provider response lacks a field the case
   asserts on (missing estimate, missing evidence ref).
-* ``match`` — provider observation matches the label.
+* ``missing_capture`` — Phase 4.9-E: the redacted I/O for this
+  case is absent OR carries ``failure_kind != "success"``. With
+  Phase 4.9.0 every failure path now stashes redacted I/O, so a
+  ``missing_capture`` row tells the operator which provider call
+  failed and how.
 
-Hard rule (QA/A25 §4.8-B): no label change in this script. The
-output is documentation; any actual label edits go through a
-separate diff with written justification per case.
+Phase 4.9-E recommended-action column (one of):
+
+* ``label_too_strict`` → "propose label revision, but do not apply
+  automatically"
+* ``provider_wrong`` → "keep label, mark provider behaviour"
+* ``contract_gap`` → "improve prompt/contract or accept as
+  provider behaviour"
+* ``mapping_ambiguous`` → "review label semantics; possibly
+  re-anchor expected_status"
+* ``missing_capture`` → "rerun after Phase 4.9.0 failure-path
+  capture (see <case>.json failure_kind)"
+* ``match`` → "no action — the provider matches the label"
+
+Hard rule (QA/A25 §4.8-B + QA/A26 §4.9-E): no label change in
+this script. The output is documentation; any actual label edits
+go through a separate diff with written justification per case.
+The ``test_label_audit_never_changes_expected_labels_automatically``
++ ``test_label_audit_marks_label_changes_as_proposals`` invariants
+in tests/test_phase4_9_label_audit.py lock that contract.
 """
 
 from __future__ import annotations
@@ -125,16 +147,35 @@ def _audit_case(
     case_dir: Path,
     redacted_io_dir: Path | None,
 ) -> list[dict[str, Any]]:
-    """Return one row per expected_estimate label for ``case_id``."""
+    """Return one row per expected_estimate label for ``case_id``.
+
+    Phase 4.9-E: when the redacted_io capture is absent OR the
+    captured file's ``failure_kind != "success"``, every label row
+    is classified as ``missing_capture`` (for "absent") or has its
+    ``observed`` field annotated with the failure_kind (for
+    "non-success captured"). The operator can then act on the
+    failure_kind directly without having to open each JSON file."""
     expected = _load_json(case_dir / "expected.json")
     expected_status = expected.get("expected_estimator_status")
     expected_estimates = expected.get("expected_estimates") or []
     provider_response: dict[str, Any] | None = None
+    capture_status: str = "no-redacted-io-dir"
+    failure_kind: str | None = None
     if redacted_io_dir is not None:
         captured_path = redacted_io_dir / f"{case_id}.json"
-        if captured_path.is_file():
+        if not captured_path.is_file():
+            capture_status = "missing"
+        else:
             captured = _load_json(captured_path)
+            failure_kind = captured.get("failure_kind") or "success"
             body = captured.get("redacted_response_body")
+            # Phase 4.9-E — annotate downstream rather than crash
+            # when failure_kind != "success" (the response does NOT
+            # decode into the expected contract).
+            capture_status = (
+                f"failure:{failure_kind}"
+                if failure_kind != "success" else "success"
+            )
             if isinstance(body, str):
                 try:
                     full = json.loads(body)
@@ -152,8 +193,25 @@ def _audit_case(
     for label in expected_estimates:
         if not isinstance(label, dict):
             continue
-        classification, observed = _classify_estimate(
-            case_id, label, provider_response,
+        if capture_status == "missing":
+            classification = "missing_capture"
+            observed = (
+                "no <case_id>.json under --redacted-io-dir; "
+                "rerun with --store-redacted-provider-io"
+            )
+        elif capture_status.startswith("failure:"):
+            classification = "missing_capture"
+            observed = (
+                f"provider call failed (failure_kind="
+                f"{failure_kind!r}); inspect "
+                f"{case_id}.json to see the redacted body"
+            )
+        else:
+            classification, observed = _classify_estimate(
+                case_id, label, provider_response,
+            )
+        provider_value = _extract_provider_value(
+            provider_response, label.get("field"),
         )
         rows.append({
             "case_id": case_id,
@@ -165,10 +223,70 @@ def _audit_case(
             "required_evidence_refs": list(
                 label.get("required_evidence_refs") or (),
             ),
+            "provider_value": provider_value,
             "observed": observed,
             "classification": classification,
+            "action": _action_for_classification(classification),
         })
     return rows
+
+
+def _extract_provider_value(
+    provider_response: dict[str, Any] | None,
+    field: object,
+) -> str:
+    """Return a short human-readable summary of what the provider
+    returned for ``field`` (used in the new ``provider_value``
+    column added by Phase 4.9-E)."""
+    if provider_response is None or field is None:
+        return "—"
+    estimates = provider_response.get("estimates") or []
+    matching = [
+        e for e in estimates
+        if isinstance(e, dict) and e.get("field") == field
+    ]
+    if matching:
+        est = matching[0]
+        value = est.get("value")
+        confidence = est.get("confidence")
+        return f"value={value!r} conf={confidence!r}"
+    unsupported = provider_response.get("unsupported_claims") or []
+    for u in unsupported:
+        if isinstance(u, str) and isinstance(field, str) and field in u:
+            return f"unsupported: {u}"
+    return "(no estimate emitted)"
+
+
+# Phase 4.9-E — action recommendation per classification (QA/A26
+# §4.9-E lines 336-348). Locked by
+# `test_label_audit_action_recommendations_are_documented`.
+_ACTION_RECOMMENDATIONS: dict[str, str] = {
+    "match": (
+        "no action — the provider matches the label"
+    ),
+    "label_too_strict": (
+        "propose label revision, but do not apply automatically"
+    ),
+    "provider_wrong": (
+        "keep label, mark provider behaviour"
+    ),
+    "contract_gap": (
+        "improve prompt/contract or accept as provider behaviour"
+    ),
+    "mapping_ambiguous": (
+        "review label semantics; possibly re-anchor expected_status"
+    ),
+    "missing_capture": (
+        "rerun after Phase 4.9.0 failure-path capture "
+        "(see <case>.json failure_kind)"
+    ),
+}
+
+
+def _action_for_classification(classification: str) -> str:
+    return _ACTION_RECOMMENDATIONS.get(
+        classification, "(unknown classification — no recommendation)",
+    )
 
 
 def _render_report(
@@ -183,10 +301,11 @@ def _render_report(
     )
     lines.append("")
     lines.append(
-        "Phase 4.8-B (QA/A25.md, ADR-33). Read-only diagnosis — no "
-        "label changes are made by this script. Any actual label "
-        "edits land in a separate commit with written justification "
-        "per case."
+        "Phase 4.8-B + 4.9-E (QA/A25.md + QA/A26.md, ADR-33 + "
+        "ADR-34). **Read-only diagnosis** — no label changes are "
+        "made by this script. The ``action`` column carries a "
+        "PROPOSED action; any actual label edit lands in a "
+        "separate commit with written per-case justification."
     )
     lines.append("")
     lines.append("Classification key:")
@@ -199,14 +318,21 @@ def _render_report(
         "* `mapping_ambiguous` — response shape maps to a different "
         "status than the case expects.\n"
         "* `contract_gap` — provider response lacks a field the case "
-        "asserts on."
+        "asserts on.\n"
+        "* `missing_capture` — Phase 4.9-E: redacted I/O for the "
+        "case is absent OR ``failure_kind != \"success\"``."
     )
     lines.append("")
+    lines.append("Recommended-action key:")
+    lines.append("")
+    for classification, action in _ACTION_RECOMMENDATIONS.items():
+        lines.append(f"* `{classification}` → {action}")
+    lines.append("")
     lines.append(
-        "| case_id | field | expected_status | min/max | "
-        "required_refs | classification | observed |"
+        "| case_id | field | expected | min/max | required_refs | "
+        "provider_value | classification | action | observed |"
     )
-    lines.append("|---|---|---|---|---|---|---|")
+    lines.append("|---|---|---|---|---|---|---|---|---|")
     for r in rows:
         cap = (
             f"[{r['min_value']}, {r['max_value']}]"
@@ -217,7 +343,10 @@ def _render_report(
         lines.append(
             f"| {r['case_id']} | {r['field']} | "
             f"{r['expected_status']} | {cap} | {refs} | "
-            f"`{r['classification']}` | {r['observed']} |"
+            f"{r['provider_value']} | "
+            f"`{r['classification']}` | "
+            f"{r['action']} | "
+            f"{r['observed']} |"
         )
     lines.append("")
     counts: dict[str, int] = {}
@@ -227,6 +356,12 @@ def _render_report(
     lines.append("")
     for k in sorted(counts):
         lines.append(f"* `{k}`: {counts[k]}")
+    lines.append("")
+    lines.append(
+        "**Hard rule**: every `action` listed above is a PROPOSAL "
+        "for human review. This script never writes back to "
+        "`expected.json` files."
+    )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

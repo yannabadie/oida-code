@@ -73,8 +73,12 @@ jobs:
       # announced v3 sunset for December 2026 and v4 ships with Node
       # 24 native runtime. The interface for `sarif_file` + `category`
       # is unchanged across the bump.
+      # Phase 4.9-C (QA/A26.md, ADR-34): category bumped from
+      # `oida-code` to `oida-code/audit-sarif` so multiple SARIF
+      # uploads on the same commit (action.yml uses
+      # `oida-code/combined`) do not collide in Code Scanning.
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: .oida/report.sarif
-          category: oida-code
+          category: oida-code/audit-sarif

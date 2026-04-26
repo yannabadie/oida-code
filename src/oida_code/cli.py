@@ -605,6 +605,141 @@ def repair_cmd(
     )
 
 
+@app.command("build-artifact-manifest")
+def build_artifact_manifest_cmd(
+    bundle_root: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Root directory containing the artifacts to "
+                "manifest (e.g. `.oida` or `.oida/provider-baseline`). "
+                "Files are discovered recursively; the manifest "
+                "itself is excluded from its own hash list."
+            ),
+            exists=True, file_okay=False, dir_okay=True,
+        ),
+    ],
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            help=(
+                "Output path for the manifest. Default: "
+                "<bundle_root>/artifacts/manifest.json"
+            ),
+        ),
+    ] = None,
+    provider: Annotated[
+        str | None,
+        typer.Option(
+            "--provider",
+            help="Optional provider label to record in the manifest.",
+        ),
+    ] = None,
+    model: Annotated[
+        str | None,
+        typer.Option(
+            "--model",
+            help="Optional model id to record in the manifest.",
+        ),
+    ] = None,
+) -> None:
+    """Phase 4.9-F (QA/A26.md, ADR-34): build the artifact bundle
+    manifest.
+
+    Walks ``<bundle_root>``, classifies each artifact by filename /
+    parent-directory pattern, computes its SHA256, and writes an
+    :class:`ArtifactBundleManifest` to
+    ``<bundle_root>/artifacts/manifest.json`` (or the path passed
+    via ``--out``).
+
+    The manifest pins:
+
+    * ``mode = "diagnostic_only"`` (Literal — unrepresentable
+      otherwise)
+    * ``official_fields_emitted = False`` (Literal)
+    * ``contains_secrets = False`` per artifact (Literal)
+    """
+    from oida_code.models.artifact_manifest import (
+        build_manifest,
+        write_manifest,
+    )
+    if out is None:
+        manifest_relative_path = "artifacts/manifest.json"
+        path = write_manifest(
+            bundle_root,
+            provider=provider, model=model,
+            manifest_relative_path=manifest_relative_path,
+        )
+    else:
+        # When --out is absolute / outside bundle_root, build the
+        # manifest in-memory and write it where the operator asked.
+        manifest = build_manifest(
+            bundle_root, provider=provider, model=model,
+        )
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            manifest.model_dump_json(indent=2), encoding="utf-8",
+        )
+        path = out
+    typer.echo(f"manifest={path}")
+
+
+@app.command("render-artifacts")
+def render_artifacts_cmd(
+    input_dir: Annotated[
+        Path,
+        typer.Argument(
+            help=(
+                "Directory containing calibration-eval / provider-baseline "
+                "artifacts (metrics.json + optional per_case.json + "
+                "redacted_io/ + stability_summary.json)."
+            ),
+            exists=True, file_okay=False, dir_okay=True,
+        ),
+    ],
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help="Output file path for the rendered diagnostic Markdown.",
+        ),
+    ] = Path(".oida/diagnostic.md"),
+    fmt: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            help=(
+                "Output format. Phase 4.9-A only ships ``markdown``; "
+                "future phases may add ``json`` / ``sarif``."
+            ),
+        ),
+    ] = "markdown",
+) -> None:
+    """Phase 4.9-A (QA/A26.md, ADR-34): render diagnostic artifacts.
+
+    Reads the artifacts under ``<input-dir>`` and produces a
+    diagnostic-only Markdown report. The output ALWAYS:
+
+    * Opens with the diagnostic banner ("Diagnostic only — not a
+      merge verdict.").
+    * Shows ``total_v_net`` / ``debt_final`` / ``corrupt_success``
+      as ``blocked`` per ADR-22.
+    * Contains no merge-safe / production-safe / bug-free claims.
+    * References ``redacted_io/<file>.json`` paths but never the raw
+      prompt body.
+    """
+    from oida_code.report.diagnostic_report import write_diagnostic_markdown
+
+    if fmt != "markdown":
+        _fail(
+            f"render-artifacts: --format={fmt!r} is not supported. "
+            "Phase 4.9-A only ships 'markdown'.",
+        )
+    written = write_diagnostic_markdown(input_dir, out)
+    typer.echo(f"diagnostic-markdown={written}")
+
+
 @app.command("estimate-llm")
 def estimate_llm_cmd(
     packet_path: Annotated[
@@ -1205,12 +1340,30 @@ def calibration_eval_cmd(
     (out / "metrics.json").write_text(
         metrics.model_dump_json(indent=2), encoding="utf-8",
     )
+    # Phase 4.9-D (QA/A26.md, ADR-34) — emit a key=value file the
+    # composite GitHub Action can append to `$GITHUB_OUTPUT`. The
+    # `diagnostic-status` enum is constrained to four values
+    # (`blocked` / `contract_failed` / `contract_clean` /
+    # `diagnostic_only`); the FORBIDDEN values
+    # (`merge_safe` / `production_safe` / `verified`) are unreachable
+    # by static type — the Literal in `derive_diagnostic_status` would
+    # reject them at construction time.
+    from oida_code.report.diagnostic_report import derive_diagnostic_status
+    diagnostic_status = derive_diagnostic_status(metrics)
+    (out / "action_outputs.txt").write_text(
+        (
+            f"diagnostic-status={diagnostic_status}\n"
+            f"official-field-leaks={metrics.official_field_leak_count}\n"
+        ),
+        encoding="utf-8",
+    )
     typer.echo(
         f"cases_evaluated={metrics.cases_evaluated} "
         f"leaks={metrics.official_field_leak_count} "
         f"code_outcome_status={metrics.code_outcome_status} "
         f"estimator_evaluated={metrics.estimator_cases_evaluated} "
-        f"estimator_skipped={metrics.estimator_cases_skipped}"
+        f"estimator_skipped={metrics.estimator_cases_skipped} "
+        f"diagnostic_status={diagnostic_status}"
     )
     try:
         assert_no_official_field_leaks(metrics)

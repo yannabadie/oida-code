@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -26,7 +26,19 @@ extension (40 cases), label audit script, private holdout
 protocol, repeat-runs stability, pydantic-ai spike directory,
 multi-provider matrix (DeepSeek V4 Pro vs V4 Flash both green
 on 8 cases with `official_field_leak_count == 0` end-to-end)
-(ADR-33, Phase 4.8).**
+(ADR-33, Phase 4.8); artifact UX polish + failure-path
+diagnostics shipped — Phase 4.9.0 closes V4 Pro 6/8
+missing-capture gap (try/finally + 7-value FailureKind),
+Phase 4.9-A diagnostic Markdown renderer with banner / status
+card / blocked-official / negative-list backstop, Phase 4.9-B
+GitHub Step Summary polish, Phase 4.9-C SARIF category
+disambiguation (`oida-code/combined` + `oida-code/audit-sarif`),
+Phase 4.9-D action outputs (`diagnostic-status` enum +
+`official-field-leaks`), Phase 4.9-E label audit UX with
+recommended actions + `missing_capture` classification,
+Phase 4.9-F artifact bundle manifest with SHA256 hashes and
+three Literal pins (mode / official_fields_emitted /
+contains_secrets) (ADR-34, Phase 4.9).**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -79,7 +91,20 @@ sentinel-key assertion) + Node 24 replay smoke + workflow
 input wiring + README contradiction cleanup; multi-provider
 matrix runs green on real runner (DeepSeek V4 Pro 8×2 stability
 run id 24954088672, DeepSeek V4 Flash 8×1 run id 24954298728);
-**575 passed, 4 skipped (V2 placeholder + 2 Phase-4
+Phase 4.9 +48 tests covering Phase 4.9.0 failure-path
+redacted I/O (6 new sentinel-key tests, V4 Pro 6/8 gap closed
+at source via try/finally + 7-value FailureKind), Phase 4.9-A
+diagnostic Markdown renderer (13 tests including 5 mandatory
++ negative-list backstop on `merge_safe` / `production_safe` /
+`bug_free`), Phase 4.9-B/C step summary + SARIF category
+disambiguation (8 tests), Phase 4.9-D action outputs ergonomics
+(9 tests including e2e CLI test on calibration_v1), Phase 4.9-E
+label audit UX (7 tests including byte-level read-only
+invariant), Phase 4.9-F artifact bundle manifest (11 tests
+including Pydantic Literal pin checks); SARIF uploader
+inconsistency closed (action.yml bumped from `@v3` → `@v4`
+matching README claim); ADR-34 logged;
+**629 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -128,6 +153,51 @@ provider regression baseline green end-to-end on run id
 delta vs replay captured as data per ADR-28 (NOT as a verdict
 on the provider).**
 
+**Phase 4.9 artifact UX polish + failure-path diagnostics shipped
+(ADR-34). Phase 4.9.0 closes the V4 Pro 6/8 missing-capture gap
+at source: `ProviderRedactedIO` schema widens to carry
+`failure_kind: Literal["success", "invalid_json", "invalid_shape",
+"schema_violation", "transport_error", "timeout",
+"provider_unavailable"]` + optional `redacted_error: str | None`,
+and `complete_json` restructures into a single try/finally with
+the stash assembled in `finally` from locally-scoped variables.
+Six new failure-path tests (using sentinel
+`sk-DETECT-LEAK-Z9KF1L-PROVIDER-IO-CANARY-2026`) lock that the
+API key is never leaked even on HTTP 401 paths that ECHO the key.
+Phase 4.9-A ships `src/oida_code/report/diagnostic_report.py`
+with a banner-led document structure (Status card / What was
+measured / Key findings / Provider failure matrix / What this
+does NOT prove / Next actions) + CLI subcommand `oida-code
+render-artifacts`. The renderer carries a runtime
+negative-list backstop that raises `RuntimeError` if any of
+`merge_safe` / `merge-safe` / `production_safe` /
+`production-safe` / `bug_free` / `bug-free` ever appear in
+output. Phase 4.9-B routes the polished diagnostic Markdown
+into `$GITHUB_STEP_SUMMARY` (replaces the old
+`head -n 80 report.md`). Phase 4.9-C disambiguates SARIF
+categories (`oida-code/combined` for action.yml,
+`oida-code/audit-sarif` for sarif-upload.yml) and bumps
+action.yml's uploader from `@v3` to `@v4` (closing the
+README/action.yml inconsistency). Phase 4.9-D adds two new
+action outputs (`diagnostic-status` enum: `blocked` /
+`contract_failed` / `contract_clean` / `diagnostic_only` —
+forbidden values `merge_safe` / `production_safe` / `verified`
+unrepresentable by Literal type; `official-field-leaks` int);
+the CLI's `calibration-eval` writes
+`<out>/action_outputs.txt` in `key=value` format which
+action.yml cats into `$GITHUB_OUTPUT`. Phase 4.9-E extends
+the label audit script with `provider_value` + `action`
+columns and a new `missing_capture` classification covering
+the V4 Pro 6/8 gap; the script NEVER mutates `expected.json`
+(locked by byte-level + mtime test). Phase 4.9-F ships
+`ArtifactBundleManifest` + `ArtifactRef` Pydantic shapes with
+three `Literal` pins (`mode = "diagnostic_only"`,
+`official_fields_emitted = False`, `contains_secrets = False`
+per ref) and CLI subcommand `oida-code build-artifact-manifest`
+producing `<bundle>/artifacts/manifest.json` with SHA256
+hashes (chunked 64KB read). +48 new tests across 5 new test
+files, all green; full suite 629 passed / 4 skipped.**
+
 **Phase 4.6 real-runner / operator smoke shipped (ADR-31). Three
 new workflows, all green on real GitHub-hosted runners:
 `ci.yml` gains a `node24-compat` job (FORCE_JAVASCRIPT_ACTIONS_TO_
@@ -157,7 +227,8 @@ commit) per QA/A23.md "ne fake pas le résultat".**
 `reports/phase4_5_ci_github_action.md`,
 `reports/phase4_6_real_runner_operator_smoke.md`,
 `reports/phase4_7_provider_regression_baseline.md`,
-`reports/phase4_8_provider_regression_deepening.md`.
+`reports/phase4_8_provider_regression_deepening.md`,
+`reports/phase4_9_artifact_ux_polish.md`.
 
 ## Install (dev)
 
@@ -183,6 +254,21 @@ target repo's virtual environment** so `pytest` and `mypy` pick up the
 target's installed packages. Missing tools are handled gracefully — the
 report carries `status="tool_missing"` rather than crashing — so you can
 safely omit any of them on minimal environments.
+
+## GitHub Action outputs
+
+The composite action (`uses: yannabadie/oida-code@v0`) exposes
+the following outputs (Phase 4.5 + Phase 4.9-A/D, ADR-30 + ADR-34):
+
+| Output | Description |
+|---|---|
+| `report-json` | Path to the JSON audit report. |
+| `report-markdown` | Path to the legacy Markdown audit report. |
+| `report-sarif` | Path to the SARIF audit report. |
+| `calibration-metrics` | Path to the calibration `metrics.json`. |
+| `diagnostic-markdown` | Phase 4.9-A: path to the polished diagnostic Markdown (banner + status card + provider matrix + redacted-IO links). |
+| `diagnostic-status` | Phase 4.9-D: one of `blocked` / `contract_failed` / `contract_clean` / `diagnostic_only`. The four FORBIDDEN values (`merge_safe` / `production_safe` / `verified`) are unreachable by static type. |
+| `official-field-leaks` | Phase 4.9-D: integer count of detected official-field leaks. ADR-22 hard wall — any value > 0 means the runtime gate fired and the action exited non-zero. |
 
 ## License
 

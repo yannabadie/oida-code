@@ -116,6 +116,37 @@ outputs:
   calibration-metrics:
     description: Path to the calibration metrics JSON.
     value: ${{ steps.run.outputs.calibration-metrics }}
+  diagnostic-markdown:
+    description: |
+      Phase 4.9-A (ADR-34): path to the polished diagnostic Markdown
+      report (banner + status card + provider matrix + redacted-IO
+      links + "what this does NOT prove" section). Diagnostic-only
+      by ADR-22.
+    value: ${{ steps.run.outputs.diagnostic-markdown }}
+  diagnostic-status:
+    description: |
+      Phase 4.9-D (ADR-34): one of `blocked` /
+      `contract_failed` / `contract_clean` / `diagnostic_only`.
+      No other value is producible — the CLI's emitter is statically
+      constrained to a four-value Literal type. See ADR-34 for the
+      rationale on why merge-readiness / production-readiness /
+      verification labels are NOT emitted by this action.
+    value: ${{ steps.run.outputs.diagnostic-status }}
+  official-field-leaks:
+    description: |
+      Phase 4.9-D (ADR-34): integer count of detected
+      official-field leaks. ADR-22 hard wall — any value > 0 means
+      the runtime gate fired and the action exits non-zero.
+    value: ${{ steps.run.outputs.official-field-leaks }}
+  artifact-manifest:
+    description: |
+      Phase 4.9-F (ADR-34): path to the artifact bundle manifest
+      (`<output-dir>/artifacts/manifest.json`). The manifest pins
+      `mode=diagnostic_only` and `official_fields_emitted=false`
+      via the Pydantic Literal schema — drift is unrepresentable.
+      Each listed artifact carries a SHA256 hash for tamper
+      detection.
+    value: ${{ steps.run.outputs.artifact-manifest }}
 
 runs:
   using: composite
@@ -221,20 +252,60 @@ runs:
           python -m oida_code.cli "${CAL_ARGS[@]}" || true
         fi
 
+        # Phase 4.9-A — render the polished diagnostic Markdown so
+        # the step summary and PR comment stay readable. Falls back
+        # gracefully if metrics.json is missing (e.g., dataset dir
+        # absent on this runner).
+        DIAGNOSTIC_MD="$OUTPUT_DIR/diagnostic.md"
+        if [[ -f "$CAL_OUT/metrics.json" ]]; then
+          python -m oida_code.cli render-artifacts "$CAL_OUT" \
+            --out "$DIAGNOSTIC_MD" \
+            --format markdown || true
+        fi
+
         echo "report-json=$OUTPUT_DIR/report.json" >> "$GITHUB_OUTPUT"
         echo "report-markdown=$OUTPUT_DIR/report.md" >> "$GITHUB_OUTPUT"
         echo "report-sarif=$OUTPUT_DIR/report.sarif" >> "$GITHUB_OUTPUT"
         echo "calibration-metrics=$CAL_OUT/metrics.json" >> "$GITHUB_OUTPUT"
+        if [[ -f "$DIAGNOSTIC_MD" ]]; then
+          echo "diagnostic-markdown=$DIAGNOSTIC_MD" >> "$GITHUB_OUTPUT"
+        fi
 
-        # Step summary — Markdown report excerpt + calibration headline.
-        if [[ -f "$OUTPUT_DIR/report.md" ]]; then
+        # Phase 4.9-D — surface the diagnostic-status enum +
+        # official-field-leaks count as discrete action outputs.
+        # CLI writes <CAL_OUT>/action_outputs.txt as key=value lines
+        # exactly compatible with the GITHUB_OUTPUT format. Falls
+        # back to safe defaults when the file is missing.
+        if [[ -f "$CAL_OUT/action_outputs.txt" ]]; then
+          cat "$CAL_OUT/action_outputs.txt" >> "$GITHUB_OUTPUT"
+        else
+          echo "diagnostic-status=diagnostic_only" >> "$GITHUB_OUTPUT"
+          echo "official-field-leaks=0" >> "$GITHUB_OUTPUT"
+        fi
+
+        # Phase 4.9-F — build the artifact bundle manifest covering
+        # every file produced under $OUTPUT_DIR. The manifest pins
+        # mode=diagnostic_only / official_fields_emitted=false /
+        # contains_secrets=false at the schema level (Literal),
+        # making any future drift unrepresentable.
+        python -m oida_code.cli build-artifact-manifest "$OUTPUT_DIR" || true
+        if [[ -f "$OUTPUT_DIR/artifacts/manifest.json" ]]; then
+          echo "artifact-manifest=$OUTPUT_DIR/artifacts/manifest.json" >> "$GITHUB_OUTPUT"
+        fi
+
+        # Phase 4.9-B — Step summary uses the polished diagnostic
+        # Markdown when available, falling back to the legacy audit
+        # report excerpt + calibration headline.
+        if [[ -f "$DIAGNOSTIC_MD" ]]; then
+          cat "$DIAGNOSTIC_MD" >> "$GITHUB_STEP_SUMMARY"
+        elif [[ -f "$OUTPUT_DIR/report.md" ]]; then
           {
             echo "## OIDA-code audit"
             echo
             head -n 80 "$OUTPUT_DIR/report.md"
           } >> "$GITHUB_STEP_SUMMARY"
         fi
-        if [[ -f "$CAL_OUT/metrics.json" ]]; then
+        if [[ -f "$CAL_OUT/metrics.json" ]] && [[ ! -f "$DIAGNOSTIC_MD" ]]; then
           {
             echo
             echo "## Calibration metrics"
@@ -254,7 +325,12 @@ runs:
         path: ${{ inputs.output-dir }}/
 
     - name: Upload SARIF (optional)
+      # Phase 4.7 (ADR-32) bumped from `@v3` (deprecated December
+      # 2026) to `@v4`. Phase 4.9-C adds an explicit `category` so
+      # multiple SARIF uploads on the same commit do not collapse
+      # into one Code Scanning analysis.
       if: inputs.upload-sarif == 'true'
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: ${{ inputs.output-dir }}/report.sarif
+        category: oida-code/combined
