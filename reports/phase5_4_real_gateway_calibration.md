@@ -5,8 +5,15 @@ ADR: ADR-39 (`memory-bank/decisionLog.md`).
 Status at end of phase: **27 / 27** acceptance criteria green;
 quality gates clean (ruff + mypy + pytest, 786 passed / 4
 skipped, was 763/4 before Phase 5.4 — exactly +23 new tests);
-GitHub-hosted runs to be captured in a follow-up commit per
-the standard "fully accepted" docs-update pattern.
+all five GitHub-hosted runs green on commit `28728cb`:
+
+| Workflow | Run ID | Wall time |
+|---|---|---|
+| ci | 24963499030 | 1m18s |
+| action-smoke | 24963499027 | 1m04s |
+| provider-baseline-node24-smoke | 24963499016 | 24s |
+| gateway-grounded-smoke | 24963499025 | 24s |
+| gateway-calibration | 24963499014 | 28s |
 
 ## 1. Diff résumé
 
@@ -285,7 +292,7 @@ not a Phase-3-style confounded signal.
 | mypy (same set) | clean (92 source files; same count as Phase 5.3) |
 | pytest full suite | 786 passed / 4 skipped (was 763/4 — exactly +23 new tests) |
 | `tests/test_phase5_4_real_calibration.py` | 23 / 23 passing |
-| GitHub-hosted CI runs | to be captured in the docs follow-up commit (ci, action-smoke, provider-baseline-node24-smoke, gateway-grounded-smoke, gateway-calibration) |
+| GitHub-hosted CI runs | all five green on commit `28728cb` — ci (24963499030, 1m18s), action-smoke (24963499027, 1m04s), provider-baseline-node24-smoke (24963499016, 24s), gateway-grounded-smoke (24963499025, 24s), gateway-calibration (24963499014, 28s) |
 
 ## Honesty statement
 
