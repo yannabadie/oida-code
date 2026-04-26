@@ -25,21 +25,19 @@ artifact, the redaction has failed.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
 from oida_code.cli import app
+from oida_code.estimators.provider_config import ProviderProfile
 from oida_code.estimators.providers.openai_compatible import (
     HttpRequest,
     HttpResponse,
     OpenAICompatibleChatProvider,
     ProviderRedactedIO,
 )
-from oida_code.estimators.provider_config import ProviderProfile
-
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DATASET_ROOT = _REPO_ROOT / "datasets" / "calibration_v1"
@@ -59,7 +57,13 @@ def _profile() -> ProviderProfile:
     )
 
 
-def _ok_response_body(content: str = '{"estimates":[],"cited_evidence_refs":[],"unsupported_claims":[]}') -> str:
+_DEFAULT_CONTENT = (
+    '{"estimates":[],"cited_evidence_refs":[],'
+    '"unsupported_claims":[]}'
+)
+
+
+def _ok_response_body(content: str = _DEFAULT_CONTENT) -> str:
     """Synthesize a valid OpenAI-format chat-completions response."""
     return json.dumps({
         "id": "chatcmpl-canary",
@@ -188,7 +192,10 @@ def test_redacted_io_contains_response_after_secret_redaction(
     """The redacted_response_body MUST be the full HTTP body AFTER
     `redact_secret(body, key)` — not truncated, not omitted."""
     monkeypatch.setenv("DEEPSEEK_API_KEY", _SENTINEL_KEY)
-    body = _ok_response_body('{"estimates":[],"cited_evidence_refs":[],"unsupported_claims":["needle@event-A"]}')
+    body = _ok_response_body(
+        '{"estimates":[],"cited_evidence_refs":[],'
+        '"unsupported_claims":["needle@event-A"]}',
+    )
     provider = OpenAICompatibleChatProvider(
         profile=_profile(),
         http_post=_fake_http(body),
