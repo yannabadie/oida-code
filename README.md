@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 complete + Phase 4.7 partially accepted — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -17,7 +17,10 @@ composite GitHub Action under least-privilege with fork-PR fence
 and replay default (ADR-30); real-runner / operator smoke shipped
 with Node 24 compat job, composite action consumer smoke, and
 SARIF upload to GitHub Code Scanning all green on real runners
-(ADR-31, Phase 4.6).**
+(ADR-31, Phase 4.6); provider regression baseline workflow
+shipped + SARIF uploader bumped to v4 (ADR-32, Phase 4.7) —
+empirical provider run remains `not_run` until operator API
+budget is allocated.**
 
 Shipped: deterministic verifiers (ruff/mypy/pytest/semgrep/codeql/hypothesis/mutmut),
 AST-based obligation extractor with 1..N PreconditionSpec expansion (ADR-20),
@@ -55,9 +58,14 @@ PR-controlled `${{ ... }}` lifted into `env:`, validator §6 +
 compat + action-smoke + sarif-upload; three real-runner runs
 green on commit a9de514 (ci: all 6 jobs incl. Node 24 compat;
 action-smoke: composite action smoke 51s; sarif-upload: 6
-analyses ingested into GitHub Code Scanning);
+analyses ingested into GitHub Code Scanning); Phase 4.7 17
+invariant tests on SARIF v4 + provider-baseline workflow + no
+MCP / no provider tool-calling; SARIF v4 upload green on commit
+c49a155 (sarif_id 11ad3390-…, ruff 125 results, mypy 221
+results); provider regression real run `not_run` (no API budget
+allocated; per QA/A24.md criterion 12);
 `validate_github_workflows.py` green;
-**541 passed, 4 skipped (V2 placeholder + 2 Phase-4
+**558 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
@@ -85,6 +93,25 @@ in its first step, gates SARIF upload on
 SARIF / calibration-metrics — none carry `total_v_net` /
 `debt_final` / `corrupt_success` (ADR-22 hard wall).**
 
+**Phase 4.7 provider regression baseline (partially accepted —
+ADR-32). New workflow `.github/workflows/provider-baseline.yml`
+ships `workflow_dispatch` only (no push/pull_request/schedule),
+with workflow + job permissions held to `contents: read`, replay
+baseline running BEFORE the external provider step, secrets
+flowing strictly via `secrets.* → env: → $VAR in bash` (zero
+`${{ secrets.* }}` in any `run:` block, validator §6 enforces),
+the existing CLI exit-3 official-leak gate propagating
+unchanged, and the post-step rendering only redacted headline
+metrics into `report.md` + `$GITHUB_STEP_SUMMARY` (no raw
+prompt, no raw provider response). SARIF uploader bumped from
+`@v3` to `@v4` (v3 deprecated December 2026); v4 ingestion
+confirmed live on commit c49a155 (sarif_id
+`11ad3390-414e-11f1-86c6-63dd82cf10f5`). 17 new tests including
+2 anti-MCP / anti-tool-calling locks. The empirical provider
+regression run remains `not_run` until operator API budget is
+allocated — per QA/A24.md acceptance criterion 12, Phase 4.7 is
+NOT marked fully accepted until that run lands.**
+
 **Phase 4.6 real-runner / operator smoke shipped (ADR-31). Three
 new workflows, all green on real GitHub-hosted runners:
 `ci.yml` gains a `node24-compat` job (FORCE_JAVASCRIPT_ACTIONS_TO_
@@ -109,7 +136,8 @@ QA/A23.md "ne fake pas le résultat".**
 `reports/phase4_3_calibration_dataset_design.md`,
 `reports/phase4_4_real_provider_binding.md`,
 `reports/phase4_5_ci_github_action.md`,
-`reports/phase4_6_real_runner_operator_smoke.md`.
+`reports/phase4_6_real_runner_operator_smoke.md`,
+`reports/phase4_7_provider_regression_baseline.md`.
 
 ## Install (dev)
 

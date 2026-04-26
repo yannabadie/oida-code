@@ -75,6 +75,143 @@
 
 [2026-04-24 18:30:00] - **Release `v0.3.0` — ADR-16 fork guard + Phase-2 runners default-on where safe.**
 
+[2026-04-30 04:00:00] - **ADR-32: Provider regression baseline before MCP / tool-calling.**
+
+**Why:** Phase 4.6 (ADR-31) closed the operator-side smoke gaps —
+composite action, SARIF ingestion, Node 24 compat — but explicitly
+deferred the provider regression baseline (§7 of the Phase 4.6
+report marked it `not_run` for "no API budget allocated").
+Phase 4.7 closes the structural surface for that baseline so an
+operator can fire it the moment budget is allocated, and bumps
+the SARIF uploader to its current major version (v3 deprecation
+announced for December 2026). The phase ships partially: the
+workflow + tests + ADR + replay-side artifacts land, but Phase
+4.7 is NOT marked fully accepted until at least one external
+provider run lands green per QA/A24.md acceptance criterion 12.
+
+**Decision (Phase 4.7 surface):**
+
+* `.github/workflows/sarif-upload.yml` — bumped
+  `github/codeql-action/upload-sarif@v3 → @v4`. v4 ships with
+  native Node 24 runtime; the input shape (`sarif_file`,
+  `category`) is unchanged, so the migration is a one-line
+  edit. Validated empirically on real runner (run id
+  24952767492, commit c49a155): green + 6 SARIF analyses
+  ingested into Code Scanning at sarif_id
+  `11ad3390-414e-11f1-86c6-63dd82cf10f5` (ruff 125 results,
+  mypy 221 results, plus pytest/hypothesis/semgrep/codeql
+  shells).
+* `.github/workflows/provider-baseline.yml` — workflow_dispatch
+  ONLY (no push, pull_request, pull_request_target, schedule).
+  Three inputs: `provider-profile` (required, choice between
+  deepseek/kimi/minimax/custom_openai_compatible),
+  `max-provider-cases` (default 4 — small enough for cheap first
+  run), `compare-replay` (default true). Workflow + job
+  permissions are `contents: read` only — no `security-events`,
+  no `actions: write`, no `checks: write`, no `contents: write`.
+  Replay baseline runs FIRST (gated on `compare-replay == 'true'`);
+  the external-provider step runs SECOND, gated on the
+  `*_API_KEY` secret being non-empty (the CLI's existing 4.4
+  `LLMProviderUnavailable` guard handles the empty case). All
+  secret values travel `secrets.* → env: → $VAR in bash`; zero
+  `${{ secrets.* }}` inside any `run:` block (validator §6
+  enforces). The post-step renders a redacted summary (cases
+  evaluated, official_field_leak_count, estimator_*_accuracy,
+  safety/fenced rates) into a per-profile `report.md` and into
+  `$GITHUB_STEP_SUMMARY`. Artifacts upload only
+  `.oida/provider-baseline/` — no raw prompt, no raw provider
+  response, no API key, no unredacted error.
+* The CLI's existing exit-3 gate on
+  `official_field_leak_count > 0` (4.3.1-A) propagates
+  unchanged through the workflow's `set -euo pipefail`.
+* The `4.7.4` metric set listed in QA/A24.md
+  (schema_valid_rate, invalid_json_rate, schema_violation_rate,
+  missing_citation_rate, confidence_cap_violation_rate,
+  forbidden_claim_rate, official_field_leak_count,
+  evidence_ref_precision, evidence_ref_recall, safety_block_rate,
+  fenced_injection_pass_rate, provider_unavailable_count,
+  timeout_count) is partially covered by today's
+  `CalibrationMetrics` (evidence_ref_precision,
+  evidence_ref_recall, safety_block_rate, fenced_injection_rate,
+  official_field_leak_count, plus the 4.4.1 estimator family).
+  The remaining provider-failure-mode counters (invalid JSON,
+  missing citation, schema violation, provider_unavailable,
+  timeout) are NOT added to the Pydantic model in this commit;
+  they will be added in Phase 4.7.1 when a real provider run
+  produces non-zero values worth schematising. Adding them
+  speculatively would create empty fields with no observed
+  meaning.
+
+**Accepted:**
+
+* SARIF uploader pinned to v4 — green on real runner with
+  ingestion confirmed via `code-scanning/analyses` API
+* provider-baseline workflow is `workflow_dispatch` only;
+  forbidden triggers (push / pull_request / pull_request_target
+  / schedule) absent + asserted by tests
+* permissions stay `contents: read` at workflow + job level —
+  no `security-events`, no `actions/checks/contents: write`
+* replay baseline runs BEFORE the external provider step
+  (asserted by `test_provider_baseline_runs_replay_before_external`)
+* `provider-profile` input is `required: true` — no silent
+  default-to-deepseek-then-bill
+* default `max-provider-cases` capped at 4 (asserted by
+  `test_provider_baseline_default_max_cases_is_small`)
+* secrets reach the CLI as env-var NAMES only; the action body
+  has zero `${{ secrets.* }}` inside `run:` (validator §6 +
+  `test_provider_baseline_uses_secrets_context_only`)
+* `echo $X_API_KEY` and pipe-to-logger style leaks rejected by
+  `test_provider_baseline_does_not_echo_secret_values`
+* the workflow MUST NOT pass any `--debug-raw-prompt` /
+  `--store-raw` flag (asserted), and any `|| true` swallowing
+  the official-leak gate is rejected (asserted)
+* MCP and provider tool-calling explicitly absent — asserted at
+  the package level (`test_no_mcp_workflow_or_dependency_added`)
+  and at the schema level (`test_no_provider_tool_calling_enabled`
+  walks `provider_config.py` and rejects
+  `supports_tools=True` anywhere)
+* fork-PR fence smoke (Phase 4.6) and provider regression run
+  remain explicitly `not_run` with reasons — no fork exists
+  at this commit; no API budget allocated for this commit
+  window
+
+**Rejected:**
+
+* default external provider (push / pull_request)
+* external provider on PR or fork events (Phase 4.5 fence still
+  applies inside the composite action)
+* `pull_request_target` anywhere
+* public benchmark claims comparing providers
+* threshold tuning on `calibration_v1` (ADR-28 still applies)
+* MCP integration — OWASP describes specific MCP risks (tool
+  poisoning, prompt injection, cross-server shadowing,
+  tool-definition rug-pull); deferred until Phase 5.0+
+* provider tool-calling at the verifier layer
+* official `V_net` / `debt_final` / `corrupt_success` /
+  `verdict` / `merge_safe` / `production_safe` /
+  `bug_free` / `security_verified` emission
+* faking the provider regression baseline result — Phase 4.7
+  ships partially accepted until a real provider run lands
+
+**Outcome:** 23/24 acceptance criteria from QA/A24.md met
+structurally — the 24th (real-runner provider-baseline run is
+green) is `not_run` with explicit reason. 17 new tests in
+`tests/test_phase4_7_provider_baseline.py` (3 SARIF v4, 12
+provider-baseline structural, 2 anti-MCP/tool-calling). One
+real-runner run green: sarif-upload v4 (id 24952767492). Three
+real-runner runs from the structural commit also green: ci on
+c49a155 (id 24952744508), action-smoke on c49a155 (id
+24952744506), sarif-upload on c49a155 (id 24952767492). Full
+suite **558 passed + 4 skipped** (V2 placeholder + 2 Phase-4
+observability markers + 1 optional external smoke). ruff +
+mypy clean. ADR-22 + ADR-25..31 + ADR-32 all hold; production
+CLI and the composite action emit no `V_net` / `debt_final` /
+`corrupt_success`. Report:
+`reports/phase4_7_provider_regression_baseline.md`. Phase 4.7
+status: **partially accepted** (structural complete; empirical
+provider run pending API-budget allocation per acceptance
+criterion 12).
+
 [2026-04-29 03:00:00] - **ADR-31: Real-runner / operator smoke before MCP / tool-calling.**
 
 **Why:** Phase 4.5 was accepted end-to-end on commit f625b1c (CI
