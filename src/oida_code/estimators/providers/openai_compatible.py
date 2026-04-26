@@ -27,9 +27,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -64,20 +65,41 @@ class ProviderRawResponse(BaseModel):
     usage_completion_tokens: int | None = None
 
 
+FailureKind = Literal[
+    "success",
+    "invalid_json",
+    "invalid_shape",
+    "schema_violation",
+    "transport_error",
+    "timeout",
+    "provider_unavailable",
+]
+
+
 class ProviderRedactedIO(BaseModel):
-    """Phase 4.8-A (QA/A25.md, ADR-33) — opt-in redacted-only
-    capture of one provider call for post-hoc label diagnosis.
+    """Phase 4.8-A (QA/A25.md, ADR-33) + Phase 4.9.0 (QA/A26.md,
+    ADR-34) — opt-in redacted-only capture of one provider call.
 
     Frozen + ``extra="forbid"``. NEVER carries:
 
     * the raw prompt (only ``prompt_sha256``)
     * the API key value (``redact_secret`` is applied to
-      ``redacted_response_body`` before it lands here)
+      ``redacted_response_body`` AND ``redacted_error`` before they
+      land here)
     * any other secret-like content the operator passes in env
 
+    Phase 4.9.0 widens capture to provider-failure paths so the
+    V4 Pro 6/8 missing-capture gap from Phase 4.8 closes:
+    ``failure_kind`` records WHICH path was taken,
+    ``redacted_response_body`` becomes ``str | None`` (None when
+    no body was received — e.g. transport/timeout/missing-env), and
+    ``redacted_error`` carries the redacted error message string
+    on the failure paths. ``model`` and ``http_status`` similarly
+    become optional because the env-var-missing path has neither.
+
     The runner writes one of these per provider call to
-    ``<out>/<provider>/redacted_io/<case_id>.json`` ONLY when the
-    operator passed ``--store-redacted-provider-io`` to the CLI.
+    ``<out>/redacted_io/<case_id>.json`` ONLY when the operator
+    passed ``--store-redacted-provider-io`` to the CLI.
     """
 
     model_config = ConfigDict(
@@ -86,10 +108,12 @@ class ProviderRedactedIO(BaseModel):
 
     case_id: str | None = None
     prompt_sha256: str = Field(min_length=64, max_length=64)
-    redacted_response_body: str
-    model: str
-    http_status: int
-    wall_clock_ms: int
+    redacted_response_body: str | None = None
+    redacted_error: str | None = None
+    failure_kind: FailureKind = "success"
+    model: str | None = None
+    http_status: int | None = None
+    wall_clock_ms: int = 0
     response_id: str | None = None
     finish_reason: str | None = None
     usage_prompt_tokens: int | None = None
@@ -214,151 +238,229 @@ class OpenAICompatibleChatProvider:
         Failure modes (all wrapped — never raise raw vendor errors):
 
         * env var missing → :class:`LLMProviderUnavailable`
+          (failure_kind=``provider_unavailable``)
         * status 0 (transport error) → :class:`LLMProviderUnavailable`
-          (or :class:`LLMProviderTimeout` if the error string
-          contains ``timeout``)
+          (failure_kind=``transport_error``) or
+          :class:`LLMProviderTimeout` (failure_kind=``timeout``) when
+          the error string contains ``timeout``
         * status >= 400 → :class:`LLMProviderError` with the body
           truncated and the API key redacted
-        * non-JSON or missing ``choices[0].message.content`` →
+          (failure_kind=``transport_error``)
+        * non-JSON body → :class:`LLMProviderInvalidResponse`
+          (failure_kind=``invalid_json``)
+        * missing/wrong-shape ``choices[0].message.content`` →
           :class:`LLMProviderInvalidResponse`
+          (failure_kind=``invalid_shape``)
+
+        Phase 4.9.0 (QA/A26.md, ADR-34): when
+        ``capture_redacted_io=True`` the redacted IO is stashed via
+        a try/finally block on EVERY path — success and failure — so
+        the runner can always inspect why a provider call did or did
+        not produce a usable response. This closes the V4 Pro 6/8
+        missing-capture gap from Phase 4.8 where invalid_shape
+        failures left no audit trail.
         """
         api_key = os.environ.get(self.profile.api_key_env)
-        if not api_key:
-            raise LLMProviderUnavailable(
-                f"missing env var {self.profile.api_key_env}; "
-                "Phase 4.4 requires an explicit API key in the "
-                "environment AND --provider opt-in."
-            )
-        effective_timeout = timeout_s if timeout_s is not None else self.profile.timeout_s
-        url = self.profile.base_url.rstrip("/") + "/chat/completions"
-        body: dict[str, Any] = {
-            "model": self.profile.default_model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": self.profile.temperature,
-            "max_tokens": self.profile.max_output_tokens,
-        }
-        if self.profile.supports_json_mode:
-            body["response_format"] = {"type": "json_object"}
 
-        req = HttpRequest(
-            url=url,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            json_body=body,
-            timeout_s=effective_timeout,
-        )
-        # Phase 4.8-A — measure wall-clock around the HTTP call so
-        # the redacted-IO can record how long the provider took.
-        import time
-        t_start = time.perf_counter()
-        try:
-            resp = self.http_post(req)
-        except Exception as exc:
-            # Defensive: a faulty transport must NEVER leak the key.
-            msg = redact_secret(f"{type(exc).__name__}: {exc}", api_key)
-            raise LLMProviderError(f"http transport error: {msg}") from None
-        wall_clock_ms = int((time.perf_counter() - t_start) * 1000)
-
+        # Phase 4.9.0 — stash variables. The single ``finally`` block
+        # at the end of this method builds ProviderRedactedIO from
+        # them when ``capture_redacted_io`` is True. Contract:
+        #   * ``redacted_body`` and ``redacted_error`` are filled
+        #     AFTER ``redact_secret(..., api_key)`` (never raw bytes)
+        #   * ``failure_kind`` is set IMMEDIATELY before each raise
+        #     site; a normal return leaves it at ``"success"``
+        #   * fields not yet known at raise-time stay ``None``
         prompt_hash = hashlib.sha256(prompt.encode("utf-8")).hexdigest()
-
-        if resp.status_code == 0:
-            err = redact_secret(resp.error or "transport failure", api_key)
-            if "timeout" in err.lower():
-                raise LLMProviderTimeout(f"http timeout: {err}")
-            raise LLMProviderUnavailable(f"http transport error: {err}")
-        if resp.status_code >= 400:
-            body_excerpt = redact_secret(resp.body[:400], api_key)
-            raise LLMProviderError(
-                f"http {resp.status_code}: {body_excerpt}"
-            )
+        redacted_body: str | None = None
+        redacted_error: str | None = None
+        failure_kind: FailureKind = "success"
+        http_status: int | None = None
+        wall_clock_ms: int = 0
+        result_model: str | None = None
+        result_response_id: str | None = None
+        result_finish_reason: str | None = None
+        result_prompt_tokens: int | None = None
+        result_completion_tokens: int | None = None
 
         try:
-            decoded = json.loads(resp.body)
-        except json.JSONDecodeError as exc:
-            raise LLMProviderInvalidResponse(
-                f"non-JSON body: {exc.msg} (offset {exc.pos})"
-            ) from None
-        if not isinstance(decoded, dict):
-            raise LLMProviderInvalidResponse(
-                f"top-level body is not a JSON object "
-                f"(type={type(decoded).__name__})"
+            if not api_key:
+                # provider_unavailable: env var missing — there is
+                # no body to capture; only the error string.
+                failure_kind = "provider_unavailable"
+                redacted_error = (
+                    f"missing env var {self.profile.api_key_env}"
+                )
+                raise LLMProviderUnavailable(
+                    f"missing env var {self.profile.api_key_env}; "
+                    "Phase 4.4 requires an explicit API key in the "
+                    "environment AND --provider opt-in."
+                )
+            effective_timeout = (
+                timeout_s if timeout_s is not None else self.profile.timeout_s
             )
+            url = self.profile.base_url.rstrip("/") + "/chat/completions"
+            body: dict[str, Any] = {
+                "model": self.profile.default_model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": self.profile.temperature,
+                "max_tokens": self.profile.max_output_tokens,
+            }
+            if self.profile.supports_json_mode:
+                body["response_format"] = {"type": "json_object"}
 
-        choices = decoded.get("choices")
-        if not isinstance(choices, list) or not choices:
-            raise LLMProviderInvalidResponse(
-                "response has no 'choices' array"
+            req = HttpRequest(
+                url=url,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json_body=body,
+                timeout_s=effective_timeout,
             )
-        first = choices[0]
-        if not isinstance(first, dict):
-            raise LLMProviderInvalidResponse("choices[0] is not an object")
-        message = first.get("message")
-        if not isinstance(message, dict):
-            raise LLMProviderInvalidResponse(
-                "choices[0].message is missing"
-            )
-        content = message.get("content")
-        if not isinstance(content, str):
-            raise LLMProviderInvalidResponse(
-                "choices[0].message.content is not a string"
-            )
+            # Phase 4.8-A — measure wall-clock around the HTTP call
+            # so the redacted-IO can record how long the provider
+            # took (even on failure). The inner try/finally ensures
+            # ``wall_clock_ms`` is set on both happy and sad paths.
+            t_start = time.perf_counter()
+            try:
+                resp = self.http_post(req)
+            except Exception as exc:
+                wall_clock_ms = int((time.perf_counter() - t_start) * 1000)
+                failure_kind = "transport_error"
+                # Defensive: a faulty transport must NEVER leak the key.
+                redacted_error = redact_secret(
+                    f"{type(exc).__name__}: {exc}", api_key,
+                )
+                raise LLMProviderError(
+                    f"http transport error: {redacted_error}",
+                ) from None
+            wall_clock_ms = int((time.perf_counter() - t_start) * 1000)
 
-        raw_usage = decoded.get("usage")
-        usage: dict[str, Any] = raw_usage if isinstance(raw_usage, dict) else {}
-        prompt_tokens_raw = usage.get("prompt_tokens")
-        completion_tokens_raw = usage.get("completion_tokens")
-        result_model = str(
-            decoded.get("model") or self.profile.default_model,
-        )
-        result_response_id = (
-            str(decoded.get("id")) if decoded.get("id") else None
-        )
-        result_finish_reason = (
-            str(first.get("finish_reason"))
-            if first.get("finish_reason") is not None else None
-        )
-        result_prompt_tokens = (
-            int(prompt_tokens_raw)
-            if isinstance(prompt_tokens_raw, (int, float))
-            else None
-        )
-        result_completion_tokens = (
-            int(completion_tokens_raw)
-            if isinstance(completion_tokens_raw, (int, float))
-            else None
-        )
-        # Phase 4.8-A — opt-in redacted IO capture. Redaction happens
-        # HERE because the API key value is in scope only inside this
-        # method; the runner must never see the key. The full
-        # response body is captured AFTER `redact_secret(body, key)`
-        # so a provider that echoes auth-related state in 401-style
-        # bodies still has the key value scrubbed.
-        if self.capture_redacted_io:
-            self._last_redacted_io = ProviderRedactedIO(
+            # From here on every branch has a body — capture it once,
+            # redacted, before classifying the response.
+            redacted_body = redact_secret(resp.body, api_key)
+            http_status = resp.status_code
+
+            if resp.status_code == 0:
+                err_text = redact_secret(
+                    resp.error or "transport failure", api_key,
+                )
+                redacted_error = err_text
+                if "timeout" in err_text.lower():
+                    failure_kind = "timeout"
+                    raise LLMProviderTimeout(f"http timeout: {err_text}")
+                failure_kind = "transport_error"
+                raise LLMProviderUnavailable(
+                    f"http transport error: {err_text}",
+                )
+            if resp.status_code >= 400:
+                body_excerpt = redact_secret(resp.body[:400], api_key)
+                failure_kind = "transport_error"
+                redacted_error = (
+                    f"http {resp.status_code}: {body_excerpt[:200]}"
+                )
+                raise LLMProviderError(
+                    f"http {resp.status_code}: {body_excerpt}",
+                )
+
+            try:
+                decoded = json.loads(resp.body)
+            except json.JSONDecodeError as exc:
+                failure_kind = "invalid_json"
+                redacted_error = (
+                    f"non-JSON body: {exc.msg} (offset {exc.pos})"
+                )
+                raise LLMProviderInvalidResponse(redacted_error) from None
+            if not isinstance(decoded, dict):
+                failure_kind = "invalid_shape"
+                redacted_error = (
+                    f"top-level body is not a JSON object "
+                    f"(type={type(decoded).__name__})"
+                )
+                raise LLMProviderInvalidResponse(redacted_error)
+
+            choices = decoded.get("choices")
+            if not isinstance(choices, list) or not choices:
+                failure_kind = "invalid_shape"
+                redacted_error = "response has no 'choices' array"
+                raise LLMProviderInvalidResponse(redacted_error)
+            first = choices[0]
+            if not isinstance(first, dict):
+                failure_kind = "invalid_shape"
+                redacted_error = "choices[0] is not an object"
+                raise LLMProviderInvalidResponse(redacted_error)
+            message = first.get("message")
+            if not isinstance(message, dict):
+                failure_kind = "invalid_shape"
+                redacted_error = "choices[0].message is missing"
+                raise LLMProviderInvalidResponse(redacted_error)
+            content = message.get("content")
+            if not isinstance(content, str):
+                failure_kind = "invalid_shape"
+                redacted_error = (
+                    "choices[0].message.content is not a string"
+                )
+                raise LLMProviderInvalidResponse(redacted_error)
+
+            raw_usage = decoded.get("usage")
+            usage: dict[str, Any] = (
+                raw_usage if isinstance(raw_usage, dict) else {}
+            )
+            prompt_tokens_raw = usage.get("prompt_tokens")
+            completion_tokens_raw = usage.get("completion_tokens")
+            result_model = str(
+                decoded.get("model") or self.profile.default_model,
+            )
+            result_response_id = (
+                str(decoded.get("id")) if decoded.get("id") else None
+            )
+            result_finish_reason = (
+                str(first.get("finish_reason"))
+                if first.get("finish_reason") is not None else None
+            )
+            result_prompt_tokens = (
+                int(prompt_tokens_raw)
+                if isinstance(prompt_tokens_raw, (int, float))
+                else None
+            )
+            result_completion_tokens = (
+                int(completion_tokens_raw)
+                if isinstance(completion_tokens_raw, (int, float))
+                else None
+            )
+            return ProviderRawResponse(
+                content=content,
                 prompt_sha256=prompt_hash,
-                redacted_response_body=redact_secret(resp.body, api_key),
                 model=result_model,
-                http_status=resp.status_code,
-                wall_clock_ms=wall_clock_ms,
                 response_id=result_response_id,
                 finish_reason=result_finish_reason,
                 usage_prompt_tokens=result_prompt_tokens,
                 usage_completion_tokens=result_completion_tokens,
             )
-        return ProviderRawResponse(
-            content=content,
-            prompt_sha256=prompt_hash,
-            model=result_model,
-            response_id=result_response_id,
-            finish_reason=result_finish_reason,
-            usage_prompt_tokens=result_prompt_tokens,
-            usage_completion_tokens=result_completion_tokens,
-        )
+        finally:
+            # Phase 4.9.0 — single stash point covering success and
+            # every failure path. All redaction happened above; this
+            # block only assembles the frozen Pydantic model. The
+            # API key value is NEVER in scope here (only the
+            # already-redacted strings).
+            if self.capture_redacted_io:
+                self._last_redacted_io = ProviderRedactedIO(
+                    prompt_sha256=prompt_hash,
+                    redacted_response_body=redacted_body,
+                    redacted_error=redacted_error,
+                    failure_kind=failure_kind,
+                    model=result_model,
+                    http_status=http_status,
+                    wall_clock_ms=wall_clock_ms,
+                    response_id=result_response_id,
+                    finish_reason=result_finish_reason,
+                    usage_prompt_tokens=result_prompt_tokens,
+                    usage_completion_tokens=result_completion_tokens,
+                )
 
 
 __all__ = [
+    "FailureKind",
     "HttpPostFn",
     "HttpRequest",
     "HttpResponse",
