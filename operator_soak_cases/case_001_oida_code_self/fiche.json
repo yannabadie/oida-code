@@ -1,0 +1,14 @@
+{
+  "case_id": "case_001_oida_code_self",
+  "repo": "yannabadie/oida-code",
+  "branch": "TBD-controlled-change-branch",
+  "commit": "TBD-full-sha",
+  "operator": "yannabadie",
+  "intent": "Placeholder. Replace with a plain-text summary of a controlled minor PR (e.g. docstring fix, small test refactor) once a controlled-change branch exists.",
+  "expected_risk": "unknown",
+  "gateway_bundle": "TBD-path-to-bundle-dir",
+  "workflow_run_id": null,
+  "artifact_url": null,
+  "notes": "Scaffolded for Phase 5.7 but not yet executed. No controlled-change branch available on this repo today; will not repurpose tests/fixtures/action_gateway_bundle/tool_needed_then_supported (contract-test fixture, not a real PR soak case).",
+  "status": "awaiting_run"
+}

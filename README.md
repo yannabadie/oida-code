@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) + Phase 5.6 (opt-in gateway-grounded action path) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) + Phase 5.6 (opt-in gateway-grounded action path) + Phase 5.7 (operator soak protocol scaffolded) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with
@@ -419,8 +419,44 @@ guard via `env:` lift (Phase 4.5.1 rule applied to the
 new gateway-* inputs); 48 new tests in
 `tests/test_phase5_6_action_gateway_opt_in.py` covering 8
 sub-blocks plus end-to-end CLI flow plus an anti-mutation
-invariant on the fixture; ADR-41 logged;
-**872 passed, 4 skipped (V2 placeholder + 2 Phase-4
+invariant on the fixture; ADR-41 logged.
+
+**Phase 5.7** ships the **operator soak protocol** for the
+opt-in gateway action path (ADR-42). New top-level
+`operator_soak_cases/` directory with a protocol README and
+one scaffolded case `case_001_oida_code_self/` (status
+`awaiting_run` — no controlled-change branch available
+today; the Phase 5.6 contract-test fixture is intentionally
+NOT repurposed as a soak case). New
+`src/oida_code/operator_soak/` package with frozen
+`extra="forbid"` Pydantic schemas: `OperatorSoakFiche`,
+`OperatorLabelEntry` (operator label is a six-bucket
+Literal — `useful_true_positive`, `useful_true_negative`,
+`false_positive`, `false_negative`, `unclear`,
+`insufficient_fixture` — with a 3-10 line rationale rule),
+`OperatorUxScore` (four 0/1/2 questions per QA/A34 §5.7-G),
+and `AggregateReport` (`is_authoritative` pinned
+`Literal[False]`, `recommendation` is a five-value Literal,
+no `total_v_net`/`debt_final`/`corrupt_success` fields).
+New `aggregate_cases(...)` pure aggregator + Markdown
+renderer + `scripts/run_operator_soak_eval.py` runner.
+Decision rule precedence per QA/A34 §5.7-F (leak > 0
+beats every other rule; cases_completed < 3 -> continue_soak;
+FN >= 2 -> revise_gateway_policy_or_prompts; FP >= 2 ->
+revise_report_ux_or_labels; >=5 cases AND usefulness_rate
+>=0.6 -> document_opt_in_path; otherwise continue_soak).
+Even `document_opt_in_path` does NOT flip
+`enable-tool-gateway` default — it stays `false`. Empty
+baseline `reports/operator_soak/aggregate.{json,md}`
+checked in; `recommendation: continue_soak`. Fork-PR block
+smoke explicitly `not_run` with reason
+`no controlled fork available` (Phase 5.6 guard remains
+active in `action.yml`). No autonomous background agent —
+soak is operator-driven. No new dependency, no MCP runtime,
+no provider tool-calling, no `pull_request_target`, no
+modification of `action.yml`. 41 new tests in
+`tests/test_phase5_7_operator_soak.py`; ADR-42 logged;
+**913 passed, 4 skipped (V2 placeholder + 2 Phase-4
 observability markers + 1 optional external-provider smoke)**.
 
 **Official `total_v_net` / `debt_final` / `corrupt_success` remain
