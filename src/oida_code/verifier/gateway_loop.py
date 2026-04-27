@@ -565,12 +565,27 @@ def _enforce_requested_tool_evidence(
     if new_status == "verification_candidate":
         new_status = "diagnostic_only"
 
+    # Phase 5.8.1-B: regenerate the recommendation string after the
+    # demotion so it reflects the post-enforcer counts. Otherwise the
+    # report.recommendation lies (e.g. "accepted=1 rejected=0
+    # unsupported=0" when accepted_claims was just emptied), which
+    # confuses operator-readable summaries.
+    from oida_code.verifier.aggregator import _recommendation_for
+
+    new_recommendation = _recommendation_for(
+        new_status,
+        0,  # accepted is now empty
+        len(pass2.rejected_claims),
+        len(new_unsupported),
+    )
+
     return pass2.model_copy(update={
         "accepted_claims": (),
         "unsupported_claims": tuple(new_unsupported),
         "status": new_status,
         "warnings": tuple(new_warnings),
         "blockers": tuple(new_blockers),
+        "recommendation": new_recommendation,
     })
 
 
@@ -619,12 +634,24 @@ def _enforce_pass2_tool_citation(
             new_unsupported.append(claim)
             continue
         new_accepted.append(claim)
-    return pass2.model_copy(update={
+    # Phase 5.8.1-B: regenerate the recommendation string when the
+    # demotion changed counts — otherwise the report.recommendation
+    # carries stale numbers from before the citation rule fired.
+    update: dict[str, object] = {
         "accepted_claims": tuple(new_accepted),
         "unsupported_claims": tuple(new_unsupported),
         "warnings": tuple(new_warnings),
         "blockers": blockers,
-    })
+    }
+    if len(new_accepted) != len(pass2.accepted_claims):
+        from oida_code.verifier.aggregator import _recommendation_for
+        update["recommendation"] = _recommendation_for(
+            pass2.status,
+            len(new_accepted),
+            len(pass2.rejected_claims),
+            len(new_unsupported),
+        )
+    return pass2.model_copy(update=update)
 
 
 def _extract_requested_tools(

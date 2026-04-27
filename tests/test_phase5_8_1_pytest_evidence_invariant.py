@@ -750,6 +750,60 @@ def test_run_tool_phase_splits_diagnostic_from_actionable(
     )
 
 
+def test_demoted_claim_recommendation_string_is_regenerated(
+    tmp_path: Path,
+) -> None:
+    """Regression guard for the stale-recommendation bug observed on
+    run 25021514315.
+
+    Pre-fix, ``_enforce_requested_tool_evidence`` updated
+    ``accepted_claims`` / ``unsupported_claims`` / ``status`` /
+    ``warnings`` / ``blockers`` but NOT ``recommendation``. The
+    rendered grounded_report.json then said
+    ``accepted=1 rejected=0 unsupported=0`` even though
+    ``accepted_claims`` was actually empty after the demotion —
+    confusing the operator-readable surface.
+
+    Post-fix, the recommendation is regenerated to reflect the
+    post-enforcer counts.
+    """
+    pytest_def = _pytest_definition()
+    registry = _registry_with(pytest_def)
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    audit_dir = tmp_path / "audit"
+    gateway = LocalDeterministicToolGateway(
+        executor=_pytest_error_executor,
+    )
+    run = run_gateway_grounded_verifier(
+        _case001_packet(),
+        forward_pass1=_ScriptedProvider([_case001_pass1_forward()]),
+        backward_pass1=_ScriptedProvider(["[]"]),
+        forward_pass2=_ScriptedProvider([_case001_pass2_forward()]),
+        backward_pass2=_ScriptedProvider([_case001_pass2_backward()]),
+        gateway=gateway,
+        tool_policy=_policy(repo_root),
+        admission_registry=registry,
+        gateway_definitions={"pytest": pytest_def},
+        audit_log_dir=audit_dir,
+    )
+    rec = run.report.recommendation
+    assert "accepted=0" in rec, (
+        "Phase 5.8.1-B: recommendation must reflect the post-demotion "
+        f"accepted count (0). Got: {rec!r}"
+    )
+    assert "unsupported=1" in rec, (
+        "Phase 5.8.1-B: recommendation must reflect the post-demotion "
+        f"unsupported count (1). Got: {rec!r}"
+    )
+    # Status downgrade must also surface in the recommendation —
+    # the verification_candidate-only RESERVED prefix must NOT appear.
+    assert "RESERVED" not in rec or "verification_candidate" not in rec, (
+        "Phase 5.8.1-B: recommendation must not still claim "
+        "verification_candidate after demotion. Got: " + rec
+    )
+
+
 def test_run_tool_phase_clean_pass_evidence_is_actionable(
     tmp_path: Path,
 ) -> None:
