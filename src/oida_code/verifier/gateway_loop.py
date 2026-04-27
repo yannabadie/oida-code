@@ -219,7 +219,25 @@ class GatewayGroundedVerifierRun(BaseModel):
 @dataclass
 class _ToolPhaseOutput:
     tool_results: tuple[VerifierToolResult, ...]
+    # Phase 5.8.1-B (QA/A39 §4 invariant): every tool result emits at
+    # least one citable EvidenceItem (clean-pass / failed-with-findings
+    # via ``parse_outcome``; tool_missing/timeout/error/no-findings via
+    # the adapter's ``_diagnostic_evidence`` synthesiser). All such items
+    # are appended here so the enriched packet's ``evidence_items``
+    # always resolves a claim's ``[E.tool.<binary>.0]`` ref (aggregator
+    # rule 3 stops rejecting on missing-ref).
     new_evidence: tuple[EvidenceItem, ...]
+    # Phase 5.8.1-B safety split: ``new_evidence`` is "citable but not
+    # necessarily promoting". ``actionable_evidence`` is the strict
+    # subset whose source result has ``status in {"ok", "failed"}`` —
+    # i.e. the tool actually ran and reported a meaningful signal. The
+    # ``error`` / ``timeout`` / ``tool_missing`` / ``blocked`` paths emit
+    # diagnostics into ``new_evidence`` but NOT into
+    # ``actionable_evidence``; ``_enforce_requested_tool_evidence`` and
+    # ``_enforce_pass2_tool_citation`` consume the actionable subset so
+    # an error-path diagnostic cannot promote a pass-2 claim from
+    # rejected/unsupported to accepted.
+    actionable_evidence: tuple[EvidenceItem, ...]
     new_estimates: tuple[SignalEstimate, ...]
     audit_paths: tuple[Path, ...]
     warnings: tuple[str, ...]
@@ -251,6 +269,7 @@ def _run_tool_phase(
     """
     tool_results: list[VerifierToolResult] = []
     new_evidence: list[EvidenceItem] = []
+    actionable_evidence: list[EvidenceItem] = []
     new_estimates: list[SignalEstimate] = []
     warnings: list[str] = []
     blockers: list[str] = []
@@ -283,6 +302,14 @@ def _run_tool_phase(
         audit_paths.append(audit_log_path(audit_log_dir, spec.tool))
         if result.evidence_items:
             new_evidence.extend(result.evidence_items)
+            # Phase 5.8.1-B: only items from results whose tool actually
+            # produced a meaningful signal (status="ok" or "failed") are
+            # actionable. Diagnostic items synthesised by the adapter on
+            # tool_missing/timeout/error paths land in ``new_evidence``
+            # (so the aggregator's ref-existence rule passes) but NOT in
+            # ``actionable_evidence`` (so they cannot promote a claim).
+            if result.status in ("ok", "failed"):
+                actionable_evidence.extend(result.evidence_items)
         new_estimates.extend(
             deterministic_estimates_from_tool_result(
                 result, event_id=event_id,
@@ -295,6 +322,7 @@ def _run_tool_phase(
     return _ToolPhaseOutput(
         tool_results=tuple(tool_results),
         new_evidence=tuple(new_evidence),
+        actionable_evidence=tuple(actionable_evidence),
         new_estimates=tuple(new_estimates),
         audit_paths=tuple(audit_paths),
         warnings=tuple(warnings),
@@ -387,7 +415,15 @@ def run_gateway_grounded_verifier(
     aggregated_blockers = (
         tuple(pass2.report.blockers) + tool_phase.blockers
     )
-    enriched_refs = tuple(ev.id for ev in tool_phase.new_evidence)
+    # Phase 5.8.1-B: the citation rule consumes only **actionable**
+    # refs (items from results with status in {"ok", "failed"}).
+    # Diagnostic items synthesised on error/timeout/tool_missing
+    # paths are still in the enriched packet but cannot satisfy
+    # the citation requirement — otherwise a tool that crashed
+    # would silently certify a pass-2 claim that cited it.
+    enriched_refs = tuple(
+        ev.id for ev in tool_phase.actionable_evidence
+    )
 
     # Phase 5.2.1-B: forward asked for tools but no [E.tool_output.*]
     # was produced (missing definition / all calls blocked /
@@ -447,11 +483,19 @@ def _enforce_requested_tool_evidence(
 
     * forward did not request any tool (``requested_count==0``),
       or
-    * tools ran AND produced at least one new EvidenceItem
-      (``tool_phase.new_evidence`` non-empty) — in that case
-      :func:`_enforce_pass2_tool_citation` is the right rule.
+    * tools ran AND produced at least one **actionable**
+      EvidenceItem (``tool_phase.actionable_evidence`` non-empty)
+      — in that case :func:`_enforce_pass2_tool_citation` is the
+      right rule.
+
+    Phase 5.8.1-B: the guard switched from ``new_evidence`` to
+    ``actionable_evidence``. Diagnostic items synthesised on
+    error/timeout/tool_missing paths populate ``new_evidence``
+    (so aggregator rule 3 stops rejecting on missing-ref) but
+    NOT ``actionable_evidence`` — so a tool that failed cannot
+    silently promote a pass-2 claim.
     """
-    if tool_phase.requested_count == 0 or tool_phase.new_evidence:
+    if tool_phase.requested_count == 0 or tool_phase.actionable_evidence:
         return pass2.model_copy(update={
             "warnings": warnings,
             "blockers": blockers,
@@ -480,14 +524,31 @@ def _enforce_requested_tool_evidence(
             "requested tool evidence unavailable: gateway blocked "
             "all calls (Phase 5.2.1-B)"
         )
-    # Sub-case 3: gateway ran successfully but emitted no
-    # citable evidence (e.g. ruff with no findings, no positive
-    # item).
-    elif tool_phase.tool_results and not tool_phase.new_evidence:
-        new_blockers.append(
-            "requested tool ran but emitted no citable evidence; "
-            "cannot promote pass-2 claims (Phase 5.2.1-B)"
-        )
+    # Sub-case 3: gateway ran but produced no **actionable** evidence.
+    # Phase 5.8.1-B: covers two flavours -
+    #   - tool ran cleanly but emitted nothing citable (legacy: ruff
+    #     with no findings + no synth pass item),
+    #   - tool errored / timed out / was missing, so the only items
+    #     in ``new_evidence`` are adapter-synthesised diagnostics.
+    # Either way, no pass-2 claim can be promoted.
+    elif (
+        tool_phase.tool_results
+        and not tool_phase.actionable_evidence
+    ):
+        if any(
+            r.status in ("error", "timeout", "tool_missing")
+            for r in tool_phase.tool_results
+        ):
+            new_blockers.append(
+                "requested tool produced only diagnostic evidence "
+                "(adapter status in error/timeout/tool_missing); "
+                "cannot promote pass-2 claims (Phase 5.8.1-B)"
+            )
+        else:
+            new_blockers.append(
+                "requested tool ran but emitted no citable evidence; "
+                "cannot promote pass-2 claims (Phase 5.2.1-B)"
+            )
 
     # Demote every accepted_claim to unsupported.
     new_unsupported = list(pass2.unsupported_claims)

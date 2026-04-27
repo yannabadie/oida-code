@@ -376,17 +376,15 @@ def test_tool_missing_uncertainty_demotes_claim(tmp_path: Path) -> None:
     ]
     assert rows, "missing tool_missing_uncertainty row"
     row = rows[0]
-    # Gateway side must show unsupported=1 and accepted=0. Phase 5.8.1
-    # (QA/A39 §4) shifted the gateway-side aggregate status string
-    # from ``diagnostic_only`` to ``verification_candidate`` because
-    # the tool_missing path now emits a citable diagnostic evidence
-    # item; the unsupported-demotion semantic is unchanged.
+    # Gateway side must show ``status=diagnostic_only`` AND
+    # ``unsupported=1`` AND ``accepted=0``. Phase 5.8.1-B restored
+    # the strict status anchor: the diagnostic/actionable split
+    # ensures a tool_missing diagnostic stays non-promoting, so the
+    # gateway-side status remains ``diagnostic_only`` (was briefly
+    # weakened to ``unsupported=1`` only between Phase 5.8.1 and
+    # 5.8.1-B while the safety regression was active).
     assert "unsupported=1" in row
-    # Anchor on the gateway-side classification — the second
-    # accepted= occurrence in the row is the gateway one. Using
-    # ``rejected=0 unsupported=1`` as the local anchor avoids
-    # depending on the exact status string.
-    assert "accepted=0 rejected=0 unsupported=1" in row
+    assert "accepted=0" in row.split("status=diagnostic_only", 1)[1]
 
 
 def test_tool_timeout_uncertainty_demotes_claim(tmp_path: Path) -> None:
@@ -410,10 +408,11 @@ def test_tool_timeout_uncertainty_demotes_claim(tmp_path: Path) -> None:
     ]
     assert rows
     row = rows[0]
-    # See test_tool_missing_uncertainty_demotes_claim — same
-    # Phase 5.8.1 anchor relaxation.
+    # See test_tool_missing_uncertainty_demotes_claim — same anchor
+    # restored by Phase 5.8.1-B (status=diagnostic_only on the
+    # gateway side, AND accepted=0 + unsupported=1 demotion).
     assert "unsupported=1" in row
-    assert "accepted=0 rejected=0 unsupported=1" in row
+    assert "accepted=0" in row.split("status=diagnostic_only", 1)[1]
 
 
 def test_multi_tool_static_then_test_rejects_fix(tmp_path: Path) -> None:

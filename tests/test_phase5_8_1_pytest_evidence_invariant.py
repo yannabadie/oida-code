@@ -377,3 +377,424 @@ def test_diagnostic_summaries_never_emit_forbidden_tokens(
         assert token not in framing, (
             f"diagnostic framing leaked forbidden token {token!r}: {framing}"
         )
+
+
+# ---------------------------------------------------------------------------
+# Phase 5.8.1-B verifier-level safety regression
+# ---------------------------------------------------------------------------
+#
+# The Phase 5.8.1 invariant patch (every error path must emit a citable
+# diagnostic ``[E.tool.<binary>.0]``) accidentally promoted case_001's
+# false claim from ``rejected`` to ``accepted`` when the diagnostic
+# satisfied aggregator rule 3 + ``_enforce_pass2_tool_citation``'s
+# intersection check + ``_enforce_requested_tool_evidence``'s
+# new_evidence-non-empty guard.
+#
+# Phase 5.8.1-B fixes this by splitting "diagnostic evidence" (citable
+# but non-promoting) from "actionable evidence" (citable AND promoting).
+# These tests reproduce case_001's exact bundle shape at the verifier
+# level and assert the safe outcome: the claim ends up in
+# ``unsupported_claims`` (NOT ``accepted_claims``), and the report
+# status is ``diagnostic_only`` (NOT ``verification_candidate``).
+#
+# These are the regression guards for the regression we found.
+
+import json  # noqa: E402
+
+from oida_code.estimators.llm_prompt import (  # noqa: E402
+    EvidenceItem as _EvidenceItem,
+)
+from oida_code.estimators.llm_prompt import (  # noqa: E402
+    LLMEvidencePacket,
+)
+from oida_code.verifier.gateway_loop import (  # noqa: E402
+    _run_tool_phase,
+    run_gateway_grounded_verifier,
+)
+from oida_code.verifier.replay import (  # noqa: E402
+    VerifierProvider as _VerifierProvider,
+)
+from oida_code.verifier.tool_gateway.contracts import (  # noqa: E402
+    GatewayToolDefinition,
+    ToolAdmissionDecision,
+    ToolAdmissionRegistry,
+)
+from oida_code.verifier.tool_gateway.fingerprints import (  # noqa: E402
+    fingerprint_tool_definition,
+)
+from oida_code.verifier.tool_gateway.gateway import (  # noqa: E402
+    LocalDeterministicToolGateway,
+)
+from oida_code.verifier.tools.contracts import ToolPolicy  # noqa: E402
+
+
+class _ScriptedProvider(_VerifierProvider):
+    """Replay-style provider returning a queue of canned JSON replies."""
+
+    def __init__(self, replies: list[str]) -> None:
+        self._replies = list(replies)
+
+    def verify(self, prompt: str, *, timeout_s: int) -> str:
+        if not self._replies:
+            raise AssertionError(
+                "scripted provider exhausted (test queued too few replies)"
+            )
+        return self._replies.pop(0)
+
+
+def _pytest_definition() -> GatewayToolDefinition:
+    return GatewayToolDefinition(
+        tool_id="oida-code/pytest",
+        tool_name="pytest",
+        adapter_version="0.4.0",
+        description="Run pytest (read-only).",
+        input_schema={
+            "type": "object",
+            "properties": {"scope": {"type": "array"}},
+        },
+        output_schema={
+            "type": "object",
+            "properties": {"status": {"type": "string"}},
+        },
+        risk_level="read_only",
+        allowed_scopes=("repo:read",),
+    )
+
+
+def _registry_with(*defs: GatewayToolDefinition) -> ToolAdmissionRegistry:
+    return ToolAdmissionRegistry(approved=tuple(
+        ToolAdmissionDecision(
+            tool_id=d.tool_id,
+            status="approved_read_only",
+            reason="phase 5.8.1-B safety test",
+            fingerprint=fingerprint_tool_definition(d),
+        )
+        for d in defs
+    ))
+
+
+def _policy(repo_root: Path) -> ToolPolicy:
+    return ToolPolicy(
+        allowed_tools=("pytest",),
+        repo_root=repo_root,
+        allow_network=False,
+        allow_write=False,
+    )
+
+
+def _case001_packet() -> LLMEvidencePacket:
+    """Reproduces case_001 / run 24995045522's actual packet exactly."""
+    return LLMEvidencePacket(
+        event_id="evt-case-001-docstring",
+        allowed_fields=("capability", "benefit", "observability"),
+        intent_summary=(
+            "Phase 5.8 case_001: align rule-5 docstring in "
+            "src/oida_code/operator_soak/aggregate.py"
+        ),
+        evidence_items=(
+            _EvidenceItem(
+                id="[E.event.1]",
+                kind="event",
+                summary="docstring-only single-commit change.",
+                source="git",
+                confidence=0.95,
+            ),
+            _EvidenceItem(
+                id="[E.event.2]",
+                kind="event",
+                summary="operator intent recorded in case README.",
+                source="ticket",
+                confidence=0.9,
+            ),
+        ),
+        deterministic_estimates=(),
+    )
+
+
+def _case001_pass1_forward() -> str:
+    return json.dumps({
+        "event_id": "evt-case-001-docstring",
+        "supported_claims": [],
+        "rejected_claims": [],
+        "requested_tools": [{
+            "tool": "pytest",
+            "purpose": (
+                "Confirm tests/test_phase5_7_operator_soak.py still passes "
+                "with the docstring change."
+            ),
+            "expected_evidence_kind": "test_result",
+            "scope": ["tests/test_phase5_7_operator_soak.py"],
+        }],
+    })
+
+
+def _case001_pass2_forward() -> str:
+    """The pass-2 forward replay verbatim from case_001's bundle."""
+    return json.dumps({
+        "event_id": "evt-case-001-docstring",
+        "supported_claims": [{
+            "claim_id": "C.docstring.no_behavior_delta",
+            "event_id": "evt-case-001-docstring",
+            "claim_type": "capability_sufficient",
+            "statement": (
+                "The case_001 docstring update preserves aggregator behavior; "
+                "pytest evidence confirms tests still pass."
+            ),
+            "confidence": 0.6,
+            "evidence_refs": ["[E.event.1]", "[E.event.2]", "[E.tool.pytest.0]"],
+            "source": "forward",
+        }],
+        "rejected_claims": [],
+        "requested_tools": [],
+    })
+
+
+def _case001_pass2_backward() -> str:
+    return json.dumps([{
+        "event_id": "evt-case-001-docstring",
+        "claim_id": "C.docstring.no_behavior_delta",
+        "requirement": {
+            "claim_id": "C.docstring.no_behavior_delta",
+            "required_evidence_kinds": ["event", "test_result"],
+            "satisfied_evidence_refs": [
+                "[E.event.1]", "[E.event.2]", "[E.tool.pytest.0]",
+            ],
+            "missing_requirements": [],
+        },
+        "necessary_conditions_met": True,
+    }])
+
+
+def _pytest_error_executor(_ctx: ExecutionContext) -> ExecutionOutcome:
+    """Reproduces case_001's actual pytest run: rc=4, no output."""
+    return ExecutionOutcome(
+        stdout="",
+        stderr="ERROR: file or directory not found: tests/...",
+        returncode=4,
+        timed_out=False,
+        runtime_ms=193,
+    )
+
+
+def test_case001_pytest_error_does_not_promote_claim_post_patch(
+    tmp_path: Path,
+) -> None:
+    """REGRESSION GUARD for the bug found by post-patch verify-claims:
+
+    Pre-patch: pytest emitted ``evidence_items=()`` on rc!=0; the
+    aggregator rejected the claim citing ``[E.tool.pytest.0]`` with
+    "claim cites unknown evidence_refs" → status=diagnostic_only,
+    accepted=0, rejected=1. Safe.
+
+    With Phase 5.8.1 patch (B) alone: pytest emits
+    ``[E.tool.pytest.0]`` diagnostic → ref resolves → aggregator
+    rule 3 passes → ``_enforce_pass2_tool_citation`` intersection
+    finds the ref → ``_enforce_requested_tool_evidence`` is no-op
+    because ``new_evidence`` non-empty → status=verification_candidate,
+    accepted=1. UNSAFE — false claim promoted.
+
+    With Phase 5.8.1-B (this fix): the diagnostic is in
+    ``new_evidence`` (so rule 3 still passes) but NOT in
+    ``actionable_evidence``. Both enforcers consume actionable;
+    ``_enforce_requested_tool_evidence`` fires and demotes the
+    accepted claim to unsupported. Safe again — but this time the
+    claim is properly resolved at rule 3 instead of silently
+    rejected.
+    """
+    pytest_def = _pytest_definition()
+    registry = _registry_with(pytest_def)
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    audit_dir = tmp_path / "audit"
+    gateway = LocalDeterministicToolGateway(
+        executor=_pytest_error_executor,
+    )
+    run = run_gateway_grounded_verifier(
+        _case001_packet(),
+        forward_pass1=_ScriptedProvider([_case001_pass1_forward()]),
+        backward_pass1=_ScriptedProvider(["[]"]),
+        forward_pass2=_ScriptedProvider([_case001_pass2_forward()]),
+        backward_pass2=_ScriptedProvider([_case001_pass2_backward()]),
+        gateway=gateway,
+        tool_policy=_policy(repo_root),
+        admission_registry=registry,
+        gateway_definitions={"pytest": pytest_def},
+        audit_log_dir=audit_dir,
+    )
+    # The claim must NOT be accepted post-patch — its only "tool"
+    # corroboration is a diagnostic that says pytest crashed.
+    accepted_ids = {c.claim_id for c in run.report.accepted_claims}
+    unsupported_ids = {c.claim_id for c in run.report.unsupported_claims}
+    assert "C.docstring.no_behavior_delta" not in accepted_ids, (
+        "Phase 5.8.1-B SAFETY REGRESSION: case_001's claim was promoted to "
+        "accepted by the diagnostic [E.tool.pytest.0]. The diagnostic must "
+        "satisfy rule 3 (ref exists) but MUST NOT count as actionable tool "
+        "evidence."
+    )
+    assert "C.docstring.no_behavior_delta" in unsupported_ids, (
+        "Phase 5.8.1-B: a claim citing [E.tool.pytest.0] when pytest errored "
+        "must be demoted to unsupported (not silently rejected, not "
+        "accepted). Got accepted="
+        f"{accepted_ids}, unsupported={unsupported_ids}, "
+        f"rejected={[c.claim_id for c in run.report.rejected_claims]}"
+    )
+    assert run.report.status != "verification_candidate", (
+        f"Phase 5.8.1-B: status must be downgraded from "
+        f"verification_candidate when the requested tool only produced "
+        f"diagnostic (non-actionable) evidence. Got {run.report.status!r}."
+    )
+    # Additionally: the loop must have surfaced a Phase 5.8.1-B
+    # blocker explaining why the claim was demoted.
+    assert any(
+        "Phase 5.8.1-B" in b for b in run.report.blockers
+    ), (
+        f"Phase 5.8.1-B: report must surface a blocker explaining the "
+        f"diagnostic-only demotion. Got blockers={list(run.report.blockers)!r}"
+    )
+
+
+def test_case001_pytest_clean_pass_still_promotes_claim(
+    tmp_path: Path,
+) -> None:
+    """Happy-path regression guard for the diagnostic/actionable split.
+
+    When pytest actually runs cleanly (rc=0, ``5 passed``), the
+    adapter emits a ``test_result``-kind item. That item IS
+    actionable, so the claim citing it must still be accepted.
+    The split must not break the success path.
+    """
+    pytest_def = _pytest_definition()
+    registry = _registry_with(pytest_def)
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    audit_dir = tmp_path / "audit"
+
+    def _clean_executor(_ctx: ExecutionContext) -> ExecutionOutcome:
+        return ExecutionOutcome(
+            stdout="===== 5 passed in 0.4s =====",
+            stderr="",
+            returncode=0,
+            timed_out=False,
+            runtime_ms=400,
+        )
+
+    gateway = LocalDeterministicToolGateway(executor=_clean_executor)
+    run = run_gateway_grounded_verifier(
+        _case001_packet(),
+        forward_pass1=_ScriptedProvider([_case001_pass1_forward()]),
+        backward_pass1=_ScriptedProvider(["[]"]),
+        forward_pass2=_ScriptedProvider([_case001_pass2_forward()]),
+        backward_pass2=_ScriptedProvider([_case001_pass2_backward()]),
+        gateway=gateway,
+        tool_policy=_policy(repo_root),
+        admission_registry=registry,
+        gateway_definitions={"pytest": pytest_def},
+        audit_log_dir=audit_dir,
+    )
+    accepted_ids = {c.claim_id for c in run.report.accepted_claims}
+    assert "C.docstring.no_behavior_delta" in accepted_ids, (
+        "Phase 5.8.1-B regression: clean pytest pass must still allow the "
+        "pass-2 claim to be accepted. The split must not break the success "
+        "path. Got accepted="
+        f"{accepted_ids}, "
+        f"unsupported={[c.claim_id for c in run.report.unsupported_claims]}, "
+        f"rejected={[c.claim_id for c in run.report.rejected_claims]}, "
+        f"status={run.report.status!r}"
+    )
+
+
+def test_run_tool_phase_splits_diagnostic_from_actionable(
+    tmp_path: Path,
+) -> None:
+    """Direct unit test for the split inside ``_run_tool_phase``.
+
+    pytest errors (rc=4) → adapter emits one diagnostic item. That
+    item lands in ``new_evidence`` but NOT in ``actionable_evidence``.
+    """
+    pytest_def = _pytest_definition()
+    registry = _registry_with(pytest_def)
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    audit_dir = tmp_path / "audit"
+    gateway = LocalDeterministicToolGateway(executor=_pytest_error_executor)
+
+    from oida_code.verifier.contracts import VerifierToolCallSpec
+
+    spec = VerifierToolCallSpec(
+        tool="pytest",
+        purpose="reproduce case_001 error",
+        expected_evidence_kind="test_result",
+        scope=("tests/",),
+    )
+    out = _run_tool_phase(
+        [spec],
+        gateway=gateway,
+        tool_policy=_policy(repo_root),
+        admission_registry=registry,
+        gateway_definitions={"pytest": pytest_def},
+        audit_log_dir=audit_dir,
+        event_id="evt-case-001",
+        max_tool_calls=5,
+    )
+    assert len(out.tool_results) == 1
+    assert out.tool_results[0].status == "error"
+    assert out.new_evidence, (
+        "diagnostic evidence (citable) must exist in new_evidence so "
+        "aggregator rule 3 stops rejecting on missing-ref"
+    )
+    assert out.new_evidence[0].id == "[E.tool.pytest.0]"
+    assert out.actionable_evidence == (), (
+        "Phase 5.8.1-B: diagnostic items from status=error must NOT enter "
+        "actionable_evidence. Got "
+        f"{[e.id for e in out.actionable_evidence]!r}"
+    )
+
+
+def test_run_tool_phase_clean_pass_evidence_is_actionable(
+    tmp_path: Path,
+) -> None:
+    """Regression guard: a clean pytest pass produces a
+    ``test_result`` item that IS actionable."""
+    pytest_def = _pytest_definition()
+    registry = _registry_with(pytest_def)
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    audit_dir = tmp_path / "audit"
+
+    def _clean_executor(_ctx: ExecutionContext) -> ExecutionOutcome:
+        return ExecutionOutcome(
+            stdout="===== 5 passed in 0.4s =====",
+            stderr="",
+            returncode=0,
+            timed_out=False,
+            runtime_ms=400,
+        )
+
+    gateway = LocalDeterministicToolGateway(executor=_clean_executor)
+
+    from oida_code.verifier.contracts import VerifierToolCallSpec
+    spec = VerifierToolCallSpec(
+        tool="pytest",
+        purpose="happy path",
+        expected_evidence_kind="test_result",
+        scope=("tests/",),
+    )
+    out = _run_tool_phase(
+        [spec],
+        gateway=gateway,
+        tool_policy=_policy(repo_root),
+        admission_registry=registry,
+        gateway_definitions={"pytest": pytest_def},
+        audit_log_dir=audit_dir,
+        event_id="evt-happy-path",
+        max_tool_calls=5,
+    )
+    assert out.tool_results[0].status == "ok"
+    assert out.new_evidence
+    assert out.actionable_evidence, (
+        "happy-path tool result must produce actionable evidence so "
+        "claims citing it can be accepted"
+    )
+    assert out.new_evidence == out.actionable_evidence, (
+        "for status=ok, every new_evidence item is actionable"
+    )
