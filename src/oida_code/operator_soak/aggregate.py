@@ -5,7 +5,7 @@ counts labels by bucket, computes the QA/A34 §5.7-F recommendation, and
 returns an :class:`AggregateReport`. It is intentionally side-effect free:
 ``scripts/run_operator_soak_eval.py`` is the I/O wrapper.
 
-Decision rule precedence (QA/A34 §5.7-F):
+Decision rule precedence (QA/A34 §5.7-F, tightened by QA/A35 §5.8-F):
 
 1. ``official_field_leak_count > 0`` → ``fix_contract_leak`` (ADR-22 hard wall;
    must beat every other rule).
@@ -13,7 +13,10 @@ Decision rule precedence (QA/A34 §5.7-F):
 3. ``false_negative_count >= 2`` → ``revise_gateway_policy_or_prompts``.
 4. ``false_positive_count >= 2`` → ``revise_report_ux_or_labels``.
 5. ``cases_completed >= 5`` and ``usefulness_rate >= 0.6`` →
-   ``document_opt_in_path``.
+   ``document_opt_in_path`` (rules 3 and 4 short-circuit before this rule
+   fires, so reaching rule 5 implicitly requires
+   ``false_positive_count < 2`` and ``false_negative_count < 2`` per
+   QA/A35 §5.8-F).
 6. otherwise → ``continue_soak``.
 
 Even when (5) fires, ``enable-tool-gateway`` remains default ``false`` —
