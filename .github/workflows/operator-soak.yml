@@ -115,16 +115,22 @@ jobs:
       #    `gateway-fail-on-contract: "false"` keeps the run
       #    diagnostic-only — operator soak measures usefulness,
       #    not contract enforcement.
+      #
+      # Path note: the composite action's "Run audit" step has no
+      # explicit working-directory, so it runs from $GITHUB_WORKSPACE.
+      # Both `repo-path` and `gateway-bundle-dir` are therefore passed
+      # as ABSOLUTE paths (rooted at github.workspace) so resolution
+      # is unambiguous regardless of the composite action's cwd.
       - name: Run operator-soak via composite action
         id: oida-action
         uses: ./oida-main
         with:
-          repo-path: "../oida-target"
+          repo-path: "${{ github.workspace }}/oida-target"
           base-ref: "HEAD~1"
-          output-dir: ".oida"
+          output-dir: "${{ github.workspace }}/oida-main/.oida"
           enable-tool-gateway: "true"
-          gateway-bundle-dir: ${{ env.BUNDLE_DIR }}
-          gateway-output-dir: ${{ env.OUTPUT_DIR }}
+          gateway-bundle-dir: "${{ github.workspace }}/oida-main/${{ env.BUNDLE_DIR }}"
+          gateway-output-dir: "${{ github.workspace }}/oida-main/${{ env.OUTPUT_DIR }}"
           gateway-fail-on-contract: "false"
           llm-provider: "replay"
 
