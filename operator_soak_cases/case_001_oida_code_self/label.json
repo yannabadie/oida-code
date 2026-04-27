@@ -1,12 +1,12 @@
 {
-  "operator_label": "useful_true_negative",
+  "operator_label": "useful_true_positive",
   "operator_rationale": [
-    "The run exercised the exact Phase 5.8.1-B safety condition: the verifier stayed diagnostic_only, accepted no claims, and demoted C.docstring.no_behavior_delta instead of promoting it.",
-    "This is useful as a true negative because the operator expected no product-level claim acceptance for a low-risk docstring change, and the report explicitly prevented the unsafe 5.8.1 false-promotion path.",
-    "I am not choosing insufficient_fixture because the rerun now produced a citable diagnostic pytest evidence item and an operator-readable blocker; the fixture is imperfect, but no longer empty or silently ungrounded.",
-    "I am not choosing unclear because the claim → requested tool → diagnostic-only evidence → demotion/blocker chain is traceable from the artifacts.",
-    "The topology bug remains real: pytest did not execute against the intended target path, so this label is about verifier safety and operator usefulness, not proof that the docstring change was behaviorally tested."
+    "This run exercises the intended happy path: the topology fix made pytest run against the audit-subject branch, producing actionable [E.tool.pytest.0] evidence instead of diagnostic-only evidence.",
+    "The claim C.docstring.no_behavior_delta was accepted only after the pass-2 claim cited the enriched pytest evidence and the backward check confirmed the necessary conditions.",
+    "I choose useful_true_positive because the gateway surfaced a correct, operator-readable positive result for a controlled low-risk docstring change, with no official-field leak and no product-level claim.",
+    "I am not choosing useful_true_negative because the claim was no longer demoted; the tool evidence became actionable and supported the claim.",
+    "I am not choosing insufficient_fixture or unclear because the prior topology blocker was fixed, pytest passed in the target context, and the claim-to-evidence path is traceable from the artifacts."
   ],
-  "labeled_by": "cgpro session unslop-md (uuid 69ea52e7-7aa4-8386-9773-61f1538bf79d) — Phase 5.8.1-B rerun on commit 2e19acf, workflow run 25021820479",
-  "labeled_at": "2026-04-28T00:00:00Z"
+  "labeled_by": "cgpro session unslop-md (uuid 69ea52e7-7aa4-8386-9773-61f1538bf79d) — Phase 5.8.1-C topology fix rerun on commit da9623a, workflow run 25022965745, target-ref operator-soak/case-001-docstring-v2",
+  "labeled_at": "2026-04-28T01:00:00Z"
 }

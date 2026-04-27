@@ -1,9 +1,9 @@
 {
   "summary_readability": 2,
   "evidence_traceability": 2,
-  "actionability": 1,
+  "actionability": 2,
   "no_false_verdict": 2,
-  "notes": "Phase 5.8.1-B rerun (workflow run 25021820479): the summary.md table is fully operator-readable (Accepted=0 Unsupported=1 Status=diagnostic_only); the claim → requested-tool → diagnostic [E.tool.pytest.0] → demotion → Phase 5.8.1-B blocker chain is fully traceable in grounded_report.json; actionability is 1 because the report tells the operator the verifier is safe but the workflow topology bug (A) still prevents pytest from grounding the test_result claim — the next operator action is fix-topology, not fix-verifier; no_false_verdict stays at 2 (no forbidden tokens emitted, official fields remain null, ADR-22 hard wall holds).",
-  "scored_by": "cgpro session unslop-md (uuid 69ea52e7-7aa4-8386-9773-61f1538bf79d) — Phase 5.8.1-B rerun on commit 2e19acf, workflow run 25021820479",
-  "scored_at": "2026-04-28T00:00:00Z"
+  "notes": "Phase 5.8.1-C topology fix rerun (workflow run 25022965745, target-ref operator-soak/case-001-docstring-v2): all four UX axes at 2. summary_readability=2 (Accepted=1 Unsupported=0 Status=verification_candidate clearly rendered); evidence_traceability=2 (claim → enriched [E.tool.pytest.0] (kind=test_result) → 'pytest passed scoped to ...' → backward says necessary_conditions_met chain visible end-to-end in grounded_report.json); actionability=2 (the report tells the operator the verifier-grounded path works for a controlled low-risk change; previous 1 was because pytest didn't actually run; topology fix unblocked actionability); no_false_verdict=2 (no forbidden tokens, official fields null, ADR-22 hard wall holds, status=verification_candidate is explicitly diagnostic per its RESERVED clause).",
+  "scored_by": "cgpro session unslop-md (uuid 69ea52e7-7aa4-8386-9773-61f1538bf79d) — Phase 5.8.1-C topology fix rerun on commit da9623a, workflow run 25022965745",
+  "scored_at": "2026-04-28T01:00:00Z"
 }

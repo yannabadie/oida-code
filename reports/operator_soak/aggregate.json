@@ -1,12 +1,12 @@
 {
-  "actionability_avg": 1.0,
+  "actionability_avg": 2.0,
   "cases": [
     {
       "case_id": "case_001_oida_code_self",
       "expected_risk": "low",
-      "operator_label": "useful_true_negative",
+      "operator_label": "useful_true_positive",
       "status": "complete",
-      "workflow_run_id": "25021820479"
+      "workflow_run_id": "25022965745"
     },
     {
       "case_id": "case_002_python_semver",
@@ -31,7 +31,7 @@
   "false_positive_count": 0,
   "gateway_status_distribution": [
     [
-      "diagnostic_only",
+      "verification_candidate",
       1
     ]
   ],
@@ -43,6 +43,6 @@
   "recommendation": "continue_soak",
   "summary_readability_avg": 2.0,
   "unclear_count": 0,
-  "useful_true_negative_count": 1,
-  "useful_true_positive_count": 0
+  "useful_true_negative_count": 0,
+  "useful_true_positive_count": 1
 }

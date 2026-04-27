@@ -6,7 +6,7 @@
     {
       "id": "[E.event.1]",
       "kind": "event",
-      "summary": "Single-commit docstring update on branch operator-soak/case-001-docstring (commit 6585dd4d56613119b929924292f2d0367504d6bb). The change touches only the module docstring of src/oida_code/operator_soak/aggregate.py; no executable code, no test, no schema, no public API was modified.",
+      "summary": "Single-commit docstring update on branch operator-soak/case-001-docstring-v2 (commit ddf302ab53c1291551194dd93e1778fec4a0ba9a, cherry-picked from operator-soak/case-001-docstring's 6585dd4 onto current main so the branch's tests/ stay in sync with main's models). The change touches only the module docstring of src/oida_code/operator_soak/aggregate.py; no executable code, no test, no schema, no public API was modified.",
       "source": "git",
       "confidence": 0.95
     },
