@@ -154,12 +154,12 @@ def test_case_001_fiche_validates_against_schema() -> None:
     payload = json.loads((case_dir / "fiche.json").read_text(encoding="utf-8"))
     fiche = OperatorSoakFiche.model_validate(payload)
     # Phase 5.8 (QA/A38): case_001 has been dispatched (run 24995045522
-    # success on commit 0b7a657 of the workflow). Status is
-    # ``awaiting_label`` — operator (cgpro session phase58-soak) must
-    # write label.json + ux_score.json; Claude must NOT have written
-    # those, and the case must NOT be ``complete`` until human labels
-    # land.
-    assert fiche.status == "awaiting_label"
+    # success), labelled by cgpro session phase58-soak as
+    # insufficient_fixture, and UX-scored. Status is now ``complete``
+    # but the case still does NOT count toward the document_opt_in_path
+    # threshold (1 < 3 cases_completed; recommendation stays
+    # continue_soak per QA/A34 §5.7-F rule 1).
+    assert fiche.status == "complete"
     assert fiche.workflow_run_id == "24995045522"
     assert fiche.artifact_url == (
         "https://github.com/yannabadie/oida-code/actions/runs/24995045522"
@@ -168,15 +168,35 @@ def test_case_001_fiche_validates_against_schema() -> None:
     assert fiche.branch == "operator-soak/case-001-docstring"
 
 
-def test_case_001_has_no_label_yet() -> None:
-    """5.7-B rule: operator labels are written by humans only.
-
-    The scaffolded case must not carry a label.json — labels appear
-    only after a human operator triages the artefacts.
+def test_case_001_has_cgpro_label_and_ux_score() -> None:
+    """Phase 5.8 (QA/A37 + QA/A38): case_001 carries operator-written
+    label.json + ux_score.json. Both come from cgpro session
+    phase58-soak (the authorised human operator channel for this
+    project). Claude is NOT allowed to write these files itself; the
+    schema validates the structural shape and the labelled_by /
+    scored_by fields cite cgpro explicitly.
     """
     case_dir = _CASES_DIR / "case_001_oida_code_self"
-    assert not (case_dir / "label.json").exists()
-    assert not (case_dir / "ux_score.json").exists()
+    label_payload = json.loads(
+        (case_dir / "label.json").read_text(encoding="utf-8"),
+    )
+    label = OperatorLabelEntry.model_validate(label_payload)
+    assert label.operator_label == "insufficient_fixture"
+    assert label.labeled_by is not None
+    assert "cgpro session phase58-soak" in label.labeled_by
+    # Rationale must be the canonical 3-10 line range.
+    assert 3 <= len(label.operator_rationale) <= 10
+
+    ux_payload = json.loads(
+        (case_dir / "ux_score.json").read_text(encoding="utf-8"),
+    )
+    ux = OperatorUxScore.model_validate(ux_payload)
+    assert 0 <= ux.summary_readability <= 2
+    assert 0 <= ux.evidence_traceability <= 2
+    assert 0 <= ux.actionability <= 2
+    assert ux.no_false_verdict == 2  # gateway preserved ADR-22 hard wall
+    assert ux.scored_by is not None
+    assert "cgpro session phase58-soak" in ux.scored_by
 
 
 # ---------------------------------------------------------------------------
@@ -270,22 +290,26 @@ def test_phase58_prep_bundle_carries_8_required_files(case_id: str) -> None:
 @pytest.mark.parametrize(
     "case_id",
     (
-        "case_001_oida_code_self",
+        # case_001_oida_code_self has been dispatched and labelled by
+        # cgpro session phase58-soak (see
+        # test_case_001_has_cgpro_label_and_ux_score), so it
+        # legitimately has both files. The remaining cases (002, 003)
+        # are still scaffolded and must not carry labels.
         "case_002_python_semver",
         "case_003_markupsafe",
     ),
 )
 def test_phase58_prep_no_label_or_ux_yet(case_id: str) -> None:
-    """Hard rule: Claude must not author label.json or ux_score.json.
-
-    During Phase 5.8-prep the operator has not yet labelled anything;
-    these files MUST NOT exist on the prep commit. This test is a
-    structural lock — if a future Claude writes either file, this test
-    trips immediately.
+    """Hard rule for SCAFFOLDED cases only: Claude must not author
+    label.json or ux_score.json. Cases that have not yet been
+    dispatched + labelled via cgpro must not carry these files. This
+    test is a structural lock — if a future Claude writes either file
+    for cases 002 or 003 before they are dispatched and routed through
+    cgpro, this test trips immediately.
     """
     case_dir = _CASES_DIR / case_id
     assert not (case_dir / "label.json").exists(), (
-        f"{case_id} carries a label.json — must be operator-written, not in 5.8-prep"
+        f"{case_id} carries a label.json — must be operator-written via cgpro, not by Claude"
     )
     assert not (case_dir / "ux_score.json").exists(), (
         f"{case_id} carries a ux_score.json — must be operator-written, not in 5.8-prep"
@@ -318,17 +342,27 @@ def test_phase58_prep_runbook_exists_with_required_sections() -> None:
         assert forbidden not in body, f"RUNBOOK leaked forbidden token {forbidden!r}"
 
 
-def test_phase58_prep_aggregate_still_continue_soak() -> None:
-    """Phase 5.8-prep does not change the aggregator outcome — until a
-    human operator labels at least 3 cases, recommendation stays
-    ``continue_soak`` per QA/A34 §5.7-F rule 1.
+def test_phase58_aggregate_still_continue_soak_under_three_completed() -> None:
+    """Phase 5.8 (QA/A34 §5.7-F rule 1) — recommendation stays
+    ``continue_soak`` while ``cases_completed < 3``. case_001 is now
+    complete (cgpro labelled it ``insufficient_fixture``), but cases
+    002 and 003 are still ``awaiting_real_audit_packet_decision``,
+    so the recommendation must not flip to anything else.
     """
     payload = json.loads(
         (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
         .read_text(encoding="utf-8"),
     )
     assert payload["recommendation"] == "continue_soak"
-    assert payload["cases_completed"] == 0
+    assert payload["cases_completed"] < 3
+    # The single labelled case must NOT count as a useful_* outcome —
+    # it is honestly insufficient_fixture per cgpro's labelling.
+    assert payload["insufficient_fixture_count"] == 1
+    assert payload["useful_true_positive_count"] == 0
+    assert payload["useful_true_negative_count"] == 0
+    assert payload["false_positive_count"] == 0
+    assert payload["false_negative_count"] == 0
+    assert payload["official_field_leak_count"] == 0
 
 
 # ---------------------------------------------------------------------------
