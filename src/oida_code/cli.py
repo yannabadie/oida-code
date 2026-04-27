@@ -1407,6 +1407,23 @@ def verify_grounded_cmd(
             min=1, max=50,
         ),
     ] = 5,
+    repo_root_override: Annotated[
+        Path | None,
+        typer.Option(
+            "--repo-root",
+            help=(
+                "Phase 5.8.1-C: override the bundle's "
+                "tool_policy.repo_root at runtime. When set, every "
+                "tool execution and scope-path resolution uses this "
+                "absolute path instead of the bundle's "
+                "(typically ``.``) value. Required when the bundle "
+                "lives in one checkout (e.g. oida-main/) but the "
+                "audit subject lives in another (e.g. "
+                "oida-target/). Default: None (use the bundle "
+                "value verbatim — preserves self-audit semantics)."
+            ),
+        ),
+    ] = None,
 ) -> None:
     """Phase 5.2 (ADR-37): two-pass gateway-grounded verifier.
 
@@ -1440,6 +1457,16 @@ def verify_grounded_cmd(
     tool_policy = ToolPolicy.model_validate_json(
         tool_policy_path.read_text(encoding="utf-8"),
     )
+    if repo_root_override is not None:
+        # Phase 5.8.1-C: rebind to the workflow-supplied audit
+        # subject directory. The bundle's ``tool_policy.repo_root``
+        # (typically ``.``) is irrelevant when the verifier runs
+        # from a different cwd than the audit target — the override
+        # is the single source of truth in that case.
+        resolved = repo_root_override.expanduser().resolve()
+        tool_policy = tool_policy.model_copy(
+            update={"repo_root": resolved},
+        )
     registry = ToolAdmissionRegistry.model_validate_json(
         approved_tools_path.read_text(encoding="utf-8"),
     )

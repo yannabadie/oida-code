@@ -454,6 +454,13 @@ runs:
         GATEWAY_OUTPUT_DIR: ${{ inputs.gateway-output-dir }}
         GATEWAY_FAIL_ON_CONTRACT: ${{ inputs.gateway-fail-on-contract }}
         GH_WORKSPACE: ${{ github.workspace }}
+        # Phase 5.8.1-C: thread the audit-subject directory through to
+        # the verifier so the bundle's ``tool_policy.repo_root="."``
+        # placeholder is overridden at runtime. Same operator-supplied
+        # value as the audit step above (line 269), forwarded into the
+        # gateway step's shell environment via env: so the bash body
+        # can pass it as ``--repo-root "$REPO_PATH"``.
+        REPO_PATH: ${{ inputs.repo-path }}
       run: |
         set -euo pipefail
 
@@ -511,6 +518,12 @@ runs:
         fi
 
         # 2) Run the gateway-grounded verifier.
+        # Phase 5.8.1-C: pass --repo-root="$REPO_PATH" so the bundle's
+        # tool_policy.repo_root (typically ".", which would resolve to
+        # the workflow's cwd = $GITHUB_WORKSPACE root and miss the
+        # audit subject when oida-main/ holds the bundle and oida-target/
+        # holds the code) is overridden by the actual audit-subject
+        # directory the workflow already supplied via repo-path.
         python -m oida_code.cli verify-grounded \
           "$BUNDLE_DIR/packet.json" \
           --forward-replay-1 "$BUNDLE_DIR/pass1_forward.json" \
@@ -521,7 +534,8 @@ runs:
           --approved-tools "$BUNDLE_DIR/approved_tools.json" \
           --gateway-definitions "$BUNDLE_DIR/gateway_definitions.json" \
           --audit-log-dir "$AUDIT_DIR" \
-          --out "$REPORT_JSON"
+          --out "$REPORT_JSON" \
+          --repo-root "$REPO_PATH"
 
         # 3) Emit the action outputs.
         python -m oida_code.cli emit-gateway-status \
