@@ -1,0 +1,19 @@
+{
+  "event_id": "evt-1",
+  "supported_claims": [
+    {
+      "claim_id": "C.cap",
+      "event_id": "evt-1",
+      "claim_type": "capability_sufficient",
+      "statement": "feature X satisfies its event-level intent and tests pass",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.event.1]", "[E.tool.pytest.0]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [],
+  "requested_tools": []
+}

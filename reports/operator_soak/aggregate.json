@@ -3,14 +3,28 @@
   "cases": [
     {
       "case_id": "case_001_oida_code_self",
-      "expected_risk": "unknown",
+      "expected_risk": "low",
       "operator_label": null,
-      "status": "awaiting_run",
+      "status": "awaiting_operator_run",
+      "workflow_run_id": null
+    },
+    {
+      "case_id": "case_002_mini_python_bug",
+      "expected_risk": "low",
+      "operator_label": null,
+      "status": "awaiting_case_selection",
+      "workflow_run_id": null
+    },
+    {
+      "case_id": "case_003_import_contract",
+      "expected_risk": "medium",
+      "operator_label": null,
+      "status": "awaiting_case_selection",
       "workflow_run_id": null
     }
   ],
   "cases_completed": 0,
-  "cases_total": 1,
+  "cases_total": 3,
   "contract_violation_count": 0,
   "evidence_traceability_avg": 0.0,
   "false_negative_count": 0,

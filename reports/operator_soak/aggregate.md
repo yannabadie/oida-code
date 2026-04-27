@@ -4,7 +4,7 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 
 ## Counts
 
-- cases_total: 1
+- cases_total: 3
 - cases_completed: 0
 - useful_true_positive_count: 0
 - useful_true_negative_count: 0
@@ -31,7 +31,9 @@ _(no gateway runs recorded yet)_
 
 | case_id | status | expected_risk | label | run_id |
 |---|---|---|---|---|
-| case_001_oida_code_self | awaiting_run | unknown | _pending_ | _pending_ |
+| case_001_oida_code_self | awaiting_operator_run | low | _pending_ | _pending_ |
+| case_002_mini_python_bug | awaiting_case_selection | low | _pending_ | _pending_ |
+| case_003_import_contract | awaiting_case_selection | medium | _pending_ | _pending_ |
 
 ## Recommendation: `continue_soak`
 

@@ -33,14 +33,18 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # ---------------------------------------------------------------------------
 
 SoakCaseStatus = Literal[
+    "awaiting_case_selection",
     "awaiting_operator",
+    "awaiting_operator_run",
     "awaiting_run",
     "awaiting_label",
     "complete",
     "blocked",
 ]
 SOAK_STATUS_VALUES: tuple[SoakCaseStatus, ...] = (
+    "awaiting_case_selection",
     "awaiting_operator",
+    "awaiting_operator_run",
     "awaiting_run",
     "awaiting_label",
     "complete",

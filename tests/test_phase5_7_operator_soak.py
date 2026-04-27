@@ -153,9 +153,14 @@ def test_case_001_fiche_validates_against_schema() -> None:
     case_dir = _CASES_DIR / "case_001_oida_code_self"
     payload = json.loads((case_dir / "fiche.json").read_text(encoding="utf-8"))
     fiche = OperatorSoakFiche.model_validate(payload)
-    # Scaffolded case sits in awaiting_run until a controlled change exists.
-    assert fiche.status == "awaiting_run"
+    # Phase 5.8-prep: case_001 has a branch + controlled commit but the
+    # operator has not yet dispatched the workflow. Status sits in
+    # ``awaiting_operator_run`` and must NOT be ``complete`` — Claude
+    # must not have triggered the workflow or written a label.
+    assert fiche.status == "awaiting_operator_run"
     assert fiche.workflow_run_id is None
+    assert fiche.commit and fiche.commit.startswith("6585dd4")
+    assert fiche.branch == "operator-soak/case-001-docstring"
 
 
 def test_case_001_has_no_label_yet() -> None:
@@ -167,6 +172,133 @@ def test_case_001_has_no_label_yet() -> None:
     case_dir = _CASES_DIR / "case_001_oida_code_self"
     assert not (case_dir / "label.json").exists()
     assert not (case_dir / "ux_score.json").exists()
+
+
+# ---------------------------------------------------------------------------
+# Phase 5.8-prep (QA/A36) — case_002 + case_003 + RUNBOOK
+# ---------------------------------------------------------------------------
+
+
+_REQUIRED_BUNDLE_FILES = (
+    "approved_tools.json",
+    "gateway_definitions.json",
+    "packet.json",
+    "pass1_backward.json",
+    "pass1_forward.json",
+    "pass2_backward.json",
+    "pass2_forward.json",
+    "tool_policy.json",
+)
+
+
+@pytest.mark.parametrize(
+    "case_id",
+    ("case_002_mini_python_bug", "case_003_import_contract"),
+)
+def test_phase58_prep_scaffolded_case_dirs_exist(case_id: str) -> None:
+    case_dir = _CASES_DIR / case_id
+    assert case_dir.is_dir()
+    assert (case_dir / "README.md").is_file()
+    assert (case_dir / "fiche.json").is_file()
+    assert (case_dir / "bundle").is_dir()
+
+
+@pytest.mark.parametrize(
+    "case_id",
+    ("case_002_mini_python_bug", "case_003_import_contract"),
+)
+def test_phase58_prep_scaffolded_fiche_status_is_awaiting_case_selection(
+    case_id: str,
+) -> None:
+    payload = json.loads(
+        (_CASES_DIR / case_id / "fiche.json").read_text(encoding="utf-8"),
+    )
+    fiche = OperatorSoakFiche.model_validate(payload)
+    assert fiche.status == "awaiting_case_selection"
+    # Scaffolds must not carry a workflow_run_id, an artifact_url, or a
+    # label/ux_score.
+    assert fiche.workflow_run_id is None
+    assert fiche.artifact_url is None
+
+
+@pytest.mark.parametrize(
+    "case_id",
+    (
+        "case_001_oida_code_self",
+        "case_002_mini_python_bug",
+        "case_003_import_contract",
+    ),
+)
+def test_phase58_prep_bundle_carries_8_required_files(case_id: str) -> None:
+    bundle_dir = _CASES_DIR / case_id / "bundle"
+    for filename in _REQUIRED_BUNDLE_FILES:
+        assert (bundle_dir / filename).is_file(), (
+            f"missing {filename!r} from {case_id} bundle"
+        )
+
+
+@pytest.mark.parametrize(
+    "case_id",
+    (
+        "case_001_oida_code_self",
+        "case_002_mini_python_bug",
+        "case_003_import_contract",
+    ),
+)
+def test_phase58_prep_no_label_or_ux_yet(case_id: str) -> None:
+    """Hard rule: Claude must not author label.json or ux_score.json.
+
+    During Phase 5.8-prep the operator has not yet labelled anything;
+    these files MUST NOT exist on the prep commit. This test is a
+    structural lock — if a future Claude writes either file, this test
+    trips immediately.
+    """
+    case_dir = _CASES_DIR / case_id
+    assert not (case_dir / "label.json").exists(), (
+        f"{case_id} carries a label.json — must be operator-written, not in 5.8-prep"
+    )
+    assert not (case_dir / "ux_score.json").exists(), (
+        f"{case_id} carries a ux_score.json — must be operator-written, not in 5.8-prep"
+    )
+
+
+def test_phase58_prep_runbook_exists_with_required_sections() -> None:
+    runbook = _CASES_DIR / "RUNBOOK.md"
+    assert runbook.is_file()
+    body = runbook.read_text(encoding="utf-8")
+    # Step headers per QA/A36 §4.
+    for header in (
+        "Step 1",
+        "Step 2",
+        "Step 3",
+        "Step 4",
+        "Step 5",
+        "Step 6",
+        "Step 7",
+        "Step 8",
+    ):
+        assert header in body, f"RUNBOOK missing {header!r}"
+    # Operator-only rule must be restated.
+    assert "operator-only" in body.lower() or "operator only" in body.lower()
+    # Forbidden tokens must NOT appear in the runbook itself.
+    for forbidden in (
+        "merge_safe", "production_safe", "bug_free",
+        "security_verified", "total_v_net", "debt_final", "corrupt_success",
+    ):
+        assert forbidden not in body, f"RUNBOOK leaked forbidden token {forbidden!r}"
+
+
+def test_phase58_prep_aggregate_still_continue_soak() -> None:
+    """Phase 5.8-prep does not change the aggregator outcome — until a
+    human operator labels at least 3 cases, recommendation stays
+    ``continue_soak`` per QA/A34 §5.7-F rule 1.
+    """
+    payload = json.loads(
+        (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
+        .read_text(encoding="utf-8"),
+    )
+    assert payload["recommendation"] == "continue_soak"
+    assert payload["cases_completed"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -707,9 +839,16 @@ def test_operator_label_enum_has_six_buckets() -> None:
     assert "insufficient_fixture" in OPERATOR_LABEL_VALUES
 
 
-def test_status_enum_has_five_buckets() -> None:
+def test_status_enum_has_seven_buckets() -> None:
+    """Phase 5.8-prep (QA/A36) added two operator-facing statuses:
+    ``awaiting_case_selection`` (case dir exists but no controlled change
+    picked) and ``awaiting_operator_run`` (controlled change picked but
+    workflow_dispatch not yet fired).
+    """
     assert set(SOAK_STATUS_VALUES) == {
+        "awaiting_case_selection",
         "awaiting_operator",
+        "awaiting_operator_run",
         "awaiting_run",
         "awaiting_label",
         "complete",

@@ -1,0 +1,14 @@
+{
+  "case_id": "case_003_import_contract",
+  "repo": "TBD-operator-selected-repo",
+  "branch": "TBD-operator-selected-branch",
+  "commit": "TBD-full-sha",
+  "operator": "yannabadie",
+  "intent": "Placeholder. Operator must replace with a plain-text summary of the picked controlled change once a simple real Python repo with an import / public-API contract change has been selected.",
+  "expected_risk": "medium",
+  "gateway_bundle": "operator_soak_cases/case_003_import_contract/bundle",
+  "workflow_run_id": null,
+  "artifact_url": null,
+  "notes": "Phase 5.8-prep (QA/A36): scaffold only. The bundle is seeded from the Phase 5.6 contract-test fixture and must be replaced with a real audit packet (or the case must be labelled insufficient_fixture). Claude has NOT picked the upstream repo, NOT triggered the workflow, NOT written labels.",
+  "status": "awaiting_case_selection"
+}
