@@ -2,14 +2,26 @@
 
 ## Status
 
-`awaiting_operator_run` — branch + controlled docstring change committed
-(commit `6585dd4d56613119b929924292f2d0367504d6bb` on
-`operator-soak/case-001-docstring`); replay bundle prepared. The human
-operator (you) still needs to run the workflow via `workflow_dispatch` and
-write `label.json` + `ux_score.json` by hand.
+`awaiting_operator_dispatch` — branch + controlled docstring change
+committed (commit `6585dd4d56613119b929924292f2d0367504d6bb` on
+`operator-soak/case-001-docstring`); the **real audit packet** is now
+generated under `bundle/` (per QA/A38 §2); the dedicated workflow
+`.github/workflows/operator-soak.yml` is also committed on `main`.
 
-Claude has **not** triggered the workflow, **not** written `label.json`, and
-**not** written `ux_score.json`. Per QA/A36, those three steps must remain
+What is still needed:
+
+1. **Operator approval** to dispatch — gated through `cgpro` session
+   `phase58-soak` (per QA/A38 §4 `CGPRO_REQUEST` for
+   `workflow_dispatch_approval`).
+2. **Yann's explicit `go dispatch case_001`** message before Claude
+   actually runs `gh workflow run …`. cgpro's approval is one half of a
+   double-gate; Yann's explicit go is the other.
+3. **Operator-written `label.json`** and **`ux_score.json`** after the
+   run produces artefacts.
+
+Claude has **not** triggered the workflow, **not** written `label.json`,
+and **not** written `ux_score.json`. Per QA/A36 + QA/A38, those four
+steps (dispatch, label, UX score, mark complete) must remain
 operator-only.
 
 ## Intent (controlled change)

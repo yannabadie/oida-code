@@ -1,0 +1,14 @@
+{
+  "case_id": "case_002_python_semver",
+  "repo": "python-semver/python-semver",
+  "branch": "master",
+  "commit": "0309c63ce834b7d35aa3e29b8d5bb0357532b016",
+  "operator": "yannabadie",
+  "intent": "Reject negative major/minor/patch values in semver.VersionInfo and add regression coverage for those negative constructor inputs.",
+  "expected_risk": "low",
+  "gateway_bundle": "operator_soak_cases/case_002_python_semver/bundle",
+  "workflow_run_id": null,
+  "artifact_url": null,
+  "notes": "QA/A37 operator decision received via cgpro session phase58-soak on 2026-04-27. cgpro selected python-semver/python-semver PR #292 / commit 0309c63ce834b7d35aa3e29b8d5bb0357532b016; verified URL: https://github.com/python-semver/python-semver/commit/0309c63ce834b7d35aa3e29b8d5bb0357532b016. QA/A38: case is scaffolded only — the committed bundle is still seeded from the Phase 5.6 contract-test fixture, NOT a real audit packet for this commit. Human/cgpro decision required: generate real audit packet, replace the case, or mark insufficient_fixture after operator review. Claude has NOT generated the real packet (per QA/A38 instruction to focus on case_001 only). Claude has NOT triggered the workflow, NOT written labels, NOT written UX scores.",
+  "status": "awaiting_real_audit_packet_decision"
+}

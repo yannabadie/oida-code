@@ -1,0 +1,172 @@
+# Phase 5.8 (QA/A38) — operator-soak workflow.
+#
+# Manual / parametric surface for the Phase 5.8 operator-soak protocol.
+# Distinct from `action-gateway-smoke.yml` on purpose:
+#
+#   * `action-gateway-smoke` = stable CI smoke against a fixed fixture.
+#     No inputs, no per-case parameters; protects regression.
+#   * `operator-soak` (this file) = on-demand operator experiment with
+#     `case-id` / `target-ref` / `bundle-dir` / `output-dir` inputs.
+#     Each run audits one operator-selected commit using one
+#     operator-prepared replay bundle; the artefacts feed the
+#     human-only `label.json` + `ux_score.json` step.
+#
+# Hard rules (ADR-41 / QA/A38):
+#   * `workflow_dispatch` only — no `push`, no `schedule`,
+#     no `pull_request`, no `pull_request_target`.
+#   * `permissions: contents: read` at the workflow level; no
+#     write tokens, no secrets read, no network egress beyond
+#     what `actions/checkout` and `actions/upload-artifact` need.
+#   * No external provider, no MCP, no provider tool-calling.
+#   * All operator-controlled inputs are lifted into `env:` and
+#     referenced as `$VAR` in `run:` blocks (Phase 4.5.1
+#     anti-shell-injection rule). No `${{ inputs.* }}` is
+#     interpolated directly inside any `run:` line.
+#   * Dual checkout: `oida-main/` carries the action + bundles
+#     (always from `main`); `oida-target/` carries the
+#     operator-selected `target-ref` to be audited. This keeps
+#     case branches independent of main's action surface.
+name: operator-soak
+
+on:
+  workflow_dispatch:
+    inputs:
+      case-id:
+        description: "Operator-soak case identifier (e.g. case_001_oida_code_self)."
+        required: true
+        type: string
+      target-ref:
+        description: "Branch or tag to audit (e.g. operator-soak/case-001-docstring)."
+        required: true
+        type: string
+      bundle-dir:
+        description: "Replay bundle path relative to main checkout (e.g. operator_soak_cases/case_001_oida_code_self/bundle)."
+        required: true
+        type: string
+      output-dir:
+        description: "Gateway output dir relative to main checkout."
+        required: false
+        type: string
+        default: ".oida/operator-soak"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operator-soak-${{ inputs.case-id }}
+  cancel-in-progress: false
+
+jobs:
+
+  soak:
+    name: operator soak ${{ inputs.case-id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      CASE_ID: ${{ inputs.case-id }}
+      TARGET_REF: ${{ inputs.target-ref }}
+      BUNDLE_DIR: ${{ inputs.bundle-dir }}
+      OUTPUT_DIR: ${{ inputs.output-dir }}
+    steps:
+
+      # 1. Checkout main into oida-main/ — gives the action.yml,
+      #    the bundle directory, and any other tooling that may have
+      #    been added since the case branch was cut.
+      - name: Checkout main (action + bundle)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+          path: oida-main
+
+      # 2. Checkout the operator-selected target-ref into
+      #    oida-target/ — this is what the gateway audits.
+      - name: Checkout target-ref (audit subject)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target-ref }}
+          fetch-depth: 2
+          persist-credentials: false
+          path: oida-target
+
+      # 3. Sanity-check that the operator-supplied bundle path
+      #    actually resolves under main and contains the required
+      #    files. The composite action's bundle validator will
+      #    re-check structurally; this step gives a clearer
+      #    operator error if the path is wrong.
+      - name: Verify bundle directory exists
+        working-directory: oida-main
+        run: |
+          set -euo pipefail
+          if [ ! -d "$BUNDLE_DIR" ]; then
+            echo "::error::bundle-dir '$BUNDLE_DIR' not found on main checkout" >&2
+            exit 2
+          fi
+          echo "Bundle directory contents:"
+          ls -la "$BUNDLE_DIR"
+
+      # 4. Invoke the composite action from main, pointed at the
+      #    target-ref checkout for the audit pass and at the
+      #    main-checked-out bundle for the gateway replay.
+      #    `enable-tool-gateway: "true"` is the explicit opt-in;
+      #    `gateway-fail-on-contract: "false"` keeps the run
+      #    diagnostic-only — operator soak measures usefulness,
+      #    not contract enforcement.
+      - name: Run operator-soak via composite action
+        id: oida-action
+        uses: ./oida-main
+        with:
+          repo-path: "../oida-target"
+          base-ref: "HEAD~1"
+          output-dir: ".oida"
+          enable-tool-gateway: "true"
+          gateway-bundle-dir: ${{ env.BUNDLE_DIR }}
+          gateway-output-dir: ${{ env.OUTPUT_DIR }}
+          gateway-fail-on-contract: "false"
+          llm-provider: "replay"
+
+      # 5. Append a small operator-readable summary block to the
+      #    GitHub Step Summary. Values come from env so we never
+      #    interpolate ${{ ... }} inside a run: line.
+      - name: Append operator-soak metadata to step summary
+        if: always()
+        env:
+          GATEWAY_STATUS: ${{ steps.oida-action.outputs.gateway-status }}
+          GATEWAY_LEAKS: ${{ steps.oida-action.outputs.gateway-official-field-leak-count }}
+          GATEWAY_REPORT: ${{ steps.oida-action.outputs.gateway-report-json }}
+          GATEWAY_SUMMARY: ${{ steps.oida-action.outputs.gateway-summary-md }}
+          GATEWAY_AUDIT: ${{ steps.oida-action.outputs.gateway-audit-log-dir }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## operator-soak run for $CASE_ID"
+            echo ""
+            echo "Diagnostic-only — no product verdict. Operator labels and UX scores are written by humans (or via the cgpro decision channel) after triaging the artefacts uploaded below."
+            echo ""
+            echo "| field | value |"
+            echo "|---|---|"
+            echo "| case_id | \`$CASE_ID\` |"
+            echo "| target-ref | \`$TARGET_REF\` |"
+            echo "| bundle-dir | \`$BUNDLE_DIR\` |"
+            echo "| output-dir | \`$OUTPUT_DIR\` |"
+            echo "| gateway-status | \`$GATEWAY_STATUS\` |"
+            echo "| gateway-official-field-leak-count | \`$GATEWAY_LEAKS\` |"
+            echo "| gateway-report-json | \`$GATEWAY_REPORT\` |"
+            echo "| gateway-summary-md | \`$GATEWAY_SUMMARY\` |"
+            echo "| gateway-audit-log-dir | \`$GATEWAY_AUDIT\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # 6. Upload the gateway artefacts. The operator (or cgpro)
+      #    triages these in step 5 of operator_soak_cases/RUNBOOK.md.
+      - name: Upload operator-soak artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operator-soak-${{ inputs.case-id }}
+          path: |
+            oida-main/.oida/**
+          if-no-files-found: warn
+          retention-days: 14

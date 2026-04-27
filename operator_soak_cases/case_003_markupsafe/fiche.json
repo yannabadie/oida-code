@@ -1,0 +1,14 @@
+{
+  "case_id": "case_003_markupsafe",
+  "repo": "pallets/markupsafe",
+  "branch": "main",
+  "commit": "7856c3d945a969bc94a19989dda61c3d50ac2adb",
+  "operator": "yannabadie",
+  "intent": "Remove the deprecated markupsafe.soft_unicode public export/shim and require consumers to use soft_str instead; the same change updates the package tests and fixtures so the old export is no longer part of the supported contract.",
+  "expected_risk": "medium",
+  "gateway_bundle": "operator_soak_cases/case_003_markupsafe/bundle",
+  "workflow_run_id": null,
+  "artifact_url": null,
+  "notes": "QA/A37 operator decision received via cgpro session phase58-soak on 2026-04-27. cgpro selected pallets/markupsafe PR #261 / commit 7856c3d945a969bc94a19989dda61c3d50ac2adb; verified URL: https://github.com/pallets/markupsafe/commit/7856c3d945a969bc94a19989dda61c3d50ac2adb (independently confirmed via gh api: real public Python repo, default_branch=main, size~1MB; commit modifies src/markupsafe/__init__.py + _native.py + _speedups.c + tests/test_markupsafe.py + tests/conftest.py + CHANGES.rst — i.e. removes soft_unicode from the top-level import surface and updates tests, matching the case_003 import-contract shape). QA/A38: case is scaffolded only — the committed bundle is still seeded from the Phase 5.6 contract-test fixture, NOT a real audit packet for this commit. Human/cgpro decision required: generate real audit packet, replace the case, or mark insufficient_fixture after operator review. Claude has NOT generated the real packet (per QA/A38 instruction to focus on case_001 only). Claude has NOT triggered the workflow, NOT written labels, NOT written UX scores.",
+  "status": "awaiting_real_audit_packet_decision"
+}

@@ -2,6 +2,80 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Identity
+
+- Canonical public repo: `https://github.com/yannabadie/oida-code`.
+- When asking an external operator, ChatGPT Pro, or `cgpro` to inspect this project, include that URL explicitly in the prompt so the operator can verify the current public surface.
+
+## Human Operator Channel (`cgpro`)
+
+For Phase 5.8 and any later operator-soak work, `cgpro` is the authorized human-operator channel. Treat `cgpro` answers as Yann's human judgement only after they are explicitly returned by the tool; never invent, simulate, or pre-fill human labels, UX scores, workflow run IDs, artifact URLs, or operator rationales.
+
+Before using it, run `cgpro status` and stop if the session is not healthy. For the first prompt in a decision thread, start a fresh session and save it under a stable name, for example:
+
+```bash
+cgpro ask --web --new-session --save phase58-soak "<prompt including https://github.com/yannabadie/oida-code>"
+```
+
+For follow-up decisions in the same operator flow, resume the saved session instead of starting a new one:
+
+```bash
+cgpro ask --web --resume phase58-soak "<follow-up prompt>"
+```
+
+This preserves continuity for repo/PR selection, workflow-dispatch approvals, labels, UX scores, and clarification loops. If a `cgpro` response is missing, empty, ambiguous, or not one of the allowed answers, keep the case in an awaiting-human state and ask `cgpro` for clarification; do not infer the missing decision locally.
+
+Operationally, `cgpro` is a decision/answer channel only. It cannot modify files, run `gh`, dispatch workflows, update reports, or verify the local worktree; Claude/Codex remains at the controls. After every `cgpro` answer, the agent must parse and validate the response, verify concrete URLs/SHAs/run IDs locally, make any file edits itself, run the relevant checks, and explain the result to Yann in enough detail to preserve the reasoning trail.
+
+### `cgpro` invocation hygiene
+
+The polished invocation pattern is:
+
+```bash
+cgpro ask --json --no-stream --timeout 600 --resume phase58-soak <<'EOF'
+<long prompt — heredoc avoids shell-quoting bugs>
+EOF
+```
+
+- **`--json`** emits NDJSON events instead of the human-formatted stream, which makes downstream parsing reliable. Without it, ANSI codes and partial-token streaming mangle the response.
+- **`--no-stream`** buffers the full reply before printing — pair it with `--json` so the agent can parse one complete JSON document instead of stitching event deltas.
+- **`--timeout 600`** caps wait time per turn. Without it, a stalled chatgpt.com UI hangs the call indefinitely.
+- **stdin via heredoc** sidesteps the shell quoting cliff (backticks, dollar signs, multi-line JSON examples in the prompt). The `prompt` positional reads piped stdin per `cgpro ask --help`.
+- **`--web` is policy-on**: pass it for explicitness or omit it; `--no-web` is ignored. Verifying claims against live source is mandatory for any "pick a real repo / commit" question.
+- **`--resume <name>`** continues an existing decision thread (e.g. `phase58-soak`); use `--new-session --save <name>` only for the first prompt in a flow.
+
+### `cgpro` prompt hygiene
+
+- **Lead with the canonical repo URL** (`https://github.com/yannabadie/oida-code`) and, when relevant, the commit SHA being discussed. cgpro pulls live source via web search and the URL anchors the answer to the right artefact.
+- **Structure the framing**: a short "what shipped / what's stuck / what I'm about to do" header before the question. cgpro is slow and analytic; without scoping, it wanders.
+- **Split the ask into 2–3 specific questions**, typically along the axes "verdict on what I did / what should I do next / what trap am I missing". One open-ended "thoughts?" wastes a Pro turn.
+- **Constrain the response shape** when the answer feeds a parser (e.g. `OperatorSoakFiche` field). Demand a single JSON object with named keys; explicitly forbid prose around it.
+- **Pre-emptively blacklist undesired picks** in case-selection prompts (e.g. "do not pick numpy / django / fastapi"). cgpro will otherwise default to high-profile repos.
+
+### When `cgpro` is the right tool
+
+- Holistic review of a substantial cycle (5+ commits or a phase boundary).
+- Strategy critique before committing to an approach.
+- Finding non-obvious bugs across files (cgpro saw real prod bugs that local-only inspection missed).
+- Operator-channel decisions per QA/A37 (label / UX-score / case selection / dispatch approval).
+- Methodology audit before a release.
+
+### When `cgpro` is the wrong tool
+
+- Quick syntax lookups (use Context7 docs or local reading).
+- One-line refactors / well-known API explanations.
+- Anything Claude can answer from local files in seconds (don't waste Pro turns).
+- Decisions where Yann explicitly asked Claude for Claude's own answer.
+
+### Background-task gotcha
+
+`run_in_background: true` on the Bash tool spawns a sub-shell with a stripped PATH that does NOT include `/c/Program Files/nodejs/`, so `cgpro` resolves to "command not found" (exit 127). Two workarounds:
+
+1. Run `cgpro` calls in the foreground (default Bash invocation) — the harness auto-backgrounds long calls anyway when the timeout exceeds the inline budget, but PATH is preserved.
+2. If a background invocation is genuinely required, prefix with the absolute path: `"/c/Program Files/nodejs/cgpro" ask ...`.
+
+Always check with `which cgpro` and `cgpro status` before a long batch of calls; a "Cloudflare challenge" or "Not signed in" needs Yann to run `cgpro login` (interactive) or `cgpro adopt`, and Claude must surface the error rather than retry.
+
 ## Commands
 
 Install (dev): `python -m pip install -e ".[dev]"`

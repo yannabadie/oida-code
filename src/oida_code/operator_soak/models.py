@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # ---------------------------------------------------------------------------
 # Enumerations (Literal[...] to keep forbidden values structurally absent)
@@ -36,6 +36,8 @@ SoakCaseStatus = Literal[
     "awaiting_case_selection",
     "awaiting_operator",
     "awaiting_operator_run",
+    "awaiting_operator_dispatch",
+    "awaiting_real_audit_packet_decision",
     "awaiting_run",
     "awaiting_label",
     "complete",
@@ -45,6 +47,8 @@ SOAK_STATUS_VALUES: tuple[SoakCaseStatus, ...] = (
     "awaiting_case_selection",
     "awaiting_operator",
     "awaiting_operator_run",
+    "awaiting_operator_dispatch",
+    "awaiting_real_audit_packet_decision",
     "awaiting_run",
     "awaiting_label",
     "complete",
@@ -115,29 +119,79 @@ class OperatorSoakFiche(BaseModel):
 
 
 class OperatorLabelEntry(BaseModel):
-    """Operator label for one case. NO LLM may write this file."""
+    """Operator label for one case. NO LLM may write this file.
+
+    QA/A38 §5 mandates the JSON template shape::
+
+        {
+          "operator_label": "useful_true_positive",
+          "operator_rationale": [
+            "Line 1: what the gateway surfaced.",
+            "Line 2: why it was or was not useful.",
+            "Line 3: what action the operator would take."
+          ]
+        }
+
+    For backwards compatibility with earlier `\\n`-separated string
+    rationales, the field accepts either a list of strings or a single
+    string and normalises both to a frozen tuple of 3-10 elements.
+    Provenance fields (``labeled_by``, ``labeled_at``) are optional —
+    operators are encouraged to fill them but the directive's minimal
+    template does not require them.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, validate_assignment=True)
 
     operator_label: OperatorLabel
-    operator_rationale: str = Field(min_length=1)
-    labeled_by: str = Field(min_length=1)
-    labeled_at: str = Field(min_length=1)
+    operator_rationale: tuple[str, ...]
+    labeled_by: str | None = None
+    labeled_at: str | None = None
+
+    @field_validator("operator_rationale", mode="before")
+    @classmethod
+    def _normalise_rationale(cls, value: object) -> tuple[str, ...]:
+        if isinstance(value, str):
+            lines = tuple(line for line in value.splitlines() if line.strip())
+            return lines
+        if isinstance(value, list | tuple):
+            return tuple(str(item) for item in value)
+        raise TypeError(
+            "operator_rationale must be a list of strings or a "
+            f"\\n-separated string (got {type(value).__name__})",
+        )
 
     @model_validator(mode="after")
     def _rationale_line_count(self) -> OperatorLabelEntry:
-        # QA/A34 §5.7-B requires 3-10 lines of rationale.
-        line_count = len(self.operator_rationale.splitlines()) or 1
+        # QA/A34 §5.7-B + QA/A38 §5 require 3-10 lines of rationale.
+        line_count = len(self.operator_rationale)
         if line_count < 3 or line_count > 10:
             raise ValueError(
-                "operator_rationale must be between 3 and 10 lines "
+                "operator_rationale must have between 3 and 10 lines "
                 f"(got {line_count})",
             )
         return self
 
 
 class OperatorUxScore(BaseModel):
-    """UX qualitative scores per QA/A34 §5.7-G. NO LLM may write this file."""
+    """UX qualitative scores per QA/A34 §5.7-G + QA/A38 §5.
+
+    NO LLM may write this file.
+
+    The QA/A38 minimal template is::
+
+        {
+          "summary_readability": 0,
+          "evidence_traceability": 0,
+          "actionability": 0,
+          "no_false_verdict": 0,
+          "notes": ""
+        }
+
+    ``notes`` is a free-text qualitative comment. ``scored_by`` and
+    ``scored_at`` are optional provenance fields — operators are
+    encouraged to record them but the minimal template does not require
+    them.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True, validate_assignment=True)
 
@@ -145,8 +199,9 @@ class OperatorUxScore(BaseModel):
     evidence_traceability: int = Field(ge=0, le=2)
     actionability: int = Field(ge=0, le=2)
     no_false_verdict: int = Field(ge=0, le=2)
-    scored_by: str = Field(min_length=1)
-    scored_at: str = Field(min_length=1)
+    notes: str = ""
+    scored_by: str | None = None
+    scored_at: str | None = None
 
 
 # ---------------------------------------------------------------------------

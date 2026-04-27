@@ -31,9 +31,9 @@ _(no gateway runs recorded yet)_
 
 | case_id | status | expected_risk | label | run_id |
 |---|---|---|---|---|
-| case_001_oida_code_self | awaiting_operator_run | low | _pending_ | _pending_ |
-| case_002_mini_python_bug | awaiting_case_selection | low | _pending_ | _pending_ |
-| case_003_import_contract | awaiting_case_selection | medium | _pending_ | _pending_ |
+| case_001_oida_code_self | awaiting_operator_dispatch | low | _pending_ | _pending_ |
+| case_002_python_semver | awaiting_real_audit_packet_decision | low | _pending_ | _pending_ |
+| case_003_markupsafe | awaiting_real_audit_packet_decision | medium | _pending_ | _pending_ |
 
 ## Recommendation: `continue_soak`
 

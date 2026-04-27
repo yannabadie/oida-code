@@ -1,16 +1,18 @@
 {
-  "event_id": "evt-1",
+  "event_id": "evt-case-001-docstring",
   "supported_claims": [],
   "rejected_claims": [],
   "missing_evidence_refs": [],
   "contradictions": [],
-  "warnings": [],
+  "warnings": [
+    "Pass 1 forward: change is docstring-only, but the verifier still requests pytest on tests/test_phase5_7_operator_soak.py to confirm the operator-soak schemas / aggregator regression tests stay green and that the docstring edit did not accidentally truncate or break the module."
+  ],
   "requested_tools": [
     {
       "tool": "pytest",
-      "purpose": "re-run pytest scoped to tests/ to confirm tests pass",
+      "purpose": "Confirm tests/test_phase5_7_operator_soak.py still passes with the docstring change applied; this grounds the no-regression claim in pass 2.",
       "expected_evidence_kind": "test_result",
-      "scope": ["tests"]
+      "scope": ["tests/test_phase5_7_operator_soak.py"]
     }
   ]
 }

@@ -1,12 +1,19 @@
 {
-  "event_id": "evt-1",
+  "event_id": "evt-case-001-docstring",
   "allowed_fields": ["capability", "benefit", "observability"],
-  "intent_summary": "ship feature X with passing tests",
+  "intent_summary": "Phase 5.8 case_001: align rule-5 docstring in src/oida_code/operator_soak/aggregate.py with the QA/A35 sec.5.8-F tightening so the prose matches the implementation (rules 3 and 4 short-circuit before rule 5; reaching rule 5 implicitly requires false_positive_count<2 AND false_negative_count<2). Behavior is unchanged.",
   "evidence_items": [
     {
       "id": "[E.event.1]",
       "kind": "event",
-      "summary": "feature X event captured from intent doc",
+      "summary": "Single-commit docstring update on branch operator-soak/case-001-docstring (commit 6585dd4d56613119b929924292f2d0367504d6bb). The change touches only the module docstring of src/oida_code/operator_soak/aggregate.py; no executable code, no test, no schema, no public API was modified.",
+      "source": "git",
+      "confidence": 0.95
+    },
+    {
+      "id": "[E.event.2]",
+      "kind": "event",
+      "summary": "Operator intent recorded in operator_soak_cases/case_001_oida_code_self/README.md: low-risk operator-readable docstring fix selected so the operator (cgpro) can pre-state the expected outcome (gateway diagnostic_only, no contract violations) before reading the artefacts.",
       "source": "ticket",
       "confidence": 0.9
     }

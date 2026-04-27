@@ -48,7 +48,7 @@ Required keys (see `src/oida_code/operator_soak/models.py` :: `OperatorSoakFiche
 - `workflow_run_id` (string or null until the action ran)
 - `artifact_url` (string or null)
 - `notes` (string)
-- `status` (`awaiting_operator` | `awaiting_run` | `awaiting_label` | `complete` | `blocked`)
+- `status` (`awaiting_case_selection` | `awaiting_operator` | `awaiting_operator_run` | `awaiting_operator_dispatch` | `awaiting_real_audit_packet_decision` | `awaiting_run` | `awaiting_label` | `complete` | `blocked`)
 
 ### `label.json` — operator label (rule: NO LLM may write this)
 
@@ -101,15 +101,21 @@ Per QA/A34 §5.7-C:
 
 ## Status of cases
 
-This directory ships with `case_001_oida_code_self/` **scaffolded** but
-deliberately **not labelled**: there is no controlled-change branch on this
-repo today, so the case sits in `awaiting_run` and the aggregator will
-correctly classify the soak as `cases_completed=0` →
-`recommendation=continue_soak` per QA/A34 §5.7-F rule 1.
+Current committed cases:
 
-Adding a case is a four-step manual operator workflow:
+| case | status | note |
+|---|---|---|
+| `case_001_oida_code_self/` | `awaiting_operator_dispatch` | branch + commit + REAL audit packet ready; awaiting cgpro+Yann double-gate to dispatch (per QA/A38 §4) |
+| `case_002_python_semver/` | `awaiting_real_audit_packet_decision` | `cgpro` selected `python-semver/python-semver` PR #292 / commit `0309c63`; bundle still seeded, decision required (real packet vs insufficient_fixture vs replace) |
+| `case_003_markupsafe/` | `awaiting_real_audit_packet_decision` | `cgpro` selected `pallets/markupsafe` PR #261 / commit `7856c3d`; bundle still seeded, decision required (real packet vs insufficient_fixture vs replace) |
 
-1. Copy `case_001_oida_code_self/` → `case_<id>_<slug>/`, edit the JSON sidecars.
+The aggregator will correctly classify the soak as `cases_completed=0` →
+`recommendation=continue_soak` until operator-written `label.json` and
+`ux_score.json` files exist for at least three cases.
+
+Adding or advancing a case is a four-step manual operator workflow:
+
+1. Pick or verify the controlled upstream and edit `fiche.json`.
 2. Run the action with `enable-tool-gateway: "true"` and the case bundle.
 3. Operator triages artefacts and writes `label.json` + `ux_score.json` by hand.
 4. Re-run `scripts/run_operator_soak_eval.py` to refresh `reports/operator_soak/aggregate.md`.

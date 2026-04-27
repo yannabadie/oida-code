@@ -153,11 +153,11 @@ def test_case_001_fiche_validates_against_schema() -> None:
     case_dir = _CASES_DIR / "case_001_oida_code_self"
     payload = json.loads((case_dir / "fiche.json").read_text(encoding="utf-8"))
     fiche = OperatorSoakFiche.model_validate(payload)
-    # Phase 5.8-prep: case_001 has a branch + controlled commit but the
-    # operator has not yet dispatched the workflow. Status sits in
-    # ``awaiting_operator_run`` and must NOT be ``complete`` — Claude
-    # must not have triggered the workflow or written a label.
-    assert fiche.status == "awaiting_operator_run"
+    # Phase 5.8-prep (QA/A38): case_001 now has a real audit packet and
+    # awaits the cgpro+Yann double-gate before workflow_dispatch. Status
+    # is ``awaiting_operator_dispatch``; must NOT be ``complete`` —
+    # Claude must not have triggered the workflow or written a label.
+    assert fiche.status == "awaiting_operator_dispatch"
     assert fiche.workflow_run_id is None
     assert fiche.commit and fiche.commit.startswith("6585dd4")
     assert fiche.branch == "operator-soak/case-001-docstring"
@@ -193,7 +193,7 @@ _REQUIRED_BUNDLE_FILES = (
 
 @pytest.mark.parametrize(
     "case_id",
-    ("case_002_mini_python_bug", "case_003_import_contract"),
+    ("case_002_python_semver", "case_003_markupsafe"),
 )
 def test_phase58_prep_scaffolded_case_dirs_exist(case_id: str) -> None:
     case_dir = _CASES_DIR / case_id
@@ -203,20 +203,45 @@ def test_phase58_prep_scaffolded_case_dirs_exist(case_id: str) -> None:
     assert (case_dir / "bundle").is_dir()
 
 
-@pytest.mark.parametrize(
-    "case_id",
-    ("case_002_mini_python_bug", "case_003_import_contract"),
-)
-def test_phase58_prep_scaffolded_fiche_status_is_awaiting_case_selection(
-    case_id: str,
-) -> None:
+def test_phase58_case002_cgpro_selected_upstream_but_not_run() -> None:
+    """QA/A37 + QA/A38: case_002 selection came from cgpro, not from
+    Claude. QA/A38 §3 keeps the case scaffolded only — bundle is still
+    seeded, status is awaiting_real_audit_packet_decision.
+    """
+    case_id = "case_002_python_semver"
     payload = json.loads(
         (_CASES_DIR / case_id / "fiche.json").read_text(encoding="utf-8"),
     )
     fiche = OperatorSoakFiche.model_validate(payload)
-    assert fiche.status == "awaiting_case_selection"
-    # Scaffolds must not carry a workflow_run_id, an artifact_url, or a
-    # label/ux_score.
+    assert fiche.case_id == "case_002_python_semver"
+    assert fiche.status == "awaiting_real_audit_packet_decision"
+    assert fiche.repo == "python-semver/python-semver"
+    assert fiche.branch == "master"
+    assert fiche.commit == "0309c63ce834b7d35aa3e29b8d5bb0357532b016"
+    assert "cgpro session phase58-soak" in fiche.notes
+    assert "https://github.com/python-semver/python-semver/commit/" in fiche.notes
+    assert fiche.workflow_run_id is None
+    assert fiche.artifact_url is None
+
+
+def test_phase58_case003_cgpro_selected_upstream_but_not_run() -> None:
+    """QA/A37 + QA/A38: case_003 selection came from cgpro, not from
+    Claude. QA/A38 §3 keeps the case scaffolded only — bundle is still
+    seeded, status is awaiting_real_audit_packet_decision.
+    """
+    case_id = "case_003_markupsafe"
+    payload = json.loads(
+        (_CASES_DIR / case_id / "fiche.json").read_text(encoding="utf-8"),
+    )
+    fiche = OperatorSoakFiche.model_validate(payload)
+    assert fiche.case_id == "case_003_markupsafe"
+    assert fiche.status == "awaiting_real_audit_packet_decision"
+    assert fiche.repo == "pallets/markupsafe"
+    assert fiche.branch == "main"
+    assert fiche.commit == "7856c3d945a969bc94a19989dda61c3d50ac2adb"
+    assert fiche.expected_risk == "medium"
+    assert "cgpro session phase58-soak" in fiche.notes
+    assert "https://github.com/pallets/markupsafe/commit/" in fiche.notes
     assert fiche.workflow_run_id is None
     assert fiche.artifact_url is None
 
@@ -225,8 +250,8 @@ def test_phase58_prep_scaffolded_fiche_status_is_awaiting_case_selection(
     "case_id",
     (
         "case_001_oida_code_self",
-        "case_002_mini_python_bug",
-        "case_003_import_contract",
+        "case_002_python_semver",
+        "case_003_markupsafe",
     ),
 )
 def test_phase58_prep_bundle_carries_8_required_files(case_id: str) -> None:
@@ -241,8 +266,8 @@ def test_phase58_prep_bundle_carries_8_required_files(case_id: str) -> None:
     "case_id",
     (
         "case_001_oida_code_self",
-        "case_002_mini_python_bug",
-        "case_003_import_contract",
+        "case_002_python_semver",
+        "case_003_markupsafe",
     ),
 )
 def test_phase58_prep_no_label_or_ux_yet(case_id: str) -> None:
@@ -839,16 +864,22 @@ def test_operator_label_enum_has_six_buckets() -> None:
     assert "insufficient_fixture" in OPERATOR_LABEL_VALUES
 
 
-def test_status_enum_has_seven_buckets() -> None:
-    """Phase 5.8-prep (QA/A36) added two operator-facing statuses:
-    ``awaiting_case_selection`` (case dir exists but no controlled change
-    picked) and ``awaiting_operator_run`` (controlled change picked but
-    workflow_dispatch not yet fired).
+def test_status_enum_has_nine_buckets() -> None:
+    """Phase 5.8-prep status taxonomy:
+
+    * QA/A36 added ``awaiting_case_selection`` and ``awaiting_operator_run``
+    * QA/A38 added ``awaiting_operator_dispatch`` (real packet ready, awaiting
+      cgpro+Yann double-gate to dispatch) and
+      ``awaiting_real_audit_packet_decision`` (upstream selected by cgpro
+      but bundle still seeded — operator must decide on real packet vs
+      replace vs insufficient_fixture).
     """
     assert set(SOAK_STATUS_VALUES) == {
         "awaiting_case_selection",
         "awaiting_operator",
         "awaiting_operator_run",
+        "awaiting_operator_dispatch",
+        "awaiting_real_audit_packet_decision",
         "awaiting_run",
         "awaiting_label",
         "complete",

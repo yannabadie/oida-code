@@ -23,16 +23,14 @@ candidates:
 
 | dir | recommended risk | status today |
 |---|---|---|
-| `case_001_oida_code_self/` | low | `awaiting_operator_run` (branch + commit ready) |
-| `case_002_mini_python_bug/` | low | `awaiting_case_selection` (no upstream picked) |
-| `case_003_import_contract/` | medium | `awaiting_case_selection` (no upstream picked) |
+| `case_001_oida_code_self/` | low | `awaiting_operator_dispatch` (branch + commit + REAL audit packet ready) |
+| `case_002_python_semver/` | low | `awaiting_real_audit_packet_decision` (`cgpro` selected `python-semver/python-semver` PR #292 / commit `0309c63`; bundle still seeded) |
+| `case_003_markupsafe/` | medium | `awaiting_real_audit_packet_decision` (`cgpro` selected `pallets/markupsafe` PR #261 / commit `7856c3d`; bundle still seeded) |
 
-For `case_002` and `case_003`: pick a real upstream Python repo + commit
-yourself, edit `fiche.json` (`repo`, `branch`, `commit`, `intent`,
-`expected_risk`), and (ideally) replace the seeded `bundle/` files with a
-real audit packet for the picked commit. If you keep the seeded bundle as
-a placeholder, you must label the case `insufficient_fixture` to be
-honest about the soak signal.
+For `case_002` and `case_003`, the seeded `bundle/` does NOT describe
+the real upstream change. Decide: generate a real audit packet,
+replace the case, or label `insufficient_fixture` honestly. Per
+QA/A38, only `case_001` has a real audit packet during 5.8-prep.
 
 ## Step 2 — Verify the branch / commit
 
@@ -45,8 +43,27 @@ gh api repos/yannabadie/oida-code/commits/6585dd4d56613119b929924292f2d0367504d6
   --jq '.commit.message,.commit.author.name'
 ```
 
-For `case_002` / `case_003`: equivalent commands against the upstream you
-picked. Don't trust a commit that doesn't `git log` cleanly.
+For `case_002`:
+
+```bash
+gh api repos/python-semver/python-semver/commits/0309c63ce834b7d35aa3e29b8d5bb0357532b016 \
+  --jq '.sha,.commit.message'
+gh api repos/python-semver/python-semver/commits/0309c63ce834b7d35aa3e29b8d5bb0357532b016/pulls \
+  -H 'Accept: application/vnd.github+json' \
+  --jq '.[].html_url'
+```
+
+For `case_003` (`pallets/markupsafe` PR #261):
+
+```bash
+gh api repos/pallets/markupsafe/commits/7856c3d945a969bc94a19989dda61c3d50ac2adb \
+  --jq '.sha,.commit.message'
+gh api repos/pallets/markupsafe/commits/7856c3d945a969bc94a19989dda61c3d50ac2adb/pulls \
+  -H 'Accept: application/vnd.github+json' \
+  --jq '.[].html_url'
+```
+
+Don't trust a commit that doesn't verify cleanly.
 
 ## Step 3 — Trigger the workflow manually
 
@@ -54,50 +71,69 @@ GitHub allows manual `workflow_dispatch` from the API, the CLI, or the
 Actions UI. Use any of the three; **do not** use `pull_request_target`,
 **do not** dispatch from a fork, and **do not** schedule the run.
 
-### 3.A — gh CLI
+The dedicated workflow for operator soak is
+**`.github/workflows/operator-soak.yml`** — distinct from
+`action-gateway-smoke.yml` (which stays a stable CI smoke against the
+fixed Phase 5.6 fixture). Soak runs are **manual, parametric, and
+expected to vary per case**; mixing them with the smoke would make
+both signals harder to read.
+
+### 3.A — gh CLI (recommended)
+
+For `case_001`:
 
 ```bash
-gh workflow run action-gateway-smoke.yml \
-  --ref operator-soak/case-001-docstring \
+gh workflow run operator-soak.yml --ref main \
+  -f case-id=case_001_oida_code_self \
+  -f target-ref=operator-soak/case-001-docstring \
   -f bundle-dir=operator_soak_cases/case_001_oida_code_self/bundle \
-  -f case-id=case_001_oida_code_self
+  -f output-dir=.oida/operator-soak/case_001_oida_code_self
 ```
 
-(adapt `--ref`, `-f bundle-dir`, `-f case-id` to the case you picked).
+The `--ref main` flag tells GitHub to **run the workflow YAML from
+`main`** — that's where `operator-soak.yml` is committed. The
+`target-ref` input is the branch the workflow checks out as the audit
+subject.
 
 ### 3.B — Actions tab UI
 
 1. Open the repo's *Actions* tab.
-2. Pick the `action-gateway-smoke` workflow.
+2. Pick the `operator-soak` workflow.
 3. Click *Run workflow*.
-4. Select the branch (e.g. `operator-soak/case-001-docstring`).
-5. Fill in the `bundle-dir` input and dispatch.
+4. Leave the branch dropdown on `main` (the workflow itself runs from
+   main; the audit target is the `target-ref` input).
+5. Fill in the four inputs (`case-id`, `target-ref`, `bundle-dir`,
+   `output-dir`) and dispatch.
 
 ### 3.C — REST API
 
 ```bash
-gh api repos/yannabadie/oida-code/actions/workflows/action-gateway-smoke.yml/dispatches \
+gh api repos/yannabadie/oida-code/actions/workflows/operator-soak.yml/dispatches \
   --method POST \
-  -f ref=operator-soak/case-001-docstring \
-  -f 'inputs[bundle-dir]=operator_soak_cases/case_001_oida_code_self/bundle'
+  -f ref=main \
+  -f 'inputs[case-id]=case_001_oida_code_self' \
+  -f 'inputs[target-ref]=operator-soak/case-001-docstring' \
+  -f 'inputs[bundle-dir]=operator_soak_cases/case_001_oida_code_self/bundle' \
+  -f 'inputs[output-dir]=.oida/operator-soak/case_001_oida_code_self'
 ```
 
-Whatever path you use, **`enable-tool-gateway` must be `"true"`** for the
-case to actually exercise the gateway. The default stays `"false"`; you
-flip it per-dispatch.
+The workflow always invokes the composite action with
+`enable-tool-gateway: "true"` and `gateway-fail-on-contract: "false"`
+internally (per QA/A38 §1) — operators don't flip those per dispatch.
 
 ### 3.D — guard rails
 
-Before the workflow starts, the action's Phase 5.6 guard step
-(`block-gateway-on-pr`) re-checks the event context. If it sees
-`pull_request` or `pull_request_target`, the gateway path exits with a
-clear `::error::`. If you see that error, you dispatched from the wrong
-event — fix and retry, do not work around it.
+The `operator-soak.yml` workflow only triggers on `workflow_dispatch`
+(no `push`, no `pull_request*`, no `schedule`). The composite action's
+Phase 5.6 fork/PR guard (`block-gateway-on-pr`) is also still active
+defence-in-depth — if a future workflow file accidentally adds a
+PR-context trigger, the guard exits with `::error::`. Don't try to
+work around it; fix the workflow.
 
 ## Step 4 — Capture the run identifiers
 
 ```bash
-RUN_ID=$(gh run list --workflow action-gateway-smoke.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+RUN_ID=$(gh run list --workflow operator-soak.yml --limit 1 --json databaseId --jq '.[0].databaseId')
 echo "$RUN_ID"
 gh run view "$RUN_ID" --log >/dev/null   # confirm the run exists
 ```
@@ -136,24 +172,36 @@ even when `audit/` flags suspicious behaviour.
 
 ## Step 6 — Write `label.json` (operator-only)
 
-Create `operator_soak_cases/<case>/label.json`. Use the template:
+Create `operator_soak_cases/<case>/label.json`. The QA/A38 §5 minimal
+template is:
 
 ```json
 {
-  "operator_label": "useful_true_positive | useful_true_negative | false_positive | false_negative | unclear | insufficient_fixture",
+  "operator_label": "useful_true_positive",
   "operator_rationale": [
-    "ligne 1 (3 lignes minimum, 10 maximum)",
-    "ligne 2",
-    "ligne 3"
-  ],
+    "Line 1: what the gateway surfaced.",
+    "Line 2: why it was or was not useful.",
+    "Line 3: what action the operator would take."
+  ]
+}
+```
+
+Replace the `useful_true_positive` literal with one of the six allowed
+labels (see the rubric below). `operator_rationale` must have **3 to
+10 entries**. Provenance fields are optional but recommended:
+
+```json
+{
+  "operator_label": "...",
+  "operator_rationale": [...],
   "labeled_by": "<your-github-handle>",
   "labeled_at": "<ISO-8601 UTC>"
 }
 ```
 
-(The schema accepts a single string with `\n` separators too — pick
-whichever ergonomy suits you. The aggregator validates 3–10 lines either
-way.)
+(The schema also accepts a single string with `\n` separators in
+`operator_rationale` for backwards compatibility — pick whichever
+ergonomy suits you. The aggregator validates 3–10 lines either way.)
 
 Label semantics (re-read before deciding):
 
@@ -172,8 +220,8 @@ write `label.json`. If one appears with `labeled_by: claude` or no
 
 ## Step 7 — Write `ux_score.json` (operator-only)
 
-Create `operator_soak_cases/<case>/ux_score.json`. Each score is 0, 1, or
-2. Template:
+Create `operator_soak_cases/<case>/ux_score.json`. Each score is 0, 1,
+or 2. The QA/A38 §5 minimal template is:
 
 ```json
 {
@@ -181,6 +229,20 @@ Create `operator_soak_cases/<case>/ux_score.json`. Each score is 0, 1, or
   "evidence_traceability": 0,
   "actionability": 0,
   "no_false_verdict": 0,
+  "notes": ""
+}
+```
+
+Provenance fields (`scored_by` / `scored_at`) are optional but
+recommended:
+
+```json
+{
+  "summary_readability": 0,
+  "evidence_traceability": 0,
+  "actionability": 0,
+  "no_false_verdict": 0,
+  "notes": "<free-text qualitative comment>",
   "scored_by": "<your-github-handle>",
   "scored_at": "<ISO-8601 UTC>"
 }

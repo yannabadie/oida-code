@@ -1,19 +1,21 @@
 {
-  "event_id": "evt-1",
+  "event_id": "evt-case-001-docstring",
   "supported_claims": [
     {
-      "claim_id": "C.cap",
-      "event_id": "evt-1",
+      "claim_id": "C.docstring.no_behavior_delta",
+      "event_id": "evt-case-001-docstring",
       "claim_type": "capability_sufficient",
-      "statement": "feature X satisfies its event-level intent and tests pass",
-      "confidence": 0.55,
-      "evidence_refs": ["[E.event.1]", "[E.tool.pytest.0]"],
+      "statement": "The case_001 docstring update on src/oida_code/operator_soak/aggregate.py preserves the aggregator behavior — rules 3 and 4 already short-circuited before rule 5 in the implementation, so spelling that out in the module docstring is a wording alignment rather than a contract change. The pytest evidence confirms tests/test_phase5_7_operator_soak.py still passes with the docstring change applied.",
+      "confidence": 0.6,
+      "evidence_refs": ["[E.event.1]", "[E.event.2]", "[E.tool.pytest.0]"],
       "source": "forward"
     }
   ],
   "rejected_claims": [],
   "missing_evidence_refs": [],
   "contradictions": [],
-  "warnings": [],
+  "warnings": [
+    "Pass 2 forward: the supported claim is intentionally scoped narrowly to the docstring-update / no-behavior-delta scope. The gateway does not assert anything about wider production correctness. Diagnostic only."
+  ],
   "requested_tools": []
 }
