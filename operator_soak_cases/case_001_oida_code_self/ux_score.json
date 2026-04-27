@@ -1,9 +1,9 @@
 {
-  "summary_readability": 1,
-  "evidence_traceability": 1,
+  "summary_readability": 2,
+  "evidence_traceability": 2,
   "actionability": 1,
   "no_false_verdict": 2,
-  "notes": "The report preserves the ADR-22 hard wall and avoids product verdicts, but the summary is not enough on its own and the pytest error lacks stderr/findings, making the artefact only partially actionable.",
-  "scored_by": "cgpro session phase58-soak (uuid 69ef3a8c-0198-8394-8f09-14a7b120d192)",
-  "scored_at": "2026-04-27T14:18:17Z"
+  "notes": "Phase 5.8.1-B rerun (workflow run 25021820479): the summary.md table is fully operator-readable (Accepted=0 Unsupported=1 Status=diagnostic_only); the claim → requested-tool → diagnostic [E.tool.pytest.0] → demotion → Phase 5.8.1-B blocker chain is fully traceable in grounded_report.json; actionability is 1 because the report tells the operator the verifier is safe but the workflow topology bug (A) still prevents pytest from grounding the test_result claim — the next operator action is fix-topology, not fix-verifier; no_false_verdict stays at 2 (no forbidden tokens emitted, official fields remain null, ADR-22 hard wall holds).",
+  "scored_by": "cgpro session unslop-md (uuid 69ea52e7-7aa4-8386-9773-61f1538bf79d) — Phase 5.8.1-B rerun on commit 2e19acf, workflow run 25021820479",
+  "scored_at": "2026-04-28T00:00:00Z"
 }

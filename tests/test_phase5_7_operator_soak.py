@@ -153,37 +153,50 @@ def test_case_001_fiche_validates_against_schema() -> None:
     case_dir = _CASES_DIR / "case_001_oida_code_self"
     payload = json.loads((case_dir / "fiche.json").read_text(encoding="utf-8"))
     fiche = OperatorSoakFiche.model_validate(payload)
-    # Phase 5.8 (QA/A38): case_001 has been dispatched (run 24995045522
-    # success), labelled by cgpro session phase58-soak as
-    # insufficient_fixture, and UX-scored. Status is now ``complete``
-    # but the case still does NOT count toward the document_opt_in_path
-    # threshold (1 < 3 cases_completed; recommendation stays
-    # continue_soak per QA/A34 §5.7-F rule 1).
+    # Phase 5.8.1-B (QA/A39 follow-up): case_001 was redispatched on
+    # commit 2e19acf as workflow run 25021820479 after the verifier
+    # safety regression in Phase 5.8.1 alone (which would have promoted
+    # the false claim) was discovered locally and fixed by the
+    # diagnostic/actionable evidence split. cgpro session unslop-md
+    # then labelled the rerun ``useful_true_negative``. The case is
+    # still ``complete`` and still does NOT count toward
+    # ``document_opt_in_path`` (1 < 3; recommendation stays
+    # ``continue_soak`` per QA/A34 §5.7-F rule 1).
     assert fiche.status == "complete"
-    assert fiche.workflow_run_id == "24995045522"
+    assert fiche.workflow_run_id == "25021820479"
     assert fiche.artifact_url == (
-        "https://github.com/yannabadie/oida-code/actions/runs/24995045522"
+        "https://github.com/yannabadie/oida-code/actions/runs/25021820479"
     )
     assert fiche.commit and fiche.commit.startswith("6585dd4")
     assert fiche.branch == "operator-soak/case-001-docstring"
 
 
 def test_case_001_has_cgpro_label_and_ux_score() -> None:
-    """Phase 5.8 (QA/A37 + QA/A38): case_001 carries operator-written
-    label.json + ux_score.json. Both come from cgpro session
-    phase58-soak (the authorised human operator channel for this
-    project). Claude is NOT allowed to write these files itself; the
-    schema validates the structural shape and the labelled_by /
-    scored_by fields cite cgpro explicitly.
+    """Phase 5.8 (QA/A37 + QA/A38) + Phase 5.8.1-B rerun: case_001
+    carries operator-written label.json + ux_score.json from cgpro.
+    Claude is NOT allowed to write these files itself; the schema
+    validates the structural shape and the ``labelled_by`` /
+    ``scored_by`` fields cite the cgpro session explicitly.
+
+    The Phase 5.8.1-B rerun (workflow run 25021820479 on commit
+    2e19acf) replaced the earlier ``insufficient_fixture`` label
+    (run 24995045522) with ``useful_true_negative``: the verifier
+    correctly demoted the C.docstring.no_behavior_delta claim to
+    ``unsupported`` with the new Phase 5.8.1-B blocker, instead of
+    the unsafe Phase 5.8.1-alone behavior that would have promoted
+    it to ``accepted``.
     """
     case_dir = _CASES_DIR / "case_001_oida_code_self"
     label_payload = json.loads(
         (case_dir / "label.json").read_text(encoding="utf-8"),
     )
     label = OperatorLabelEntry.model_validate(label_payload)
-    assert label.operator_label == "insufficient_fixture"
+    assert label.operator_label == "useful_true_negative"
     assert label.labeled_by is not None
-    assert "cgpro session phase58-soak" in label.labeled_by
+    # The rerun was labelled in cgpro session unslop-md (the project
+    # session linked via `cgpro project link unslop`). The earlier
+    # phase58-soak label was superseded by the Phase 5.8.1-B rerun.
+    assert "cgpro session unslop-md" in label.labeled_by
     # Rationale must be the canonical 3-10 line range.
     assert 3 <= len(label.operator_rationale) <= 10
 
@@ -196,7 +209,7 @@ def test_case_001_has_cgpro_label_and_ux_score() -> None:
     assert 0 <= ux.actionability <= 2
     assert ux.no_false_verdict == 2  # gateway preserved ADR-22 hard wall
     assert ux.scored_by is not None
-    assert "cgpro session phase58-soak" in ux.scored_by
+    assert "cgpro session unslop-md" in ux.scored_by
 
 
 # ---------------------------------------------------------------------------
@@ -344,10 +357,16 @@ def test_phase58_prep_runbook_exists_with_required_sections() -> None:
 
 def test_phase58_aggregate_still_continue_soak_under_three_completed() -> None:
     """Phase 5.8 (QA/A34 §5.7-F rule 1) — recommendation stays
-    ``continue_soak`` while ``cases_completed < 3``. case_001 is now
-    complete (cgpro labelled it ``insufficient_fixture``), but cases
-    002 and 003 are still ``awaiting_real_audit_packet_decision``,
-    so the recommendation must not flip to anything else.
+    ``continue_soak`` while ``cases_completed < 3``. case_001 was
+    relabelled by cgpro from ``insufficient_fixture`` to
+    ``useful_true_negative`` after the Phase 5.8.1-B rerun (workflow
+    run 25021820479) confirmed the verifier-side safety contract
+    holds. cases 002 and 003 are still
+    ``awaiting_real_audit_packet_decision``, so the
+    ``cases_completed < 3`` short-circuit keeps the recommendation
+    at ``continue_soak``. ``usefulness_rate`` is 1.000 on the single
+    completed case but does not promote past
+    ``continue_soak`` until ``cases_completed >= 5`` (rule 5).
     """
     payload = json.loads(
         (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
@@ -355,11 +374,10 @@ def test_phase58_aggregate_still_continue_soak_under_three_completed() -> None:
     )
     assert payload["recommendation"] == "continue_soak"
     assert payload["cases_completed"] < 3
-    # The single labelled case must NOT count as a useful_* outcome —
-    # it is honestly insufficient_fixture per cgpro's labelling.
-    assert payload["insufficient_fixture_count"] == 1
+    # case_001 is now useful_true_negative (Phase 5.8.1-B rerun).
+    assert payload["useful_true_negative_count"] == 1
+    assert payload["insufficient_fixture_count"] == 0
     assert payload["useful_true_positive_count"] == 0
-    assert payload["useful_true_negative_count"] == 0
     assert payload["false_positive_count"] == 0
     assert payload["false_negative_count"] == 0
     assert payload["official_field_leak_count"] == 0

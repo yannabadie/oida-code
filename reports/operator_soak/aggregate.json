@@ -4,9 +4,9 @@
     {
       "case_id": "case_001_oida_code_self",
       "expected_risk": "low",
-      "operator_label": "insufficient_fixture",
+      "operator_label": "useful_true_negative",
       "status": "complete",
-      "workflow_run_id": "24995045522"
+      "workflow_run_id": "25021820479"
     },
     {
       "case_id": "case_002_python_semver",
@@ -26,7 +26,7 @@
   "cases_completed": 1,
   "cases_total": 3,
   "contract_violation_count": 0,
-  "evidence_traceability_avg": 1.0,
+  "evidence_traceability_avg": 2.0,
   "false_negative_count": 0,
   "false_positive_count": 0,
   "gateway_status_distribution": [
@@ -35,14 +35,14 @@
       1
     ]
   ],
-  "insufficient_fixture_count": 1,
+  "insufficient_fixture_count": 0,
   "is_authoritative": false,
   "no_false_verdict_avg": 2.0,
   "official_field_leak_count": 0,
-  "operator_usefulness_rate": 0.0,
+  "operator_usefulness_rate": 1.0,
   "recommendation": "continue_soak",
-  "summary_readability_avg": 1.0,
+  "summary_readability_avg": 2.0,
   "unclear_count": 0,
-  "useful_true_negative_count": 0,
+  "useful_true_negative_count": 1,
   "useful_true_positive_count": 0
 }

@@ -1,10 +1,12 @@
 {
-  "operator_label": "insufficient_fixture",
+  "operator_label": "useful_true_negative",
   "operator_rationale": [
-    "Line 1: The gateway surfaced a blocked diagnostic report: the docstring/no-behavior-delta claim was rejected because the pytest tool returned status=error with no citable evidence and the claim referenced unknown evidence [E.tool.pytest.0].",
-    "Line 2: For the case_001 docstring-only change, this does not demonstrate a contract violation or behavioral regression; it demonstrates that the replay/tool-evidence path failed to ground the preapproved claim.",
-    "Line 3: Yann should not treat this as a code concern or count case_001 completed from this report alone; inspect/fix the pytest evidence emission or runner setup, then rerun the case."
+    "The run exercised the exact Phase 5.8.1-B safety condition: the verifier stayed diagnostic_only, accepted no claims, and demoted C.docstring.no_behavior_delta instead of promoting it.",
+    "This is useful as a true negative because the operator expected no product-level claim acceptance for a low-risk docstring change, and the report explicitly prevented the unsafe 5.8.1 false-promotion path.",
+    "I am not choosing insufficient_fixture because the rerun now produced a citable diagnostic pytest evidence item and an operator-readable blocker; the fixture is imperfect, but no longer empty or silently ungrounded.",
+    "I am not choosing unclear because the claim → requested tool → diagnostic-only evidence → demotion/blocker chain is traceable from the artifacts.",
+    "The topology bug remains real: pytest did not execute against the intended target path, so this label is about verifier safety and operator usefulness, not proof that the docstring change was behaviorally tested."
   ],
-  "labeled_by": "cgpro session phase58-soak (uuid 69ef3a8c-0198-8394-8f09-14a7b120d192)",
-  "labeled_at": "2026-04-27T14:18:17Z"
+  "labeled_by": "cgpro session unslop-md (uuid 69ea52e7-7aa4-8386-9773-61f1538bf79d) — Phase 5.8.1-B rerun on commit 2e19acf, workflow run 25021820479",
+  "labeled_at": "2026-04-28T00:00:00Z"
 }
