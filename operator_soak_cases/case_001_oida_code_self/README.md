@@ -56,13 +56,17 @@ flag any suspicious tool calls, and the UX questions should be answerable
 
 1. Verify branch + commit on GitHub:
    `gh api repos/yannabadie/oida-code/commits/6585dd4d56613119b929924292f2d0367504d6bb`
-2. Trigger `workflow_dispatch` against this case's bundle:
+2. Trigger `workflow_dispatch` against this case's bundle (use the
+   dedicated `operator-soak.yml` workflow on `main`, not the Phase 5.6
+   `action-gateway-smoke.yml`):
    ```bash
-   gh workflow run action-gateway-smoke.yml \
-     --ref operator-soak/case-001-docstring \
-     -f bundle=operator_soak_cases/case_001_oida_code_self/bundle
+   gh workflow run operator-soak.yml --ref main \
+     -f case-id=case_001_oida_code_self \
+     -f target-ref=operator-soak/case-001-docstring \
+     -f bundle-dir=operator_soak_cases/case_001_oida_code_self/bundle \
+     -f output-dir=.oida/operator-soak/case_001_oida_code_self
    ```
-   *(or use the Actions tab UI; see RUNBOOK §3)*
+   *(or use the Actions tab UI; see RUNBOOK §3.B)*
 3. Capture `workflow_run_id` and `artifact_url` into `fiche.json`.
 4. Download artefacts. Read in this order:
    - GitHub Step Summary
