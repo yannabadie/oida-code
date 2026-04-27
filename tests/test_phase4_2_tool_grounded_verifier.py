@@ -746,27 +746,51 @@ def test_fixture_pytest_scoped_pass_supports_precondition(tmp_path: Path) -> Non
 def test_fixture_tool_missing_does_not_fail_code(tmp_path: Path) -> None:
     """Phase 4.2-H #5: missing binary becomes uncertainty. A claim
     that depends on the missing tool's evidence becomes unsupported
-    rather than rejected."""
+    rather than rejected.
+
+    Phase 5.8.1 (QA/A39 §4) update: tool_missing now emits exactly one
+    diagnostic ``EvidenceItem`` with id ``[E.tool.<binary>.0]`` and
+    ``kind="tool_finding"`` so a downstream claim citing that ref
+    resolves to a citable item rather than an unknown ref. The status
+    is still ``tool_missing`` — uncertainty, not a real test result —
+    so the verifier's contradiction enforcer still demotes the claim
+    to ``unsupported``."""
     engine = ToolExecutionEngine(executor=FakeExecutor())  # no canned outcomes
     results = engine.run((_request(tool="ruff"),), _policy(tmp_path))
     assert results[0].status == "tool_missing"
-    # No findings, no evidence items.
+    # No findings (the tool didn't run, so no real findings).
     assert results[0].findings == ()
-    assert results[0].evidence_items == ()
+    # Phase 5.8.1: exactly one diagnostic evidence item.
+    assert len(results[0].evidence_items) == 1
+    diag = results[0].evidence_items[0]
+    assert diag.id == "[E.tool.ruff.0]"
+    assert diag.kind == "tool_finding"
+    assert "not on PATH" in diag.summary
 
 
 def test_fixture_tool_timeout_blocks_claim(tmp_path: Path) -> None:
     """Phase 4.2-H #6: timeout → status="timeout", no findings, no
     deterministic estimate produced. A claim depending on this
     evidence won't be rejected (missing tool ≠ tool failure) but it
-    can't be backed up either."""
+    can't be backed up either.
+
+    Phase 5.8.1 (QA/A39 §4) update: timeout now emits exactly one
+    diagnostic ``EvidenceItem`` describing the budget exhaustion.
+    The status is still ``timeout`` — uncertainty, not a real test
+    result — so the verifier's contradiction enforcer still demotes
+    the claim."""
     engine = ToolExecutionEngine(
         executor=FakeExecutor({"pytest": _timeout()}),
     )
     results = engine.run((_request(tool="pytest"),), _policy(tmp_path))
     assert results[0].status == "timeout"
     assert results[0].findings == ()
-    assert results[0].evidence_items == ()
+    # Phase 5.8.1: exactly one diagnostic evidence item.
+    assert len(results[0].evidence_items) == 1
+    diag = results[0].evidence_items[0]
+    assert diag.id == "[E.tool.pytest.0]"
+    assert diag.kind == "tool_finding"
+    assert "exceeded the per-tool runtime budget" in diag.summary
 
 
 def test_fixture_path_traversal_tool_request_blocked(tmp_path: Path) -> None:

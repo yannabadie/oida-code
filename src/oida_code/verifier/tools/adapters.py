@@ -125,6 +125,28 @@ class ToolAdapter(abc.ABC):
     name: ToolName
     binary: str
 
+    def _diagnostic_evidence(
+        self, *, summary: str, confidence: float = 0.5,
+    ) -> tuple[EvidenceItem, ...]:
+        """QA/A39 §4 invariant — every requested tool produces at least
+        one citable evidence item, even when the tool failed. The
+        synthesised item uses ``id=[E.tool.<binary>.0]`` (same idx the
+        clean-pass branch uses), ``kind="tool_finding"``, and the given
+        diagnostic summary so callers citing ``[E.tool.<binary>.0]`` in
+        a claim's ``evidence_refs`` always resolve to *something*. The
+        verifier's downstream contradiction enforcer is responsible for
+        deciding whether the diagnostic actually supports the claim.
+        """
+        return (
+            EvidenceItem(
+                id=_evidence_id(self.name, 0),
+                kind="tool_finding",
+                summary=summary[:400],
+                source=self.binary,
+                confidence=confidence,
+            ),
+        )
+
     def run(
         self,
         request: VerifierToolRequest,
@@ -142,17 +164,34 @@ class ToolAdapter(abc.ABC):
         )
         outcome = executor(ctx)
         if outcome.returncode is None and not outcome.timed_out:
+            warning = f"{self.binary} not on PATH"
             return VerifierToolResult(
                 tool=self.name,
                 status="tool_missing",
-                warnings=(f"{self.binary} not on PATH",),
+                evidence_items=self._diagnostic_evidence(
+                    summary=(
+                        f"{self.binary} could not be invoked: not on PATH "
+                        f"(scope={list(request.scope) or ['<all>']})"
+                    ),
+                ),
+                warnings=(warning,),
                 runtime_ms=outcome.runtime_ms,
             )
         if outcome.timed_out:
+            warning = (
+                f"{self.binary} exceeded budget {request.max_runtime_s}s"
+            )
             return VerifierToolResult(
                 tool=self.name,
                 status="timeout",
-                warnings=(f"{self.binary} exceeded budget {request.max_runtime_s}s",),
+                evidence_items=self._diagnostic_evidence(
+                    summary=(
+                        f"{self.binary} exceeded the per-tool runtime budget "
+                        f"of {request.max_runtime_s}s "
+                        f"(scope={list(request.scope) or ['<all>']})"
+                    ),
+                ),
+                warnings=(warning,),
                 runtime_ms=outcome.runtime_ms,
             )
         truncated_stdout, was_truncated, digest = truncate_and_hash(
@@ -167,7 +206,15 @@ class ToolAdapter(abc.ABC):
             return VerifierToolResult(
                 tool=self.name,
                 status="error",
-                warnings=(f"{self.binary} output unparseable: {type(exc).__name__}",),
+                evidence_items=self._diagnostic_evidence(
+                    summary=(
+                        f"{self.binary} output unparseable "
+                        f"({type(exc).__name__}); rc={outcome.returncode}"
+                    ),
+                ),
+                warnings=(
+                    f"{self.binary} output unparseable: {type(exc).__name__}",
+                ),
                 runtime_ms=outcome.runtime_ms,
                 output_truncated=was_truncated,
                 output_sha256=digest,
@@ -181,6 +228,21 @@ class ToolAdapter(abc.ABC):
             status = "error"
         else:
             status = "ok"
+        # Phase 5.8.1 / QA/A39 §4 invariant — when the tool ran but
+        # produced nothing citable AND status is "error", synthesise a
+        # diagnostic evidence item so a downstream claim citing
+        # [E.tool.<binary>.0] can resolve. The "ok" / "failed" branches
+        # already emit citable items via parse_outcome.
+        if status == "error" and not evidence_items:
+            stderr_excerpt = (outcome.stderr or "").strip()[:200]
+            stdout_excerpt = (truncated_stdout or "").strip()[:200]
+            tail = stderr_excerpt or stdout_excerpt or "(no output)"
+            evidence_items = list(self._diagnostic_evidence(
+                summary=(
+                    f"{self.binary} exited rc={rc} with no parseable "
+                    f"findings; output excerpt: {tail}"
+                ),
+            ))
         return VerifierToolResult(
             tool=self.name,
             status=status,  # type: ignore[arg-type]
