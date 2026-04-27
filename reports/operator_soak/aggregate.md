@@ -17,7 +17,7 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 
 ## Distribution
 
-_(no gateway runs recorded yet)_
+- diagnostic_only: 1
 
 ## Rates
 
@@ -31,7 +31,7 @@ _(no gateway runs recorded yet)_
 
 | case_id | status | expected_risk | label | run_id |
 |---|---|---|---|---|
-| case_001_oida_code_self | awaiting_operator_dispatch | low | _pending_ | _pending_ |
+| case_001_oida_code_self | awaiting_label | low | _pending_ | 24995045522 |
 | case_002_python_semver | awaiting_real_audit_packet_decision | low | _pending_ | _pending_ |
 | case_003_markupsafe | awaiting_real_audit_packet_decision | medium | _pending_ | _pending_ |
 

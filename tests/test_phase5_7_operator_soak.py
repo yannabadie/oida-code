@@ -153,12 +153,17 @@ def test_case_001_fiche_validates_against_schema() -> None:
     case_dir = _CASES_DIR / "case_001_oida_code_self"
     payload = json.loads((case_dir / "fiche.json").read_text(encoding="utf-8"))
     fiche = OperatorSoakFiche.model_validate(payload)
-    # Phase 5.8-prep (QA/A38): case_001 now has a real audit packet and
-    # awaits the cgpro+Yann double-gate before workflow_dispatch. Status
-    # is ``awaiting_operator_dispatch``; must NOT be ``complete`` —
-    # Claude must not have triggered the workflow or written a label.
-    assert fiche.status == "awaiting_operator_dispatch"
-    assert fiche.workflow_run_id is None
+    # Phase 5.8 (QA/A38): case_001 has been dispatched (run 24995045522
+    # success on commit 0b7a657 of the workflow). Status is
+    # ``awaiting_label`` — operator (cgpro session phase58-soak) must
+    # write label.json + ux_score.json; Claude must NOT have written
+    # those, and the case must NOT be ``complete`` until human labels
+    # land.
+    assert fiche.status == "awaiting_label"
+    assert fiche.workflow_run_id == "24995045522"
+    assert fiche.artifact_url == (
+        "https://github.com/yannabadie/oida-code/actions/runs/24995045522"
+    )
     assert fiche.commit and fiche.commit.startswith("6585dd4")
     assert fiche.branch == "operator-soak/case-001-docstring"
 

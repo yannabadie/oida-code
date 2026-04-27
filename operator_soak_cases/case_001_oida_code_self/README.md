@@ -2,27 +2,41 @@
 
 ## Status
 
-`awaiting_operator_dispatch` — branch + controlled docstring change
-committed (commit `6585dd4d56613119b929924292f2d0367504d6bb` on
-`operator-soak/case-001-docstring`); the **real audit packet** is now
-generated under `bundle/` (per QA/A38 §2); the dedicated workflow
-`.github/workflows/operator-soak.yml` is also committed on `main`.
+`awaiting_label` — workflow has been dispatched and produced real
+artefacts. Run history:
+
+| run | conclusion | duration | note |
+|---|---|---|---|
+| `24994865500` | failure | 27s | path bug in operator-soak.yml (relative `../oida-target` did not resolve from `$GITHUB_WORKSPACE`); fixed in commit `0b7a657` |
+| `24995045522` | **success** | 1m56s | gateway-status=`diagnostic_only`; leak_count=0; one rejected claim (pytest emitted no evidence) |
+
+Artefact URL: <https://github.com/yannabadie/oida-code/actions/runs/24995045522>
+
+Outcome details (independently verified):
+
+- `gateway-status: diagnostic_only`
+- `gateway-official-field-leak-count: 0` (ADR-22 hard wall holds)
+- `accepted_claims: 0` / `rejected_claims: 1` / `unsupported_claims: 0`
+- The single rejected claim `C.docstring.no_behavior_delta` is rejected
+  because pytest ran 193 ms and exited with `status=error` (no citable
+  evidence emitted). The verifier honestly says
+  *"requested tool ran but emitted no citable evidence; cannot
+  promote pass-2 claims"* — exactly the diagnostic surface QA/A37
+  wants the operator to grade.
+- Independent forbidden-token scan across the 5 downloaded artefacts
+  returned zero hits.
 
 What is still needed:
 
-1. **Operator approval** to dispatch — gated through `cgpro` session
-   `phase58-soak` (per QA/A38 §4 `CGPRO_REQUEST` for
-   `workflow_dispatch_approval`).
-2. **Yann's explicit `go dispatch case_001`** message before Claude
-   actually runs `gh workflow run …`. cgpro's approval is one half of a
-   double-gate; Yann's explicit go is the other.
-3. **Operator-written `label.json`** and **`ux_score.json`** after the
-   run produces artefacts.
+1. **Operator-written `label.json`** routed through `cgpro` session
+   `phase58-soak` (one of `useful_true_positive`,
+   `useful_true_negative`, `false_positive`, `false_negative`,
+   `unclear`, `insufficient_fixture` + 3-10 line rationale).
+2. **Operator-written `ux_score.json`** (four 0/1/2 scores +
+   optional notes).
 
-Claude has **not** triggered the workflow, **not** written `label.json`,
-and **not** written `ux_score.json`. Per QA/A36 + QA/A38, those four
-steps (dispatch, label, UX score, mark complete) must remain
-operator-only.
+Claude has **not** written `label.json` or `ux_score.json`. Per QA/A36
++ QA/A38, those steps must remain operator-only.
 
 ## Intent (controlled change)
 
