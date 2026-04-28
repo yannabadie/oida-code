@@ -174,8 +174,31 @@ and where human review is irreducible.
 |---|---|
 | `claim_id` | `"C.cli_version_flag.repair_needed"` |
 | `claim_text` | (full paragraph — see `index.json`) |
+| `evidence_items` | 2 items (added Phase 6.1'b per ADR-55) — see below |
 | `test_scope` | `"testing/test_helpconfig.py::test_version_less_verbose"` |
 | `candidate_reason` | (operator note — see `index.json`) |
+
+**Note on `evidence_items` (added in Phase 6.1'b / ADR-55):**
+the field was not present in the Phase 6.1'a schema; it was
+added because `prepare-gateway-bundle` (Phase 6.1'b) needs the
+items to populate `packet.json::evidence_items[]` mechanically.
+The shape mirrors `LLMEvidencePacket.evidence_items` exactly so
+the conversion is a straight copy. For seed_008, the two items
+are:
+
+* `[E.event.1]` — kind=`event`, source=`git`, confidence=0.85.
+  Records the fact that PR #14407 cherry-picks PR #14382 onto
+  9.0.x, lists the diff shape, names the production change.
+  Confidence is 0.85 (not 0.95) because the diff is a backport
+  re-apply, not original authorship.
+* `[E.event.2]` — kind=`event`, source=`ticket`, confidence=0.9.
+  Records the test parametrization, lists the assertion shape,
+  states what a clean pytest run at `head_sha 480809ae`
+  demonstrates.
+
+Both items respect the schema constraints: `summary ≤ 400 chars`,
+`source ≤ 80 chars`, `confidence ∈ [0.0, 1.0]`, no forbidden
+phrases. They were authored manually by reading the diff.
 
 **Pedagogy:**
 

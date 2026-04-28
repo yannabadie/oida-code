@@ -40,6 +40,22 @@
     "claim_id": "C.cli_version_flag.repair_needed",
     "claim_text": "After PR #14407 (backport of #14382 to the 9.0.x branch), pytest's CLI accepts the `-V` short-flag as equivalent to `--version`: both produce the version string `pytest <X.Y.Z>` via the early fast-path in `_pytest/config/__init__.py:main()`, without loading the rest of the pytest infrastructure. Prior to this change `-V` was not in the early-version fast-path counter, so it would either error or trigger full plugin loading depending on the calling context. Provenance note: this PR is a 9.0.x backport — the original fix was authored by a community contributor in PR #14382 against main, then cherry-picked by maintainers; the diff is materially identical (changelog entry + src counter update + test parametrization).",
     "claim_type": "repair_needed",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "GitHub PR pytest-dev/pytest#14407 cherry-picks PR #14382 (community fix) onto branch 9.0.x. Diff: 3 files (changelog/14381.bugfix.rst, src/_pytest/config/__init__.py, testing/test_helpconfig.py); 15 changed lines. Production change: counter for the early fast-path in main() now sums --version + -V occurrences instead of only --version.",
+        "source": "git",
+        "confidence": 0.85
+      },
+      {
+        "id": "[E.event.2]",
+        "kind": "event",
+        "summary": "Test testing/test_helpconfig.py::test_version_less_verbose is parametrized over flag in [\"--version\", \"-V\"]. Both runs assert: result.ret == ExitCode.OK and result.stdout.str().strip() == f\"pytest {pytest.__version__}\". A clean pytest run on this scope at head_sha 480809ae demonstrates -V no longer loads plugins.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ],
     "collected_at": "2026-04-28T20:53:16Z",
     "expected_grounding_outcome": "evidence_present",
     "head_sha": "480809ae02a97344e68e52eb015e68b840f2e05c",

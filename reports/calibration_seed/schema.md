@@ -28,6 +28,7 @@ for the Phase 6.1' bundle authoring stress-test corpus.
 | `claim_id` | str \| null | yes | A `C.<surface>.<claim>` identifier (see `docs/beta/beta_case_template.md`). May be `null` if not yet assigned (then `human_review_required: true`). |
 | `claim_type` | str \| null | yes | One of the 7 `LLMEvidencePacket.allowed_fields` Literal values, or `null` if not yet assigned. See "Allowed claim types" below. |
 | `claim_text` | str \| null | yes | One-paragraph human-written description of the claim. May be `null` initially; populated MANUALLY. |
+| `evidence_items` | list[obj] \| null | yes | List of traceable evidence items the LLM (and downstream verifier) cite. Each item: `{id, kind, summary, source, confidence}`. May be `null` initially. Schema mirrors `LLMEvidencePacket.evidence_items` exactly. See "evidence_items shape" below. Phase 6.1'b (ADR-55) added this field as a Tier 3 free-form domain reasoning field. |
 | `test_scope` | str \| null | yes | pytest scope (file or `file::test_name`). May be `null` initially. |
 | `expected_grounding_outcome` | str | yes | One of the structural outcomes — see "Allowed grounding outcomes" below. |
 | `label_source` | str | yes | One of the strict allowlist values — see "Allowed label sources" below. |
@@ -37,6 +38,32 @@ for the Phase 6.1' bundle authoring stress-test corpus.
 | `collected_at` | str (ISO 8601) | yes | UTC timestamp when the metadata was collected. |
 | `script_version` | str | yes | Version of `scripts/build_calibration_seed_index.py` that produced this record. Format: `phase6_1_a_pre_v1`. |
 | `public_only` | bool | yes | Always `true`. Asserted at collection time; the script refuses if a private repo is encountered. |
+
+### `evidence_items` shape
+
+Each item in the `evidence_items` list MUST be an object with
+exactly these fields (the shape mirrors
+`src/oida_code/estimators/llm_prompt.py::EvidenceItem` Pydantic
+model so a downstream conversion to `LLMEvidencePacket` is
+mechanical):
+
+| Field | Type | Constraint |
+|---|---|---|
+| `id` | str | Non-empty. Convention: `[E.<kind>.<n>]` e.g. `[E.event.1]`, `[E.test_result.1]`. The convention matches `LLMEvidencePacket.evidence_items[].id`. |
+| `kind` | str | One of: `intent`, `event`, `precondition`, `tool_finding`, `test_result`, `graph_edge`, `trajectory`, `repair_signal` (per `EvidenceKind` Literal). |
+| `summary` | str | Max 400 chars. Human-readable one-sentence summary of the evidence. Cannot reference forbidden phrases (V_net, debt_final, corrupt_success, verdict, merge_safe, production_safe, bug_free, security_verified). |
+| `source` | str | Min 1, max 80 chars. Free-form pointer e.g. `git`, `ticket`, `github_pr_metadata`, `local_pytest`, `static_analysis`. |
+| `confidence` | float | In [0.0, 1.0]. Operator's confidence that this evidence is what it says it is. Backports / cherry-picks should drop confidence somewhat (e.g. 0.85 vs 0.95) because the diff has been re-applied. |
+
+`evidence_items` is **not auto-fillable from the GitHub API**.
+This is a Tier 3 (free-form domain reasoning) field per ADR-54.
+The bundle authoring helper (Phase 6.1'b `prepare-gateway-bundle`)
+does NOT generate evidence items — it consumes them from the seed
+record. The operator authors them after reading the diff.
+
+The `id` convention `[E.<kind>.<n>]` matches the Phase 4.0
+`LLMEvidencePacket.evidence_items[].id` shape so a downstream
+`packet.json` mechanical conversion is straightforward.
 
 ### Allowed claim types (`claim_type`)
 

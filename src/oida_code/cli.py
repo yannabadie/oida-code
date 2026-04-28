@@ -1513,6 +1513,146 @@ def verify_grounded_cmd(
     )
 
 
+@app.command("prepare-gateway-bundle")
+def prepare_gateway_bundle_cmd(
+    seed_index: Annotated[
+        Path,
+        typer.Option(
+            "--seed-index",
+            help=(
+                "Path to the calibration_seed inclusions file, "
+                "typically `reports/calibration_seed/index.json`."
+            ),
+        ),
+    ] = Path("reports/calibration_seed/index.json"),
+    case_id: Annotated[
+        str,
+        typer.Option(
+            "--case-id",
+            help=(
+                "case_id of the seed record to materialise into a "
+                "bundle (e.g. `seed_008_pytest_dev_pytest_14407`)."
+            ),
+        ),
+    ] = "",
+    out: Annotated[
+        Path,
+        typer.Option(
+            "--out",
+            help=(
+                "Output directory for the bundle. Created if "
+                "missing. Per ADR-55 the generator writes 9 files "
+                "(8 verifier inputs + 1 README.md)."
+            ),
+        ),
+    ] = Path("examples/calibration_seed"),
+    validate: Annotated[
+        bool,
+        typer.Option(
+            "--validate/--no-validate",
+            help=(
+                "Run validate-gateway-bundle on the produced "
+                "directory and exit 2 on failure."
+            ),
+        ),
+    ] = True,
+) -> None:
+    """Phase 6.1'b (ADR-55): generate a gateway bundle skeleton
+    from a Tier-3-complete calibration_seed record.
+
+    The generator emits 8 files matching the validate-gateway-
+    bundle required-set plus a README.md. Per ADR-55 the four
+    pass*_*.json files are minimal-schema-valid SKELETONS, not
+    verifier output; the skeleton note lives in each stub's
+    warnings array. The verify-grounded round-trip is deferred
+    to Phase 6.1'd. Exits 2 on validation failure or partial
+    seed records.
+    """
+    from oida_code.action_gateway.bundle import (
+        validate_gateway_bundle,
+    )
+    from oida_code.bundle import (
+        BundleGenerationError,
+        generate_bundle,
+    )
+
+    if not case_id:
+        typer.echo(
+            "prepare-gateway-bundle requires --case-id", err=True,
+        )
+        raise typer.Exit(code=2)
+
+    if not seed_index.is_file():
+        typer.echo(
+            f"seed index not found: {seed_index}", err=True,
+        )
+        raise typer.Exit(code=2)
+
+    try:
+        records = json.loads(seed_index.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        typer.echo(
+            f"seed index unreadable: {exc}", err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    if not isinstance(records, list):
+        typer.echo(
+            f"seed index {seed_index} top-level is not a JSON array",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    matches = [
+        r for r in records
+        if isinstance(r, dict) and r.get("case_id") == case_id
+    ]
+    if not matches:
+        typer.echo(
+            f"case_id {case_id!r} not found in {seed_index}",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+    if len(matches) > 1:
+        typer.echo(
+            f"case_id {case_id!r} matched {len(matches)} records "
+            f"in {seed_index} (expected exactly 1)",
+            err=True,
+        )
+        raise typer.Exit(code=2)
+
+    target_dir = out / case_id
+    try:
+        bundle = generate_bundle(matches[0], target_dir)
+    except BundleGenerationError as exc:
+        typer.echo(
+            f"bundle generation refused: {exc}", err=True,
+        )
+        raise typer.Exit(code=2) from exc
+
+    typer.echo(
+        f"bundle-generated dir={bundle.out_dir} "
+        f"files={len(bundle.files)}",
+    )
+
+    if validate:
+        result = validate_gateway_bundle(bundle.out_dir)
+        if not result.ok:
+            for err in result.errors:
+                typer.echo(
+                    f"FAIL [{err.code}] {err.message}", err=True,
+                )
+            typer.echo(
+                f"bundle-validation-failed dir={bundle.out_dir} "
+                f"errors={len(result.errors)}",
+                err=True,
+            )
+            raise typer.Exit(code=2)
+        typer.echo(
+            f"bundle-validated dir={bundle.out_dir}",
+        )
+
+
 @app.command("validate-gateway-bundle")
 def validate_gateway_bundle_cmd(
     bundle_dir: Annotated[
