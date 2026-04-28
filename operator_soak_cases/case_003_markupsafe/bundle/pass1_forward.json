@@ -1,16 +1,18 @@
 {
-  "event_id": "evt-1",
+  "event_id": "evt-case-003-soft-unicode-removal",
   "supported_claims": [],
   "rejected_claims": [],
   "missing_evidence_refs": [],
   "contradictions": [],
-  "warnings": [],
+  "warnings": [
+    "Pass 1 forward: a 'dual-backend coverage observability' claim cannot be grounded from event evidence alone. The verifier requests pytest on tests/test_markupsafe.py to obtain a deterministic test_result; the workflow must run pip install -e . inside oida-target/ first so the C extension is built and _speedups parametrize cases run instead of skip."
+  ],
   "requested_tools": [
     {
       "tool": "pytest",
-      "purpose": "re-run pytest scoped to tests/ to confirm tests pass",
+      "purpose": "Run pytest on tests/test_markupsafe.py at markupsafe@7856c3d after editable install; clean-pass produces [E.tool.pytest.0] (kind=test_result) for the dual-backend observability claim.",
       "expected_evidence_kind": "test_result",
-      "scope": ["tests"]
+      "scope": ["tests/test_markupsafe.py"]
     }
   ]
 }

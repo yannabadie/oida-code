@@ -44,6 +44,11 @@ on:
         required: false
         type: string
         default: ""
+      target-install:
+        description: "When true, runs `pip install -e .` inside oida-target/ before the gateway step. Required for cases where the audit subject ships a C extension or otherwise needs to be importable for pytest collection (e.g. case_003 markupsafe — the _speedups C-ext build is what makes pytest exercise both backends instead of skipping the parametrize cases). Default false to preserve case_001/case_002's no-install path."
+        required: false
+        type: boolean
+        default: false
       bundle-dir:
         description: "Replay bundle path relative to main checkout (e.g. operator_soak_cases/case_001_oida_code_self/bundle)."
         required: true
@@ -120,6 +125,38 @@ jobs:
           fi
           echo "Bundle directory contents:"
           ls -la "$BUNDLE_DIR"
+
+      # 3.5. Optional editable install of the target — required for
+      #      cases where the audit subject ships a C extension or
+      #      otherwise needs to be importable by pytest (e.g.
+      #      case_003 markupsafe — without the editable install the
+      #      _speedups C extension isn't built and conftest.py's
+      #      pytest.mark.skipif fires, silently masking the
+      #      dual-backend coverage the verifier asked about).
+      #
+      #      Phase 5.8.1-E: opt-in via ``inputs.target-install``.
+      #      Default false — case_001 and case_002 ran the no-install
+      #      path successfully and that contract is preserved. The
+      #      composite action sets up Python in its own first step,
+      #      so the install needs its own ``setup-python`` here (must
+      #      pin the same 3.11 version the composite action uses to
+      #      avoid version drift between install-time and pytest-time
+      #      Python interpreters).
+      - name: Set up Python (only if installing target)
+        if: ${{ inputs.target-install }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Editable install of target (optional, opt-in)
+        if: ${{ inputs.target-install }}
+        working-directory: oida-target
+        run: |
+          set -euo pipefail
+          echo "::group::pip install -e . inside oida-target/"
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          echo "::endgroup::"
 
       # 4. Invoke the composite action from main, pointed at the
       #    target-ref checkout for the audit pass and at the

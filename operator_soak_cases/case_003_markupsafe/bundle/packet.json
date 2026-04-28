@@ -1,12 +1,19 @@
 {
-  "event_id": "evt-1",
-  "allowed_fields": ["capability", "benefit", "observability"],
-  "intent_summary": "ship feature X with passing tests",
+  "event_id": "evt-case-003-soft-unicode-removal",
+  "allowed_fields": ["capability", "tests_pass", "operator_accept"],
+  "intent_summary": "Phase 5.8 case_003: pallets/markupsafe@7856c3d (PR #261 'remove deprecated code') drops soft_unicode from __init__.py + _native.py + _speedups.c and updates tests. Verifier grounds a 'tests/test_markupsafe.py passes against BOTH backends' observability claim — requires editable install so the C extension is built (pure-Python-only run would SKIP the _speedups parametrize cases).",
   "evidence_items": [
     {
       "id": "[E.event.1]",
       "kind": "event",
-      "summary": "feature X event captured from intent doc",
+      "summary": "markupsafe upstream commit 7856c3d ('remove deprecated code', PR #261, author David Lord) drops soft_unicode from src/markupsafe/__init__.py + _native.py + _speedups.c and updates tests/conftest.py + tests/test_markupsafe.py + CHANGES.rst. Consumers must switch to soft_str.",
+      "source": "git",
+      "confidence": 0.95
+    },
+    {
+      "id": "[E.event.2]",
+      "kind": "event",
+      "summary": "Operator intent (cgpro session unslop-md-2): simple real Python repo with C-extension dual-backend coverage. Strategy install_target_deps_alpha (pip install -e .) ensures both _native and _speedups are exercised; cgpro biggest_trap: a green result hides skipped _speedups params if install is absent.",
       "source": "ticket",
       "confidence": 0.9
     }
