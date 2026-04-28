@@ -1,0 +1,21 @@
+{
+  "event_id": "evt-example-gateway-opt-in-self-audit",
+  "supported_claims": [
+    {
+      "claim_id": "C.oida_code.pytest_summary_line_schema_field_available",
+      "event_id": "evt-example-gateway-opt-in-self-audit",
+      "claim_type": "capability_sufficient",
+      "statement": "The pytest_summary_line: str | None field on VerifierToolResult is publicly observable: pytest tests/test_phase5_8_x_pytest_summary_line.py passes, demonstrating schema invariants, parser variants, ANSI-strip survival, and adapter integration.",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.event.1]", "[E.tool.pytest.0]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [
+    "Pass 2 forward (example): the supported claim is intentionally scoped to 'the schema field is publicly observable per the bundled tests' — it is NOT a claim about wider oida-code correctness or absence of unrelated bugs. Diagnostic only."
+  ],
+  "requested_tools": []
+}

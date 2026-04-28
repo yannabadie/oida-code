@@ -1,0 +1,18 @@
+{
+  "event_id": "evt-example-gateway-opt-in-self-audit",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [
+    "Pass 1 forward (example): a 'pytest_summary_line schema field on VerifierToolResult is publicly observable' capability_sufficient claim cannot be grounded from event evidence alone. The verifier requests pytest on tests/test_phase5_8_x_pytest_summary_line.py to obtain a deterministic test_result; the workflow runs in the oida-code repo with target_install=false (no editable install of any external repo)."
+  ],
+  "requested_tools": [
+    {
+      "tool": "pytest",
+      "purpose": "Run pytest on tests/test_phase5_8_x_pytest_summary_line.py from the oida-code repo root; clean-pass produces [E.tool.pytest.0] grounding the pytest_summary_line capability claim.",
+      "expected_evidence_kind": "test_result",
+      "scope": ["tests/test_phase5_8_x_pytest_summary_line.py"]
+    }
+  ]
+}

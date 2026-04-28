@@ -193,6 +193,53 @@ def test_pytest_extract_summary_strips_ansi_with_skip_count() -> None:
     assert adapter.extract_summary_line(out) == "24 passed, 5 skipped in 1.23s"
 
 
+# ---------------------------------------------------------------------------
+# Phase 5.9 / ADR-49 sub-decision — pytest argv hardening (-o addopts=)
+# ---------------------------------------------------------------------------
+
+
+def test_pytest_argv_neutralises_target_addopts(tmp_path: Path) -> None:
+    """Phase 5.9 / ADR-49 sub-decision: gateway pytest argv pins
+    ``-o addopts=`` so target pyproject.toml addopts cannot affect
+    the run. Without this, a target pinning ``addopts = "-q ..."``
+    combined with the adapter's own ``-q`` collapses pytest verbosity
+    to ``-qq`` which suppresses the terminal summary line and silently
+    breaks pytest_summary_line.
+    """
+    adapter = PytestAdapter()
+    request = _request(tool="pytest", scope=("tests/test_a.py",))
+    argv = adapter.build_argv(request, repo_root=tmp_path)
+    assert argv[0] == "pytest"
+    # The override flag pair must appear before any project-level
+    # pyproject.toml addopts could be applied.
+    assert "-o" in argv, argv
+    addopts_idx = argv.index("-o")
+    assert argv[addopts_idx + 1] == "addopts=", argv
+
+
+def test_pytest_addopts_q_collapse_silently_drops_summary() -> None:
+    """Regression — observed locally on commit c5133aa: oida-code's
+    pyproject.toml pinned ``addopts = "-q --strict-markers"`` and the
+    adapter added ``-q`` independently, producing ``-qq`` mode where
+    pytest emits only the dot/percent progress line (no terminal
+    summary). The ANSI-strip parser correctly returned None on this
+    output — fabricating a count would have been a worse outcome —
+    but the example bundle then carried pytest_summary_line=None,
+    contradicting ADR-47's pedagogy. The adapter argv fix
+    (-o addopts=) prevents this; this test locks in the parser
+    behaviour for the no-summary case so future regressions surface
+    at the parser layer first.
+    """
+    adapter = PytestAdapter()
+    qq_output = (
+        "."
+        * 17
+        + " " * 56
+        + "[100%]\n"
+    )
+    assert adapter.extract_summary_line(qq_output) is None
+
+
 def test_ruff_adapter_does_not_implement_summary_line() -> None:
     """Other adapters keep returning None — the hook is pytest-shaped only."""
     adapter = RuffAdapter()

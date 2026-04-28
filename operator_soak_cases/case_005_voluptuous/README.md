@@ -2,59 +2,71 @@
 
 ## Status
 
-`awaiting_run` — cgpro selected the upstream and Claude has authored
-the real audit packet. Workflow dispatch + cgpro label + sidecars
-follow.
+`complete` — Tier 5 promotion gate cleared. cgpro session
+`phase58-soak` (conversation
+`69ef3a8c-0198-8394-8f09-14a7b120d192`) labelled
+`useful_true_positive` UX 2/2/2/2 on workflow run `25051323517`.
 
-Selected upstream:
+| field | value |
+|---|---|
+| claim_id | `C.voluptuous.required_any_complex_key_capability` |
+| claim_type | `capability_sufficient` |
+| pytest_scope | `voluptuous/tests/tests.py` |
+| target_install | `true` (editable install needed so `voluptuous.Schema` / `Required` / `Any` are importable from the test module) |
+| target | `alecthomas/voluptuous@4cef6ce` (merged PR #534 "Support requiring anyOf a list of keys") |
+| workflow_run_id | `25051323517` |
+| artifact_url | <https://github.com/yannabadie/oida-code/actions/runs/25051323517> |
+| operator_label | `useful_true_positive` |
+| ux_score | 2/2/2/2 |
 
-- repo: `alecthomas/voluptuous`
-- branch: `master` (merged PR #534)
-- commit: `4cef6cee1019741ada6145698e78daa8d73c9353`
-- commit URL: `https://github.com/alecthomas/voluptuous/commit/4cef6cee1019741ada6145698e78daa8d73c9353`
-- operator-channel rationale (cgpro session `phase58-soak`,
-  conversation 69ef3a8c-0198-8394-8f09-14a7b120d192): feature-add
-  capability case complementing case_001 docstring, case_002
-  negative-path, case_003 observability, case_004 CLI-precondition.
-  The verifier must prove a new public-API surface is usable, not
-  merely that old behavior did not regress.
-- independent verification: `gh api repos/alecthomas/voluptuous/commits/4cef6ce...`
-  confirmed the commit exists, author Miguel Camba, message
-  "Feature: Support requiring anyOf a list of keys (#534)".
+Source-of-truth sidecars: [`fiche.json`](fiche.json) ·
+[`label.json`](label.json) · [`ux_score.json`](ux_score.json).
 
-## Claim and pytest scope
+## Outcome details (independently verified)
 
-- claim_id: `C.voluptuous.required_any_complex_key_capability`
-- claim_type: `capability_sufficient` (in the verifier's
-  VerifierClaimType Literal)
-- pytest_scope: `["voluptuous/tests/tests.py"]`
-- target_install: `true` (editable install needed so
-  `voluptuous.Schema` / `Required` / `Any` are importable from the
-  test module)
-- expected_risk: `medium`
-- biggest_trap (cgpro): capability is semantic, not just
-  structural — a false promotion could happen if the gateway sees
-  the scoped file pass but does not connect the new tests to
-  `Required(Any(...))` behavior. The audit must stay scoped to
-  pytest evidence and not treat external CI check status as part
-  of the claim.
+- `gateway-status: diagnostic_only`
+- `gateway-official-field-leak-count: 0` (ADR-22 hard wall holds)
+- `accepted_claims:
+  [C.voluptuous.required_any_complex_key_capability]` /
+  `rejected_claims: []` / `unsupported_claims: []`
+- `pytest_summary_line: "167 passed in 0.17s"` — full suite
+  passes including the 6 new `Required(Any(...))` tests
+  (`test_required_complex_key_any` +
+  `test_required_complex_key_custom_message` +
+  `test_required_complex_key_mixed_types` +
+  `test_required_complex_key_multiple_complex_requirements` +
+  `test_required_complex_key_value_validation` +
+  `test_complex_required_keys_with_specific_value_validation`)
+  plus 2 supporting tests (`test_any_required` +
+  `test_any_required_with_subschema`).
+- Independent forbidden-token scan across the downloaded artefacts
+  returned zero hits.
 
-## Pre-dispatch local gate
+## Intent (controlled change)
 
-```
-git clone https://github.com/alecthomas/voluptuous /tmp/voluptuous-case005
-cd /tmp/voluptuous-case005
-git checkout 4cef6cee1019741ada6145698e78daa8d73c9353
-pip install -e .
-pytest voluptuous/tests/tests.py
-# → 167 passed in 0.31s
-pytest voluptuous/tests/tests.py -k "complex_key or any_required" -v
-# → 7 passed (the 6 new Required(Any(...)) tests + 2 supporting tests)
-oida-code verify-grounded ... --repo-root /tmp/voluptuous-case005
-# → status=verification_candidate, accepted_claims=[C.voluptuous.required_any_complex_key_capability]
-# → tool_results[0].pytest_summary_line='167 passed in 0.16s'
-# → [E.tool.pytest.0].summary='pytest passed scoped to ['voluptuous/tests/tests.py'] with no failures (167 passed in 0.16s)'
-```
+`alecthomas/voluptuous@4cef6ce` (merged PR #534 "Support requiring
+anyOf a list of keys", author Miguel Camba) adds public-schema
+support for `Required(Any(...))` complex keys so a Schema can
+require at least one candidate key while still validating
+whichever fields are present. The bundle's `capability_sufficient`
+claim grounds on the new tests showing the public API surface is
+usable for positive validation, missing-key errors, custom
+messages, mixed key types, multiple complex requirements, and
+value validation.
+
+## Promotion gate
+
+case_005 is the 5th case for aggregator rule 5
+(`cases_completed >= 5 AND usefulness_rate >= 0.6 →
+recommendation=document_opt_in_path`). Its
+`useful_true_positive` outcome flipped the recommendation off
+`continue_soak` to `document_opt_in_path`.
+`enable-tool-gateway` remains default `false` in the composite
+Action regardless — the aggregator output is diagnostic only,
+not a product verdict. The biggest_trap cgpro flagged at pick
+time was "capability is semantic, not just structural", so the
+audit stayed scoped to pytest evidence and explicitly does not
+treat external CI check status as part of the claim.
 
 ## Forbidden in this case
 
@@ -65,28 +77,3 @@ oida-code verify-grounded ... --repo-root /tmp/voluptuous-case005
 - no provider tool-calling
 - no write / network tools
 - no LLM-written `label.json` / `ux_score.json`
-- no monorepo
-- no repo containing secrets or private logs
-
-## Workflow (operator action — see `../RUNBOOK.md`)
-
-1. Trigger `workflow_dispatch` on `operator-soak.yml` with
-   `case-id=case_005_voluptuous`, `target-repo=alecthomas/voluptuous`,
-   `target-ref=4cef6cee1019741ada6145698e78daa8d73c9353`,
-   `target-install=true`,
-   `bundle-dir=operator_soak_cases/case_005_voluptuous/bundle`.
-2. Capture `workflow_run_id` + `artifact_url` into `fiche.json`.
-3. Triage artefacts. Ask cgpro to label the run (six-label Literal +
-   3-10 line rationale).
-4. Write `ux_score.json` (four 0/1/2 scores authored by cgpro).
-5. Re-run `python scripts/run_operator_soak_eval.py` from the repo
-   root.
-
-## Promotion gate
-
-case_005 is the 5th and final case for aggregator rule 5
-(cases_completed>=5 AND usefulness_rate>=0.6 →
-recommendation=document_opt_in_path). If the dispatch lands
-useful_*, the recommendation flips off continue_soak.
-`enable-tool-gateway` remains default false in the composite
-Action regardless.

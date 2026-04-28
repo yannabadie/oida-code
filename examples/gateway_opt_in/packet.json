@@ -1,0 +1,22 @@
+{
+  "event_id": "evt-example-gateway-opt-in-self-audit",
+  "allowed_fields": ["capability", "tests_pass", "operator_accept"],
+  "intent_summary": "Phase 5.9 reproducible example. Self-audit on oida-code itself: the verifier-grounded path runs pytest against tests/test_phase5_8_x_pytest_summary_line.py and grounds a capability_sufficient claim that the pytest_summary_line schema field on VerifierToolResult is publicly observable. Example only — diagnostic, no product verdict, official fields stay null.",
+  "evidence_items": [
+    {
+      "id": "[E.event.1]",
+      "kind": "event",
+      "summary": "ADR-47 (commit 93c7581 on yannabadie/oida-code) added pytest_summary_line: str | None = None to VerifierToolResult (frozen Pydantic, max_length=400). PytestAdapter overrides extract_summary_line(stdout) to populate the field from pytest's terminal summary line.",
+      "source": "git",
+      "confidence": 0.95
+    },
+    {
+      "id": "[E.event.2]",
+      "kind": "event",
+      "summary": "Phase 5.9 example evidence chain: tests/test_phase5_8_x_pytest_summary_line.py covers schema invariants, parser variants (passed/failed/skipped/errors), ANSI-strip survival, and adapter integration, so a clean pytest pass on this scope demonstrates the capability is publicly usable.",
+      "source": "ticket",
+      "confidence": 0.9
+    }
+  ],
+  "deterministic_estimates": []
+}

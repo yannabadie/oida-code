@@ -1,52 +1,77 @@
-# Case 003 — markupsafe `soft_unicode` removal (simple Python import-contract change)
+# Case 003 — markupsafe `soft_unicode` removal (C-extension dual-backend)
 
 ## Status
 
-`awaiting_real_audit_packet_decision` — `cgpro` selected the upstream
-repo / commit in session `phase58-soak`, but **this case is scaffolded
-only**.
+`complete` — Tier 5 promotion gate cleared. Originally labelled
+on workflow run `25045245609` (UX 2/1/2/2 — evidence_traceability=1
+pending the pytest_summary_line adapter follow-up); re-dispatched
+on workflow run `25047711777` after Phase 5.8.x / ADR-47 shipped
+the schema field; cgpro session `phase58-soak` (conversation
+`69ef3a8c-0198-8394-8f09-14a7b120d192`) relabelled UX 2/2/2/2 with
+the new evidence shape. Label still `useful_true_positive`.
 
-> This case is scaffolded only.
-> The committed bundle is **not** yet a real audit packet.
-> Human/cgpro decision required:
-> - generate real audit packet for `pallets/markupsafe@7856c3d`,
-> - replace this case with a different upstream,
-> - or mark `insufficient_fixture` after operator review.
+| field | value |
+|---|---|
+| claim_id | `C.markupsafe.soft_str_dual_backend_observable` |
+| claim_type | `observability_sufficient` |
+| pytest_scope | `tests/test_markupsafe.py` |
+| target_install | `true` (editable install required so the C extension `_speedups.c` builds and dual-backend parametrize cases run instead of skip) |
+| target | `pallets/markupsafe@7856c3d` (PR #261 "remove deprecated code") |
+| workflow_run_id | `25047711777` (Phase 5.8.x re-dispatch) |
+| artifact_url | <https://github.com/yannabadie/oida-code/actions/runs/25047711777> |
+| operator_label | `useful_true_positive` |
+| ux_score | 2/2/2/2 |
 
-Per QA/A38 §3, only `case_001` gets a real audit packet during 5.8-prep
-(it is the only case currently feasible without external setup). For
-this case to advance, the operator must decide on the bundle strategy —
-the seeded bundle does NOT describe the real `markupsafe` change and
-dispatching as-is would produce a contaminated soak signal.
+Source-of-truth sidecars: [`fiche.json`](fiche.json) ·
+[`label.json`](label.json) · [`ux_score.json`](ux_score.json).
 
-Selected upstream:
+## Outcome details (independently verified)
 
-- repo: `pallets/markupsafe`
-- branch: `main`
-- commit: `7856c3d945a969bc94a19989dda61c3d50ac2adb`
-- PR: `https://github.com/pallets/markupsafe/pull/261`
-- commit URL: `https://github.com/pallets/markupsafe/commit/7856c3d945a969bc94a19989dda61c3d50ac2adb`
-- operator-channel rationale: removes the deprecated top-level
-  `markupsafe.soft_unicode` export from `__init__.py` / `_native.py` /
-  `_speedups.c` and updates `tests/test_markupsafe.py` + `tests/conftest.py`
-  in the same PR. Consumers must switch to `soft_str` — a missed downstream
-  import is a legitimate `false_negative` candidate for the gateway.
-- independent verification: `gh api repos/pallets/markupsafe/commits/<sha>`
-  confirmed the commit exists, author David Lord, files match the rationale.
+- `gateway-status: diagnostic_only`
+- `gateway-official-field-leak-count: 0` (ADR-22 hard wall holds)
+- `accepted_claims:
+  [C.markupsafe.soft_str_dual_backend_observable]` /
+  `rejected_claims: []` / `unsupported_claims: []`
+- `pytest_summary_line: "29 passed in 0.03s"` — proves all 5
+  `[markupsafe._native]` + 5 `[markupsafe._speedups]` parametrize
+  cases + 19 unparametrized tests executed (zero skipped, so the
+  C extension built successfully).
+- Independent forbidden-token scan across the downloaded artefacts
+  returned zero hits.
 
-## Recommended shape (per QA/A34 §5.7-A item 3 + QA/A35 §5.8-A case 003)
+## Intent (controlled change)
 
-A **simple real Python repo** where the controlled change touches an
-import or a small public-API contract:
+`pallets/markupsafe` commit `7856c3d` ("remove deprecated code",
+PR #261, author David Lord) drops the deprecated top-level
+`markupsafe.soft_unicode` export from `__init__.py` / `_native.py`
+/ `_speedups.c`, updates `tests/test_markupsafe.py` and
+`tests/conftest.py`, and requires consumers to switch to
+`soft_str`. The bundle's `observability_sufficient` claim grounds
+on the regression test showing both backends still pass scoped
+to the retained `soft_str` path.
 
-- module `pkg.utils` previously re-exported `def parse(s)`; PR removes the
-  re-export and points consumers at `pkg.parse_strict`.
-- a regression test imports the symbol via the old path and is updated to
-  the new path in the same PR.
+## Cross-repo + C-extension machinery
 
-The operator (here, `cgpro` per QA/A37) picks the upstream + commit.
-Claude must not pick on the operator's behalf for this case to count as
-a real soak.
+case_003 motivated Phase 5.8.1-E / ADR-46
+(`inputs.target-install` on operator-soak.yml). Strategy
+`install_target_deps_alpha` was chosen because pytest's
+`skipif(_speedups is None)` would have silently skipped the
+`_speedups` parametrize cases without an editable install, hiding
+the dual-backend coverage signal. The conditional
+`actions/setup-python@v5` (Python 3.11 to match the composite
+action) + conditional `pip install -e .` inside `oida-target/`
+make the C extension build before pytest runs.
+
+## Why two runs
+
+The original run `25045245609` labelled UX 2/1/2/2 because the
+gateway adapter's clean-pass synthesis emitted "no failures" but
+did NOT include the explicit pytest summary line — cgpro flagged
+this as a Phase 5.8.x adapter follow-up. ADR-47 shipped
+`pytest_summary_line` on `VerifierToolResult`, the case was
+re-dispatched as `25047711777` with the new evidence shape, and
+cgpro relabelled UX 2/2/2/2. The two runs are kept in the
+fiche.json history for the audit trail.
 
 ## Forbidden in this case
 
@@ -57,31 +82,3 @@ a real soak.
 - no provider tool-calling
 - no write / network tools
 - no LLM-written `label.json` / `ux_score.json`
-- no monorepo (per QA/A34 §5.7-A "éviter pour cette phase")
-- no repo containing secrets or private logs
-
-## Workflow (operator action — see `../RUNBOOK.md`)
-
-This case is **blocked on the bundle decision** described above. Once
-the operator picks a path:
-
-1. (decision path A) Generate a real audit packet for
-   `pallets/markupsafe@7856c3d` — clone locally, run `oida-code audit`
-   against the upstream commit, capture the 8 bundle files, replace
-   `bundle/` content. Note that `markupsafe` has a C extension
-   (`_speedups.c`); building it requires a C toolchain. Then move to
-   step 4.
-2. (decision path B) Replace this case with a different upstream that's
-   easier to audit. Update `fiche.json` and re-anchor the case.
-3. (decision path C) Accept the seeded bundle and prepare to label the
-   case `insufficient_fixture` honestly after dispatch.
-4. Trigger `workflow_dispatch` with the bundle.
-5. Capture `workflow_run_id` + `artifact_url` into `fiche.json`.
-6. Triage artefacts. Write `label.json` (one of six labels + 3–10 line
-   rationale).
-7. Write `ux_score.json` (four 0/1/2 scores).
-8. Re-run `python scripts/run_operator_soak_eval.py` from the repo root.
-
-The expected_risk for an import-contract change is `medium` rather than
-`low`: a missed downstream import becomes a true `false_negative` if the
-gateway stays silent on an actual breakage.

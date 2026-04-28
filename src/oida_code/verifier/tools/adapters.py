@@ -445,10 +445,18 @@ class PytestAdapter(ToolAdapter):
     def build_argv(
         self, request: VerifierToolRequest, *, repo_root: Path,
     ) -> tuple[str, ...]:
+        # Phase 5.9 / ADR-49 sub-decision — neutralise the target's
+        # pyproject.toml ``addopts`` so gateway behavior is independent
+        # of target-side pytest config. Without this, a target pinning
+        # ``addopts = "-q ..."`` plus our own ``-q`` collapses to ``-qq``
+        # which suppresses the terminal summary line and breaks
+        # pytest_summary_line. ``-o addopts=`` overrides any ini setting
+        # for that key with an empty string.
         paths = _scope_paths(request, repo_root)
+        base = ("pytest", "-o", "addopts=", "-q", "--no-header", "--maxfail=20")
         if not paths:
-            return ("pytest", "-q", "--no-header", "--maxfail=20")
-        return ("pytest", "-q", "--no-header", "--maxfail=20", *paths)
+            return base
+        return (*base, *paths)
 
     def extract_summary_line(self, stdout: str) -> str | None:
         """Phase 5.8.x / ADR-47 — return pytest's canonical terminal

@@ -1,55 +1,55 @@
-# Case 002 — python-semver negative-version reject (mini hermetic Python bug)
+# Case 002 — python-semver negative-version reject
 
 ## Status
 
-`awaiting_real_audit_packet_decision` — `cgpro` selected the upstream
-repo / commit in session `phase58-soak`, but **this case is scaffolded
-only**.
+`complete` — Tier 5 promotion gate cleared. cgpro session
+`phase58-soak` (uuid `69f06934-623c-8392-b14f-1c1d2b69b0c2`,
+relabel after a stdin-truncation round-trip — see fiche.json
+history) labelled the case `useful_true_positive` UX 2/2/2/2.
 
-> This case is scaffolded only.
-> The committed bundle is **not** yet a real audit packet.
-> Human/cgpro decision required:
-> - generate real audit packet for `python-semver/python-semver@0309c63`,
-> - replace this case with a different upstream,
-> - or mark `insufficient_fixture` after operator review.
+| field | value |
+|---|---|
+| claim_id | `C.semver.negative_version_inputs_regression_covered` |
+| claim_type | `negative_path_covered` |
+| pytest_scope | `test_semver.py` |
+| target_install | `false` (single-file pure-Python; no install needed) |
+| target | `python-semver/python-semver@0309c63` (PR #292 "Disallow negative numbers in VersionInfo") |
+| workflow_run_id | `25040744063` |
+| artifact_url | <https://github.com/yannabadie/oida-code/actions/runs/25040744063> |
+| operator_label | `useful_true_positive` |
+| ux_score | 2/2/2/2 |
 
-Per QA/A38 §3, only `case_001` gets a real audit packet during 5.8-prep
-(it is the only case currently feasible without external setup). For
-this case to advance, the operator must decide on the bundle strategy —
-the seeded bundle does NOT describe the real `python-semver` change and
-dispatching as-is would produce a contaminated soak signal.
+Source-of-truth sidecars: [`fiche.json`](fiche.json) ·
+[`label.json`](label.json) · [`ux_score.json`](ux_score.json).
 
-Selected upstream:
+## Outcome details (independently verified)
 
-- repo: `python-semver/python-semver`
-- branch: `master`
-- commit: `0309c63ce834b7d35aa3e29b8d5bb0357532b016`
-- PR: `https://github.com/python-semver/python-semver/pull/292`
-- commit URL: `https://github.com/python-semver/python-semver/commit/0309c63ce834b7d35aa3e29b8d5bb0357532b016`
-- operator-channel rationale: negative `VersionInfo` constructor inputs are
-  rejected and pinned by regression coverage in `test_semver.py`.
+- `gateway-status: diagnostic_only`
+- `gateway-official-field-leak-count: 0` (ADR-22 hard wall holds)
+- `accepted_claims:
+  [C.semver.negative_version_inputs_regression_covered]` /
+  `rejected_claims: []` / `unsupported_claims: []`
+- Independent forbidden-token scan across the downloaded artefacts
+  returned zero hits.
 
-## Recommended shape (per QA/A34 §5.7-A item 2 + QA/A35 §5.8-A case 002)
+## Intent (controlled change)
 
-A **small hermetic Python repo** with:
+`python-semver/python-semver` PR #292 "Fix #291: Disallow negative
+numbers in VersionInfo" tightens the constructor contract: negative
+major / minor / patch values now raise `ValueError` instead of
+silently accepting them. The PR adds regression coverage in
+`test_semver.py` for each negative-input case. The bundle's
+`negative_path_covered` claim grounds on the regression test
+showing the new rejections fire.
 
-- one function with a clear, narrow contract (e.g. `validate_email(s: str) -> bool`)
-- a known bug on a negative case (e.g. accepts `"a@b"` even though it should require a TLD)
-- a regression test that pins the bug as fail-to-pass
+## Cross-repo machinery
 
-Examples the operator could pick:
-
-* a tiny standalone repo authored for the soak (~50 LOC)
-* a one-PR fork of a small public Python repo with a known bug
-* a synthetic case derived from the existing
-  `datasets/calibration_v1/` cases (operator-only — Claude must not
-  generate the synthetic on the operator's behalf for this case to count
-  as a real soak)
-
-**Why the operator must select**: the soak measures whether the gateway's
-report is *useful* on a case whose risk profile the operator already
-understands. If Claude picks the case, the soak measures Claude's
-confidence in its own audit, not the operator's reading.
+case_002 was the first cross-repo dispatch and motivated
+Phase 5.8.1-D / ADR-45 (`inputs.target-repo` on operator-soak.yml).
+Strategy `target_cwd_no_install` was chosen because python-semver
+at `0309c63` is a single-file pure-Python package with zero
+external runtime deps — `import semver` works from cwd, no
+`pip install -e .` required.
 
 ## Forbidden in this case
 
@@ -60,25 +60,3 @@ confidence in its own audit, not the operator's reading.
 - no provider tool-calling
 - no write / network tools
 - no LLM-written `label.json` / `ux_score.json`
-- no large dependency (heavy frameworks blow up the soak signal)
-- no repo without tests (the gateway has nothing to ground against)
-
-## Workflow (operator action — see `../RUNBOOK.md` for the step-by-step)
-
-This case is **blocked on the bundle decision** described above. Once
-the operator picks a path:
-
-1. (decision path A) Generate a real audit packet for
-   `python-semver/python-semver@0309c63` — clone locally, run
-   `oida-code audit` against the upstream commit, capture the 8 bundle
-   files, replace `bundle/` content. Then move to step 4.
-2. (decision path B) Replace this case with a different upstream that's
-   easier to audit. Update `fiche.json` and re-anchor the case.
-3. (decision path C) Accept the seeded bundle and prepare to label the
-   case `insufficient_fixture` honestly after dispatch.
-4. Trigger `workflow_dispatch` with the bundle.
-5. Capture `workflow_run_id` + `artifact_url` into `fiche.json`.
-6. Triage artefacts. Write `label.json` (one of six labels + 3–10 line
-   rationale).
-7. Write `ux_score.json` (four 0/1/2 scores).
-8. Re-run `python scripts/run_operator_soak_eval.py` from the repo root.
