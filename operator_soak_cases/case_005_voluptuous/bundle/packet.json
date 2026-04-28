@@ -1,0 +1,22 @@
+{
+  "event_id": "evt-case-005-required-any-complex-key-capability",
+  "allowed_fields": ["capability", "tests_pass", "operator_accept"],
+  "intent_summary": "Phase 5.8 case_005: alecthomas/voluptuous@4cef6ce (PR #534 'Support requiring anyOf a list of keys') adds Required(Any(...)) complex-key support so Schema requires at least one candidate key. Tests cover positive, missing-key, custom message, mixed types, multiple complex requirements, value validation. Verifier grounds a capability_sufficient claim that pytest demonstrates the new API surface.",
+  "evidence_items": [
+    {
+      "id": "[E.event.1]",
+      "kind": "event",
+      "summary": "voluptuous upstream commit 4cef6ce ('Feature: Support requiring anyOf a list of keys (#534)', author Miguel Camba) updates voluptuous/schema_builder.py and adds 6 Required(Any(...)) tests in voluptuous/tests/tests.py (test_required_complex_key_any + custom_message + mixed_types + multiple_complex_requirements + value_validation + complex_required_keys_with_specific_value_validation).",
+      "source": "git",
+      "confidence": 0.95
+    },
+    {
+      "id": "[E.event.2]",
+      "kind": "event",
+      "summary": "Operator intent (cgpro session phase58-soak conversation 69ef3a8c-0198-8394-8f09-14a7b120d192): feature-add capability_sufficient case with positive AND negative API coverage, complementing case_001 docstring, case_002 negative-path, case_003 observability, case_004 CLI-precondition shapes. Verifier must prove a new validation surface is usable, not merely no regression.",
+      "source": "ticket",
+      "confidence": 0.9
+    }
+  ],
+  "deterministic_estimates": []
+}

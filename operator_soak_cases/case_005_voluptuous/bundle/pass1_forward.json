@@ -1,0 +1,18 @@
+{
+  "event_id": "evt-case-005-required-any-complex-key-capability",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [
+    "Pass 1 forward: a 'Required(Any(...)) complex-key validation capability is publicly usable' capability_sufficient claim cannot be grounded from event evidence alone. The verifier requests pytest on voluptuous/tests/tests.py to obtain a deterministic test_result; the workflow runs pip install -e . inside oida-target/ first so voluptuous.Schema is importable from the editable install."
+  ],
+  "requested_tools": [
+    {
+      "tool": "pytest",
+      "purpose": "Run pytest on voluptuous/tests/tests.py at voluptuous@4cef6ce after editable install; clean-pass produces [E.tool.pytest.0] grounding the Required(Any(...)) public-API capability.",
+      "expected_evidence_kind": "test_result",
+      "scope": ["voluptuous/tests/tests.py"]
+    }
+  ]
+}

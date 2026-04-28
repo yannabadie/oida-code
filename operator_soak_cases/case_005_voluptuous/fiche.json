@@ -1,0 +1,14 @@
+{
+  "case_id": "case_005_voluptuous",
+  "repo": "alecthomas/voluptuous",
+  "branch": "master",
+  "commit": "4cef6cee1019741ada6145698e78daa8d73c9353",
+  "operator": "yannabadie",
+  "intent": "Add public-schema support for Required(Any(...)) complex keys so a Schema can require at least one candidate key while still validating whichever fields are present. The merged PR updates voluptuous/schema_builder.py and adds pytest coverage for valid candidate keys, missing-key errors, custom messages, mixed key types, and multiple complex requirements.",
+  "expected_risk": "medium",
+  "gateway_bundle": "operator_soak_cases/case_005_voluptuous/bundle",
+  "workflow_run_id": "",
+  "artifact_url": "",
+  "notes": "Phase 5.8 case_005 selected by cgpro session phase58-soak (conversation 69ef3a8c-0198-8394-8f09-14a7b120d192) targeting alecthomas/voluptuous@4cef6ce — 'Feature: Support requiring anyOf a list of keys (#534)' (author Miguel Camba). Strategy: target_install=true (editable install required for voluptuous.Schema + Required + Any imports). claim_id=C.voluptuous.required_any_complex_key_capability, claim_type=capability_sufficient (in the verifier's VerifierClaimType Literal), pytest_scope=voluptuous/tests/tests.py.\n\nPre-dispatch local gate: git clone https://github.com/alecthomas/voluptuous, git checkout 4cef6cee1019741ada6145698e78daa8d73c9353, pip install -e ., pytest voluptuous/tests/tests.py → 167 passed in 0.31s; the 6 new Required(Any(...)) tests (test_required_complex_key_any + test_required_complex_key_custom_message + test_required_complex_key_mixed_types + test_required_complex_key_multiple_complex_requirements + test_required_complex_key_value_validation + test_complex_required_keys_with_specific_value_validation) plus 2 supporting tests all PASS. oida-code verify-grounded --repo-root /tmp/voluptuous-case005 against the bundle → status=verification_candidate, accepted_claims=[C.voluptuous.required_any_complex_key_capability], pytest_summary_line='167 passed in 0.16s', [E.tool.pytest.0].summary='pytest passed scoped to [\\'voluptuous/tests/tests.py\\'] with no failures (167 passed in 0.16s)'.\n\nbiggest_trap (cgpro): capability is semantic, not just structural — false promotion could happen if the gateway sees the scoped file pass but does not connect the new tests to Required(Any(...)) behavior. The audit stays scoped to pytest evidence and does not treat external CI check status as part of the claim.\n\nPromotion gate: case_005 is the 5th and final case for aggregator rule 5 (cases_completed>=5 AND usefulness_rate>=0.6 → recommendation=document_opt_in_path). If the dispatch lands useful_*, the recommendation flips off continue_soak. enable-tool-gateway remains default false in the composite Action regardless.",
+  "status": "awaiting_run"
+}

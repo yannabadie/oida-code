@@ -1,0 +1,21 @@
+{
+  "event_id": "evt-case-005-required-any-complex-key-capability",
+  "supported_claims": [
+    {
+      "claim_id": "C.voluptuous.required_any_complex_key_capability",
+      "event_id": "evt-case-005-required-any-complex-key-capability",
+      "claim_type": "capability_sufficient",
+      "statement": "After editable install, pytest voluptuous/tests/tests.py passes with the new Required(Any(...)) tests asserting positive validation, missing-key error, custom message, mixed types, multiple complex requirements, and value validation.",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.event.1]", "[E.tool.pytest.0]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [
+    "Pass 2 forward: the supported claim is intentionally scoped to 'the new Required(Any(...)) public-API surface is usable as demonstrated by the bundled tests' — it is NOT a claim about wider voluptuous correctness or absence of unrelated bugs. Diagnostic only."
+  ],
+  "requested_tools": []
+}
