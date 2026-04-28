@@ -1,0 +1,21 @@
+{
+  "event_id": "evt-case-004-cli-regex-pattern-forwarded",
+  "supported_claims": [
+    {
+      "claim_id": "C.python_slugify.cli_regex_pattern_forwarded",
+      "event_id": "evt-case-004-cli-regex-pattern-forwarded",
+      "claim_type": "precondition_supported",
+      "statement": "After editable install, pytest test.py passes with TestCommandParams.test_regex_pattern asserting that --regex-pattern is forwarded into slugify_params and produces the expected slugify() output for the bundled fixture string.",
+      "confidence": 0.55,
+      "evidence_refs": ["[E.event.1]", "[E.tool.pytest.0]"],
+      "source": "forward"
+    }
+  ],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [
+    "Pass 2 forward: the supported claim is intentionally scoped to 'the CLI-to-library forwarding precondition is observable from the test suite' — it is NOT a claim about wider python-slugify correctness or absence of unrelated bugs. Diagnostic only."
+  ],
+  "requested_tools": []
+}

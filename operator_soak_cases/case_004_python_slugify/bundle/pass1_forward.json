@@ -1,0 +1,18 @@
+{
+  "event_id": "evt-case-004-cli-regex-pattern-forwarded",
+  "supported_claims": [],
+  "rejected_claims": [],
+  "missing_evidence_refs": [],
+  "contradictions": [],
+  "warnings": [
+    "Pass 1 forward: a 'CLI --regex-pattern is forwarded through slugify_params into slugify()' precondition_supported claim cannot be grounded from event evidence alone. The verifier requests pytest on test.py to obtain a deterministic test_result; the workflow runs pip install -e . inside oida-target/ first so argparse + slugify_params are importable from the editable install."
+  ],
+  "requested_tools": [
+    {
+      "tool": "pytest",
+      "purpose": "Run pytest on test.py at python-slugify@7edf477 after editable install; clean-pass produces [E.tool.pytest.0] grounding the CLI --regex-pattern forwarding precondition.",
+      "expected_evidence_kind": "test_result",
+      "scope": ["test.py"]
+    }
+  ]
+}
