@@ -93,15 +93,80 @@ claim as supported, marks it `verification_candidate: true` (a
 diagnostic, see below), or rejects it. It never declares
 "merge-safe".
 
+## What the verifier loop actually does (concrete walkthrough)
+
+This section explains, step by step, what happens when you run
+`oida-code verify-grounded` against a bundle. Read this before
+the bundle authoring sections — without it, the bundle files'
+purpose is opaque.
+
+The loop has six concrete steps:
+
+1. **Load the bundle.** The 8 bundle files map onto Pydantic
+   schemas: `packet.json` → `LLMEvidencePacket` (the named
+   claim + evidence items + allowed_fields); the four pass
+   JSONs → `ForwardVerificationResult` × 2 +
+   `BackwardVerificationResult` × 2 (replayed past verifier
+   responses, so the loop is deterministic);
+   `tool_policy.json` → `ToolPolicy` (which tools the gateway
+   may invoke + the repo root); `gateway_definitions.json` /
+   `approved_tools.json` → which gateway tool calls are
+   admissible. Schema validation is the first wall — invalid
+   bundles fail before any tool runs.
+
+2. **Replay the forward verifier passes.** Pass 1 forward asks
+   "given this claim and evidence, does the evidence support
+   the claim?". Pass 2 forward asks the same on a strengthened
+   variant. Both replays come from the bundle (no live LLM call
+   in the verifier path).
+
+3. **Replay the backward verifier passes.** Backward asks
+   "given the claim is wrong, what would falsify it?". Pass 1
+   and pass 2 backward replays sit in the bundle.
+
+4. **Run the gateway tool calls.** For each evidence item that
+   names a tool (e.g. `pytest tests/test_x.py`), the gateway
+   actually invokes the tool against the local repo (per
+   `tool_policy.repo_root`). Tool output is captured (e.g.
+   `pytest_summary_line: "12 passed in 0.3s"`). Network egress
+   is blocked. Write tools are blocked. Only the
+   policy-allowed tool kinds run.
+
+5. **Cross-check evidence against tool output.** For each
+   evidence item, the loop checks whether the actual tool
+   result is consistent with the evidence's claimed shape. If
+   yes, the evidence is "grounded". If no, the evidence is
+   rejected.
+
+6. **Emit the diagnostic.** The grounded report includes:
+   `verification_candidate: true|false` (true iff at least one
+   evidence item grounded, the official-field walls held, and
+   the runners did not reject any forbidden phrase);
+   `gateway_status: "diagnostic_only"` (always — never another
+   value); `official_fields_emitted: false` (always — the
+   schemas pin this).
+
+What the loop does **not** do: it does not write to the repo,
+it does not call external networks (other than the explicit
+`actions/checkout` clone of the target in CI), it does not
+decide whether the code is good, it does not produce a merge
+gate, and it does not modify the vendored OIDA core under
+`src/oida_code/_vendor/`.
+
 ## What `verification_candidate` does and does not mean
 
-`verification_candidate: true` is the **strongest positive
-signal** the project emits. It means: the gateway-grounded
-verifier loop accepted at least one evidence item as relevant
-to the named claim, the official-field walls held, and the
-runners did not reject the response.
+**`verification_candidate: true` is a diagnostic signal, not a
+verdict.** It is the strongest *diagnostic* signal the project
+emits — it tells the operator that the gateway-grounded verifier
+loop accepted at least one evidence item as relevant to the
+named claim, the official-field walls held, and the runners did
+not reject the response.
 
-It does **not** mean:
+It is **NOT** a merge gate. It is **NOT** a safety claim. It is
+**NOT** an endorsement of the underlying code. It is **NOT** the
+project saying "this PR is good".
+
+Specifically, `verification_candidate: true` does **not** mean:
 
 * the underlying code is correct,
 * the underlying code is safe to merge,

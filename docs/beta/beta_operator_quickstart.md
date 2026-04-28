@@ -193,9 +193,15 @@ tracking issue).
 
 ## What you should expect
 
-* Authoring the bundle takes ~30–60 minutes for an experienced
-  Python developer reading the runbook for the first time. This
-  is one of the things the beta is measuring (`setup_friction`).
+* **Bundle authoring time is unmeasured.** Earlier drafts of this
+  doc estimated "30-60 minutes for an experienced Python
+  developer"; that estimate was author intuition, not measurement,
+  and the AI-tier cold-reader review found the estimate
+  inconsistent with `beta_known_limits.md` calling the same
+  process "non-trivial / first external test of feasibility". The
+  honest answer is: **plan for as long as it takes**, record what
+  you observe in `setup_friction`. Measuring the actual time is
+  exactly what the controlled beta tests.
 * The first run is the slow one. Subsequent runs on the same
   bundle are fast.
 * Some runs will return `verification_candidate: false`. That is

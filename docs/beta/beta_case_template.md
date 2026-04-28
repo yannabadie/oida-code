@@ -10,6 +10,47 @@ A beta case maps **one named claim** on **one target commit** to
 same target, create one beta case per claim — the metric script
 counts cases, not target repos.
 
+## How to write a `C.<surface>.<claim>` identifier
+
+A claim id has the shape `C.<surface>.<claim>` where:
+
+* **`C`** is the literal letter `C` (for "Claim"). Always present.
+* **`<surface>`** is the **module / file / area of the codebase** the
+  claim is about. Use the canonical importable name where one
+  exists (e.g. `oida_code`, `pytest_summary_parser`, `cli_audit`),
+  or a short slug for non-Python surfaces. The surface is the
+  thing a code reviewer would identify as "the part of the codebase
+  this PR touches".
+* **`<claim>`** is a **slug describing the claim itself**. Short,
+  snake_case, action-oriented. The slug should let a reader
+  reconstruct the claim from its name.
+
+Examples (one per `allowed_fields` Literal):
+
+| `<surface>.<claim>` | `claim_type` | meaning |
+|---|---|---|
+| `oida_code.pytest_summary_line_schema_field_available` | `capability_sufficient` | the new schema field exists and is populated by the parser |
+| `audit_cli.markdown_report_renders_obligations_section` | `benefit_aligned` | the report shipped includes the user-facing benefit (the obligations section) |
+| `verifier_loop.tool_call_audit_log_emitted_for_each_call` | `observability_sufficient` | every gateway tool call lands in the audit log |
+| `extract_obligations.api_contract_change_emits_violation_event` | `precondition_supported` | the precondition (API contract preserved) is enforced; the change either preserves it or emits a violation |
+| `verify_pytest.failure_on_unhandled_exception_path` | `negative_path_covered` | the negative path (unhandled exception) is exercised by a pytest test in the named scope |
+| `audit_cli.repair_proposed_when_mypy_strict_breaks` | `repair_needed` | when mypy --strict fails, the report names a follow-up repair |
+| `score_v_dur.shadow_pressure_explained_by_v_dur_minus_progress` | `shadow_pressure_explained` | the observed shadow pressure trace can be explained by the formula `V_dur - progress_rate` |
+
+The seven `claim_type` values come from
+`LLMEvidencePacket.allowed_fields` (a `Literal` allowlist —
+inventing new values fails the schema). Pick the one that best
+describes what your claim is about. Do not invent intermediate
+shapes; if no value fits, the claim is not yet a Phase 6.0 case.
+
+A complete `C.<surface>.<claim>` example with full context:
+`C.oida_code.pytest_summary_line_schema_field_available` (used
+in the keystone bundle at `examples/gateway_opt_in/`). It says:
+"the `oida_code` package has a schema field for
+`pytest_summary_line` that the parser populates" — which is a
+`capability_sufficient` claim because it asserts that a named
+capability is now available.
+
 ## Template
 
 ```markdown
