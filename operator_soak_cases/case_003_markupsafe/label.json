@@ -1,13 +1,13 @@
 {
   "operator_label": "useful_true_positive",
   "operator_rationale": [
-    "The accepted claim is a positive observability assertion, and the run matched the pre-stated useful_true_positive hypothesis.",
-    "The target-install path addresses the known MarkupSafe trap by building the target before pytest, making the speedups backend observable.",
-    "The platform-specific editable wheel, Python 3.11.15 install path, runtime, and local replication support that the dual-backend path ran rather than being skipped.",
-    "The verifier accepted C.markupsafe.soft_str_dual_backend_observable with no rejected or unsupported claims, blockers, warnings, leaks, or forbidden artefact content.",
-    "The missing direct pytest summary line is a UX and evidence-surfacing gap, not enough to downgrade this run to unclear given the corroborating install and replication evidence.",
-    "Evidence traceability is scored 1 rather than 2 because the report should expose the 29 passed, 0 skipped summary directly inside [E.tool.pytest.0]."
+    "The accepted claim is a positive observability assertion and the run matched the pre-stated useful_true_positive hypothesis (unchanged from the original case_003 labelling on run 25045245609).",
+    "The target-install path addresses the known MarkupSafe dual-backend trap by building the target before pytest so the _speedups parametrize cases execute rather than being skipped.",
+    "Phase 5.8.x / ADR-47 closed the prior evidence-traceability gap: the gateway adapter now folds pytest's canonical terminal summary line into the operator-facing evidence chain, so the new run 25047711777 surfaces 'pytest passed scoped to ['tests/test_markupsafe.py'] with no failures (29 passed in 0.03s)' directly inside [E.tool.pytest.0], plus the structured tool_results[0].pytest_summary_line field.",
+    "Pytest emits skipped counts only when non-zero, so '29 passed in 0.03s' implicitly confirms 0 skipped and that all 5 _native + 5 _speedups + 19 unparametrized parametrizations executed dual-backend coverage observable from the report alone, no longer inferred indirectly from wheel filename + Python 3.11.15 pin + runtime + local replication.",
+    "The verifier accepted C.markupsafe.soft_str_dual_backend_observable with no rejected or unsupported claims, no warnings, no blockers, leak-count=0, gateway-status=diagnostic_only, and ADR-22 hard wall preserved — identical to the original run 25045245609 except for the evidence-shape upgrade.",
+    "Label is unchanged (still useful_true_positive); UX upgraded from 2/1/2/2 to 2/2/2/2 in ux_score.json with the relabel turn captured by cgpro session phase58-soak conversation 69ef3a8c-0198-8394-8f09-14a7b120d192."
   ],
-  "labeled_by": "cgpro session unslop-md-2 (uuid 69f06934-623c-8392-b14f-1c1d2b69b0c2) — Phase 5.8.1-E first target-install dispatch on commit 469de38, workflow run 25045245609, target pallets/markupsafe@7856c3d via inputs.target-install=true",
-  "labeled_at": "2026-04-28T10:00:00Z"
+  "labeled_by": "cgpro session phase58-soak (conversation 69ef3a8c-0198-8394-8f09-14a7b120d192) — Phase 5.8.x relabel on commit 93c7581 after ADR-47 pytest_summary_line shipped, workflow run 25047711777 (re-dispatch of case_003 markupsafe with the new evidence shape; original label authored by cgpro session unslop-md-2 uuid 69f06934-623c-8392-b14f-1c1d2b69b0c2 on run 25045245609 commit 469de38)",
+  "labeled_at": "2026-04-28T12:30:00Z"
 }

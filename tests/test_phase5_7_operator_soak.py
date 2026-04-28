@@ -279,16 +279,18 @@ def test_phase58_case002_cgpro_selected_upstream_and_dispatched() -> None:
 
 
 def test_phase58_case003_cgpro_selected_upstream_and_dispatched() -> None:
-    """QA/A37 + QA/A38 + Phase 5.8.1-E: case_003 selection came from
-    cgpro and Phase 5.8.1-E's new ``inputs.target-install`` enabled
+    """QA/A37 + QA/A38 + Phase 5.8.1-E + Phase 5.8.x: case_003 selection
+    came from cgpro and Phase 5.8.1-E's ``inputs.target-install`` enabled
     the editable-install path required for markupsafe's C extension.
-    Workflow run 25045245609 dispatched against pallets/markupsafe@
-    7856c3d, built the _speedups extension via pip install -e ., ran
-    pytest with dual-backend coverage, and the verifier accepted the
-    soft_str observability claim. The case is now ``complete`` with
-    cgpro session unslop-md-2 having labelled it ``useful_true_positive``
-    UX 2/1/2/2 (evidence_traceability=1 because the gateway adapter
-    doesn't yet expose the explicit pytest summary line).
+    Originally dispatched as workflow run 25045245609 (commit 469de38)
+    against pallets/markupsafe@7856c3d, then re-dispatched as workflow
+    run 25047711777 (commit 93c7581 — Phase 5.8.x / ADR-47
+    pytest_summary_line) to upgrade UX evidence_traceability from 1 to
+    2 once the gateway adapter started folding pytest's terminal summary
+    line into [E.tool.pytest.0]. The case is ``complete`` with cgpro
+    session phase58-soak (relabel) confirming useful_true_positive
+    UX 2/2/2/2 — original cgpro session unslop-md-2 (labelling) referenced
+    in the fiche history.
     """
     case_id = "case_003_markupsafe"
     payload = json.loads(
@@ -301,12 +303,17 @@ def test_phase58_case003_cgpro_selected_upstream_and_dispatched() -> None:
     assert fiche.branch == "main"
     assert fiche.commit == "7856c3d945a969bc94a19989dda61c3d50ac2adb"
     assert fiche.expected_risk == "medium"
-    # Notes record the cgpro session history.
+    # Notes record the cgpro session history (both labelling and relabel).
     assert "cgpro session" in fiche.notes
     assert "pallets/markupsafe" in fiche.notes
-    assert fiche.workflow_run_id == "25045245609"
+    # The fiche must reference both the original run and the Phase 5.8.x
+    # re-dispatch run so the audit trail is complete.
+    assert "25045245609" in fiche.notes
+    assert "25047711777" in fiche.notes
+    # workflow_run_id points at the latest (Phase 5.8.x) re-dispatch.
+    assert fiche.workflow_run_id == "25047711777"
     assert fiche.artifact_url == (
-        "https://github.com/yannabadie/oida-code/actions/runs/25045245609"
+        "https://github.com/yannabadie/oida-code/actions/runs/25047711777"
     )
 
 
@@ -336,7 +343,10 @@ def test_phase58_all_three_cases_carry_cgpro_authored_label_and_ux() -> None:
     Phase 5.8.1-C closed case_001 (workflow run 25022965745, label
     useful_true_positive). Phase 5.8.1-D closed case_002 (run
     25040744063, label useful_true_positive). Phase 5.8.1-E closed
-    case_003 (run 25045245609, label useful_true_positive). With
+    case_003 (run 25045245609, label useful_true_positive); Phase 5.8.x
+    re-dispatched case_003 as run 25047711777 with the new
+    pytest_summary_line evidence shape and cgpro relabelled UX
+    2/1/2/2 → 2/2/2/2 (label still useful_true_positive). With
     cases_completed=3 the aggregator's rule 2 short-circuit
     (cases_completed<3 → continue_soak) no longer fires; the next
     rule that could flip the recommendation off continue_soak is
@@ -406,14 +416,18 @@ def test_phase58_prep_runbook_exists_with_required_sections() -> None:
 def test_phase58_aggregate_tier3_baseline_three_cases_complete() -> None:
     """Tier 3 baseline reached. case_001 (Phase 5.8.1-C run
     25022965745), case_002 (Phase 5.8.1-D run 25040744063), and
-    case_003 (Phase 5.8.1-E run 25045245609) have all been
-    dispatched + labelled ``useful_true_positive`` by cgpro. The
-    aggregator's rule 2 short-circuit (cases_completed<3 →
-    continue_soak) no longer fires; the recommendation is now
-    determined by rule 6 (default) since rules 3-4 require false_*
-    counts >=2 (we have 0) and rule 5 requires cases_completed>=5
-    (we have 3). Promotion off continue_soak therefore needs
-    case_004 + case_005 scaffolding.
+    case_003 (Phase 5.8.1-E original run 25045245609 → Phase 5.8.x
+    re-dispatch run 25047711777) have all been dispatched + labelled
+    ``useful_true_positive`` by cgpro. The aggregator's rule 2
+    short-circuit (cases_completed<3 → continue_soak) no longer
+    fires; the recommendation is now determined by rule 6 (default)
+    since rules 3-4 require false_* counts >=2 (we have 0) and
+    rule 5 requires cases_completed>=5 (we have 3). Promotion off
+    continue_soak therefore needs case_004 + case_005 scaffolding.
+
+    Phase 5.8.x relabel (case_003 UX 2/1/2/2 → 2/2/2/2) lifted
+    evidence_traceability_avg from 1.667 to 2.000; all four UX
+    averages are now 2.000 across the three Tier 3 cases.
     """
     payload = json.loads(
         (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
@@ -431,6 +445,12 @@ def test_phase58_aggregate_tier3_baseline_three_cases_complete() -> None:
     # Usefulness rate at the rule-5 threshold (0.6); only the
     # cases_completed<5 gate keeps continue_soak active.
     assert payload["operator_usefulness_rate"] >= 0.6
+    # Phase 5.8.x relabel — UX averages all reach 2.0 once case_003's
+    # evidence_traceability moves from 1 to 2.
+    assert payload["summary_readability_avg"] == 2.0
+    assert payload["evidence_traceability_avg"] == 2.0
+    assert payload["actionability_avg"] == 2.0
+    assert payload["no_false_verdict_avg"] == 2.0
 
 
 # ---------------------------------------------------------------------------

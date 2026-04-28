@@ -23,7 +23,7 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 
 - operator_usefulness_rate: 1.000
 - summary_readability_avg: 2.000
-- evidence_traceability_avg: 1.667
+- evidence_traceability_avg: 2.000
 - actionability_avg: 2.000
 - no_false_verdict_avg: 2.000
 
@@ -33,7 +33,7 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 |---|---|---|---|---|
 | case_001_oida_code_self | complete | low | useful_true_positive | 25022965745 |
 | case_002_python_semver | complete | low | useful_true_positive | 25040744063 |
-| case_003_markupsafe | complete | medium | useful_true_positive | 25045245609 |
+| case_003_markupsafe | complete | medium | useful_true_positive | 25047711777 |
 
 ## Recommendation: `continue_soak`
 

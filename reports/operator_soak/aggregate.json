@@ -20,13 +20,13 @@
       "expected_risk": "medium",
       "operator_label": "useful_true_positive",
       "status": "complete",
-      "workflow_run_id": "25045245609"
+      "workflow_run_id": "25047711777"
     }
   ],
   "cases_completed": 3,
   "cases_total": 3,
   "contract_violation_count": 0,
-  "evidence_traceability_avg": 1.6666666666666667,
+  "evidence_traceability_avg": 2.0,
   "false_negative_count": 0,
   "false_positive_count": 0,
   "gateway_status_distribution": [
