@@ -306,10 +306,10 @@ In all cases:
 | #22 No official total_v_net / debt_final / corrupt_success emitted | ✓ | Phase 5.x locks preserved |
 | #23 No product verdict terms emitted | ✓ | `test_phase6_0_user_facing_doc_no_product_verdict_claim` × 8 docs |
 | #24 Report produced | ✓ | this file |
-| #25 ruff clean | ✓ | filled in below after the gate runs |
-| #26 mypy clean | ✓ | filled in below after the gate runs |
-| #27 pytest full green, skips documented | ✓ | filled in below after the gate runs |
-| #28 At least one GitHub-hosted CI / action-smoke run green after Phase 6.0 docs | _pending_ | filled in after the push lands and CI completes |
+| #25 ruff clean | ✓ | `python -m ruff check src/ tests/ scripts/...` — All checks passed |
+| #26 mypy clean | ✓ | `python -m mypy src/ scripts/...` — Success: no issues found in 99 source files |
+| #27 pytest full green, skips documented | ✓ | 1047 passed / 4 skipped (was 994 before Phase 6.0 — exactly +53 doc-guard tests) |
+| #28 At least one GitHub-hosted CI / action-smoke run green after Phase 6.0 docs | ✓ | commit `e65fec8`: ci 25057789429 (2m30s), action-smoke 25057789553 (1m44s), action-gateway-smoke 25057789448 (1m57s), gateway-grounded-smoke 25057789373 (26s), gateway-calibration 25057789402 (28s), provider-baseline-node24-smoke 25057789530 (27s) — all 6 green |
 
 ## Honesty statement
 
