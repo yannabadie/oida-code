@@ -14,6 +14,8 @@
 
 ## Score axes (0/1/2 means)
 
+_Per QA/A42 condition 1: with zero submitted feedback, the score-axis means below are **initialized in aggregate; no human sample yet** — they are not a measurement._
+
 | Axis | Mean |
 |---|---|
 | summary_readability | 0.0 |

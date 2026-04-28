@@ -111,19 +111,59 @@ def _load_form(path: Path) -> dict[str, Any]:
     return loaded
 
 
+_REQUIRED_BETA_RUN_FIELDS: tuple[str, ...] = (
+    "beta_run_id",
+    "beta_case_id",
+    "beta_operator",
+    "target_repo",
+    "named_claim",
+    "pytest_scope",
+)
+_REQUIRED_TOP_LEVEL_BOOLS: tuple[str, ...] = (
+    "contract_violation_observed",
+    "official_field_leak_observed",
+)
+
+
 def _validate_form(path: Path, raw: dict[str, Any]) -> FeedbackEntry:
     """Validate a single feedback form against the Phase 6.0 schema.
 
-    The runner does not silently coerce missing fields; missing
-    fields are surfaced as clear errors so the operator can fix
-    the form rather than have the aggregator fabricate data.
+    Per QA/A42 condition 2, identifiers and contract booleans are
+    REQUIRED — silent coercion of missing fields is rejected. The
+    operator must explicitly fill every required field; the
+    aggregator never fabricates a missing value as ``""`` or
+    ``False``.
+
+    Per QA/A42 condition 3, the ``feedback_channel`` field is
+    required and must equal ``"human_beta"`` so the
+    ``reports/ai_adversarial/`` lane cannot accidentally land as
+    operator feedback. The path-isolation guard in
+    ``_iter_feedback_files`` is a second defence layer; the schema
+    pin is the first.
     """
+    feedback_channel = raw.get("feedback_channel")
+    if feedback_channel != "human_beta":
+        raise ValueError(
+            f"{path}: feedback_channel must equal 'human_beta', got "
+            f"{feedback_channel!r} (per QA/A42 condition 3, "
+            f"reports/ai_adversarial/ is a separate lane and must "
+            f"not flow through this aggregator)",
+        )
+
     beta_run = raw.get("beta_run")
     if not isinstance(beta_run, dict):
         raise ValueError(f"{path}: missing 'beta_run' mapping")
     scores = raw.get("scores")
     if not isinstance(scores, dict):
         raise ValueError(f"{path}: missing 'scores' mapping")
+
+    for field_name in _REQUIRED_BETA_RUN_FIELDS:
+        value = beta_run.get(field_name)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(
+                f"{path}: beta_run.{field_name} must be a non-empty "
+                f"string, got {value!r}",
+            )
 
     for axis in _SCORE_AXES:
         value = scores.get(axis)
@@ -146,13 +186,26 @@ def _validate_form(path: Path, raw: dict[str, Any]) -> FeedbackEntry:
             f"got {operator_label!r}",
         )
 
+    for bool_field in _REQUIRED_TOP_LEVEL_BOOLS:
+        if bool_field not in raw:
+            raise ValueError(
+                f"{path}: {bool_field} is required (must be explicit "
+                f"true/false; silent default is not accepted per "
+                f"QA/A42 condition 2)",
+            )
+        if not isinstance(raw[bool_field], bool):
+            raise ValueError(
+                f"{path}: {bool_field} must be a boolean, got "
+                f"{raw[bool_field]!r}",
+            )
+
     return FeedbackEntry(
-        beta_run_id=str(beta_run.get("beta_run_id") or ""),
-        beta_case_id=str(beta_run.get("beta_case_id") or ""),
-        beta_operator=str(beta_run.get("beta_operator") or ""),
-        target_repo=str(beta_run.get("target_repo") or ""),
-        named_claim=str(beta_run.get("named_claim") or ""),
-        pytest_scope=str(beta_run.get("pytest_scope") or ""),
+        beta_run_id=str(beta_run["beta_run_id"]),
+        beta_case_id=str(beta_run["beta_case_id"]),
+        beta_operator=str(beta_run["beta_operator"]),
+        target_repo=str(beta_run["target_repo"]),
+        named_claim=str(beta_run["named_claim"]),
+        pytest_scope=str(beta_run["pytest_scope"]),
         artifact_url=(
             str(beta_run["artifact_url"])
             if beta_run.get("artifact_url")
@@ -161,22 +214,29 @@ def _validate_form(path: Path, raw: dict[str, Any]) -> FeedbackEntry:
         scores={axis: int(scores[axis]) for axis in _SCORE_AXES},
         would_use_again=str(would_use_again),
         operator_label=str(operator_label),
-        contract_violation_observed=bool(
-            raw.get("contract_violation_observed", False),
-        ),
-        official_field_leak_observed=bool(
-            raw.get("official_field_leak_observed", False),
-        ),
+        contract_violation_observed=bool(raw["contract_violation_observed"]),
+        official_field_leak_observed=bool(raw["official_field_leak_observed"]),
     )
+
+
+_ISOLATED_LANE_SEGMENTS: frozenset[str] = frozenset(
+    {
+        "ai_adversarial",  # QA/A42 condition 3 — separate AI lane.
+        "legacy",  # historical content under reports/legacy/.
+    },
+)
 
 
 def _iter_feedback_files(root: Path) -> list[Path]:
     """Return all .yaml / .yml / .json files under ``root``.
 
-    The aggregator filters out files that look like other Phase 6.0
-    artefacts (``beta_cases.md`` is markdown so it never matches;
-    ``beta_feedback_aggregate.json`` is the script's own output and
-    is filtered by name).
+    Per QA/A42 condition 3, paths under ``ai_adversarial/`` are
+    explicitly excluded so the AI adversarial lane (operating with
+    ``agent_label`` not ``operator_label``) cannot accidentally
+    flow into the human-beta aggregate. The schema pin
+    (``feedback_channel: human_beta``) in ``_validate_form`` is
+    the second defence layer; the path-isolation guard here is the
+    first.
     """
     if not root.exists():
         return []
@@ -189,10 +249,14 @@ def _iter_feedback_files(root: Path) -> list[Path]:
             ):
                 continue
             if "beta_feedback" not in path.name.lower():
-                # Only files whose name contains "beta_feedback"
-                # are treated as feedback forms. This prevents the
-                # aggregator from ingesting unrelated YAML/JSON
-                # operators may drop alongside cases.
+                continue
+            if any(
+                segment in _ISOLATED_LANE_SEGMENTS
+                for segment in path.parts
+            ):
+                # Path-isolation guard — never ingest from
+                # reports/ai_adversarial/, reports/beta/legacy/,
+                # etc.
                 continue
             candidates.append(path)
     return sorted(set(candidates))
@@ -364,6 +428,13 @@ def _render_markdown(aggregate: dict[str, Any]) -> str:
     lines.append("")
     lines.append("## Score axes (0/1/2 means)")
     lines.append("")
+    if aggregate["beta_cases_total"] == 0:
+        lines.append(
+            "_Per QA/A42 condition 1: with zero submitted feedback, "
+            "the score-axis means below are **initialized in aggregate; "
+            "no human sample yet** — they are not a measurement._",
+        )
+        lines.append("")
     lines.append("| Axis | Mean |")
     lines.append("|---|---|")
     lines.append(

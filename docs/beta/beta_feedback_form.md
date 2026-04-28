@@ -129,15 +129,25 @@ when you can.
 # Filename suggestion: reports/beta/beta_feedback_<run_id>.yaml
 # (Note: the runner script tolerates either YAML or JSON; YAML
 # is easier for humans to author.)
+#
+# Per QA/A42 condition 2: every field below is REQUIRED.
+# The aggregator does NOT silently default missing fields — it
+# rejects the form with a clear error so the operator can fix it.
+#
+# Per QA/A42 condition 3: the `feedback_channel` field must equal
+# "human_beta". The reports/ai_adversarial/ lane uses a separate
+# channel and a separate aggregator.
+
+feedback_channel: human_beta   # required, must be exactly "human_beta"
 
 beta_run:
-  beta_run_id: "<<<github action run id>>>"
-  beta_case_id: "<<<beta_case_<n>>>"
-  beta_operator: "<<<operator_handle_or_alias>>>"
-  target_repo: "<<<owner/name@<sha>>>>"
-  named_claim: "<<<C.<surface>.<claim>>>>"
-  pytest_scope: "<<<tests/test_x.py or path/file::test_name>>>"
-  artifact_url: "<<<https://github.com/.../actions/runs/<id>/artifacts/<aid>>>>"
+  beta_run_id: "<<<github action run id>>>"        # required, non-empty
+  beta_case_id: "<<<beta_case_<n>>>"               # required, non-empty
+  beta_operator: "<<<operator_handle_or_alias>>>"  # required, non-empty
+  target_repo: "<<<owner/name@<sha>>>>"            # required, non-empty
+  named_claim: "<<<C.<surface>.<claim>>>>"         # required, non-empty
+  pytest_scope: "<<<tests/test_x.py or path/file::test_name>>>"  # required, non-empty
+  artifact_url: "<<<https://github.com/.../actions/runs/<id>/artifacts/<aid>>>>"  # optional
 
 scores:
   summary_readability: 0
@@ -149,6 +159,8 @@ scores:
 
 operator_label: <<<one of: useful_true_positive, useful_true_negative, false_positive, false_negative, unclear, insufficient_fixture>>>
 
+# Required explicit booleans (per QA/A42 condition 2 — silent
+# default is rejected; the operator must explicitly affirm).
 contract_violation_observed: false
 official_field_leak_observed: false
 

@@ -293,9 +293,9 @@ In all cases:
 | #9 ≥2 beta runs completed, or phase remains partial | ✓ (partial) | §6 above |
 | #10 Human feedback collected for each completed beta run | ✓ (vacuously, zero runs) | §7 above |
 | #11 Feedback aggregate produced | ✓ | `reports/beta/beta_feedback_aggregate.md` (zero-feedback state) |
-| #12 setup_friction measured | ✓ (zero-feedback state) | aggregate `setup_friction_avg: 0.0` |
-| #13 usefulness measured | ✓ (zero-feedback state) | aggregate `operator_usefulness_rate: 0.0` |
-| #14 false_positive / false_negative / unclear / insufficient_fixture counted | ✓ (zero-feedback state) | aggregate counts all 0 |
+| #12 setup_friction measured | ✓ (initialized; no human sample yet) | aggregate `setup_friction_avg: 0.0` is the initialised value, **not** a human measurement (per QA/A42 condition 1) |
+| #13 usefulness measured | ✓ (initialized; no human sample yet) | aggregate `operator_usefulness_rate: 0.0` is the initialised value, **not** a human measurement (per QA/A42 condition 1) |
+| #14 false_positive / false_negative / unclear / insufficient_fixture counted | ✓ (initialized; no human sample yet) | aggregate counts all 0 — counters initialised, **not** a measurement (per QA/A42 condition 1) |
 | #15 official_field_leak_count == 0 | ✓ | aggregate + tests |
 | #16 enable-tool-gateway remains default false | ✓ | `test_phase6_0_action_yml_keeps_enable_tool_gateway_default_false` |
 | #17 No external provider by default | ✓ | no change to provider config |

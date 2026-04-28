@@ -556,6 +556,215 @@ def test_phase6_0_beta_index_links_to_every_leaf_doc() -> None:
 # ---------------------------------------------------------------------------
 
 
+def test_phase6_0_x_aggregator_rejects_missing_feedback_channel(
+    tmp_path: Path,
+) -> None:
+    """QA/A42 condition 3: forms missing `feedback_channel: human_beta`
+    are rejected by the aggregator. This is the schema pin that
+    keeps the AI adversarial lane out of the human-beta aggregate.
+    """
+    import sys
+
+    sys.path.insert(0, str(_REPO_ROOT / "scripts"))
+    try:
+        import run_beta_feedback_eval as agg
+    finally:
+        sys.path.pop(0)
+
+    bad_form = {
+        "beta_run": {
+            "beta_run_id": "1",
+            "beta_case_id": "beta_case_1",
+            "beta_operator": "alice",
+            "target_repo": "owner/repo@abc",
+            "named_claim": "C.x.y",
+            "pytest_scope": "tests/test_x.py",
+        },
+        "scores": {
+            "summary_readability": 2,
+            "evidence_traceability": 2,
+            "actionability": 2,
+            "no_false_verdict": 2,
+            "setup_friction": 2,
+            "would_use_again": "yes",
+        },
+        "operator_label": "useful_true_positive",
+        "contract_violation_observed": False,
+        "official_field_leak_observed": False,
+        # NOTE: no feedback_channel field
+    }
+    bad_path = tmp_path / "beta_feedback_missing_channel.yaml"
+    bad_path.write_text("# placeholder", encoding="utf-8")
+    try:
+        agg._validate_form(bad_path, bad_form)
+    except ValueError as exc:
+        assert "feedback_channel" in str(exc)
+        assert "human_beta" in str(exc)
+    else:
+        raise AssertionError(
+            "aggregator must reject forms missing feedback_channel",
+        )
+
+
+def test_phase6_0_x_aggregator_rejects_silent_default_booleans(
+    tmp_path: Path,
+) -> None:
+    """QA/A42 condition 2: forms missing
+    contract_violation_observed or official_field_leak_observed
+    are rejected — silent default to False is no longer accepted.
+    """
+    import sys
+
+    sys.path.insert(0, str(_REPO_ROOT / "scripts"))
+    try:
+        import run_beta_feedback_eval as agg
+    finally:
+        sys.path.pop(0)
+
+    bad_form = {
+        "feedback_channel": "human_beta",
+        "beta_run": {
+            "beta_run_id": "1",
+            "beta_case_id": "beta_case_1",
+            "beta_operator": "alice",
+            "target_repo": "owner/repo@abc",
+            "named_claim": "C.x.y",
+            "pytest_scope": "tests/test_x.py",
+        },
+        "scores": {
+            "summary_readability": 2,
+            "evidence_traceability": 2,
+            "actionability": 2,
+            "no_false_verdict": 2,
+            "setup_friction": 2,
+            "would_use_again": "yes",
+        },
+        "operator_label": "useful_true_positive",
+        # NOTE: no contract_violation_observed,
+        # no official_field_leak_observed
+    }
+    bad_path = tmp_path / "beta_feedback_no_bools.yaml"
+    bad_path.write_text("# placeholder", encoding="utf-8")
+    try:
+        agg._validate_form(bad_path, bad_form)
+    except ValueError as exc:
+        assert "contract_violation_observed" in str(exc) or (
+            "official_field_leak_observed" in str(exc)
+        )
+    else:
+        raise AssertionError(
+            "aggregator must reject forms with silent-default "
+            "contract booleans",
+        )
+
+
+def test_phase6_0_x_aggregator_rejects_empty_required_identifiers(
+    tmp_path: Path,
+) -> None:
+    """QA/A42 condition 2: required identifiers must be non-empty
+    strings. Empty string or None must trigger a clear error.
+    """
+    import sys
+
+    sys.path.insert(0, str(_REPO_ROOT / "scripts"))
+    try:
+        import run_beta_feedback_eval as agg
+    finally:
+        sys.path.pop(0)
+
+    bad_form = {
+        "feedback_channel": "human_beta",
+        "beta_run": {
+            "beta_run_id": "",  # empty
+            "beta_case_id": "beta_case_1",
+            "beta_operator": "alice",
+            "target_repo": "owner/repo@abc",
+            "named_claim": "C.x.y",
+            "pytest_scope": "tests/test_x.py",
+        },
+        "scores": {
+            "summary_readability": 2,
+            "evidence_traceability": 2,
+            "actionability": 2,
+            "no_false_verdict": 2,
+            "setup_friction": 2,
+            "would_use_again": "yes",
+        },
+        "operator_label": "useful_true_positive",
+        "contract_violation_observed": False,
+        "official_field_leak_observed": False,
+    }
+    bad_path = tmp_path / "beta_feedback_empty_id.yaml"
+    bad_path.write_text("# placeholder", encoding="utf-8")
+    try:
+        agg._validate_form(bad_path, bad_form)
+    except ValueError as exc:
+        assert "beta_run_id" in str(exc)
+    else:
+        raise AssertionError(
+            "aggregator must reject forms with empty required "
+            "identifiers",
+        )
+
+
+def test_phase6_0_x_path_isolation_skips_ai_adversarial(
+    tmp_path: Path,
+) -> None:
+    """QA/A42 condition 3: a beta_feedback file dropped under
+    reports/ai_adversarial/ MUST NOT be ingested by the human-beta
+    aggregator. Path isolation is the first defence layer; the
+    schema pin (feedback_channel) is the second.
+    """
+    import sys
+
+    sys.path.insert(0, str(_REPO_ROOT / "scripts"))
+    try:
+        import run_beta_feedback_eval as agg
+    finally:
+        sys.path.pop(0)
+
+    fake_root = tmp_path / "reports" / "beta"
+    fake_root.mkdir(parents=True)
+    (fake_root / "ai_adversarial").mkdir()
+    # Drop an enticingly-named file in the isolated lane
+    (
+        fake_root / "ai_adversarial" / "beta_feedback_evil.yaml"
+    ).write_text("# AI lane file — must be skipped", encoding="utf-8")
+    # And a legit file at the human lane root
+    (fake_root / "beta_feedback_legit.yaml").write_text(
+        "# legit file", encoding="utf-8",
+    )
+
+    files = agg._iter_feedback_files(fake_root)
+    assert all(
+        "ai_adversarial" not in p.parts for p in files
+    ), (
+        f"path-isolation guard failed: ai_adversarial files were "
+        f"ingested: {files}"
+    )
+    assert any(
+        p.name == "beta_feedback_legit.yaml" for p in files
+    ), "legit file should still be ingested"
+
+
+def test_phase6_0_x_aggregate_md_uses_initialized_wording_at_zero() -> None:
+    """QA/A42 condition 1: when the aggregate is in zero-feedback
+    state, the markdown must use 'initialized; no human sample yet'
+    wording near the score axis means, not the raw 'measured'
+    framing. This catches drift if the renderer is changed.
+    """
+    body = (
+        _REPO_ROOT / "reports" / "beta" / "beta_feedback_aggregate.md"
+    ).read_text(encoding="utf-8")
+    assert "initialized in aggregate" in body or (
+        "initialized; no human sample yet" in body
+    ), (
+        "Phase 6.0.x: zero-feedback aggregate.md must say "
+        "'initialized in aggregate; no human sample yet' near "
+        "the score-axis means"
+    )
+
+
 def test_phase6_0_project_status_carries_four_sections() -> None:
     """QA/A41 addendum §2: docs/project_status.md must carry sections
     for: usable now, blocked fields, out-of-scope, current roadmap.
