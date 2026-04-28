@@ -413,30 +413,32 @@ def test_phase58_prep_runbook_exists_with_required_sections() -> None:
         assert forbidden not in body, f"RUNBOOK leaked forbidden token {forbidden!r}"
 
 
-def test_phase58_aggregate_tier3_baseline_three_cases_complete() -> None:
-    """Tier 3 baseline reached. case_001 (Phase 5.8.1-C run
-    25022965745), case_002 (Phase 5.8.1-D run 25040744063), and
-    case_003 (Phase 5.8.1-E original run 25045245609 → Phase 5.8.x
-    re-dispatch run 25047711777) have all been dispatched + labelled
-    ``useful_true_positive`` by cgpro. The aggregator's rule 2
-    short-circuit (cases_completed<3 → continue_soak) no longer
-    fires; the recommendation is now determined by rule 6 (default)
-    since rules 3-4 require false_* counts >=2 (we have 0) and
-    rule 5 requires cases_completed>=5 (we have 3). Promotion off
-    continue_soak therefore needs case_004 + case_005 scaffolding.
+def test_phase58_aggregate_tier4_four_cases_complete() -> None:
+    """Tier 4 — case_004 added on top of the Tier 3 baseline. case_001
+    (Phase 5.8.1-C run 25022965745), case_002 (Phase 5.8.1-D run
+    25040744063), case_003 (Phase 5.8.1-E run 25045245609 → Phase 5.8.x
+    re-dispatch run 25047711777), and case_004 (Phase 5.8 cgpro pre-pick
+    un33k/python-slugify@7edf477, run 25050370380) have all been
+    dispatched + labelled ``useful_true_positive`` by cgpro. The
+    aggregator's rule 5 (cases_completed>=5 with usefulness_rate>=0.6)
+    has NOT fired yet — promotion off continue_soak still requires
+    case_005. Rule 2 short-circuit (cases_completed<3 → continue_soak)
+    no longer fires; rules 3-4 require false_* counts >=2 (we have 0).
 
-    Phase 5.8.x relabel (case_003 UX 2/1/2/2 → 2/2/2/2) lifted
-    evidence_traceability_avg from 1.667 to 2.000; all four UX
-    averages are now 2.000 across the three Tier 3 cases.
+    Phase 5.8.x evidence-shape upgrade (commits 93c7581, c7734b3 — the
+    pytest_summary_line schema field plus the ANSI-strip fix surfaced
+    on case_004) means every UX axis now scores 2 on every case from
+    case_004 onward; case_003 was relabelled from 2/1/2/2 to 2/2/2/2
+    in the same cycle, so all four UX averages are 2.000.
     """
     payload = json.loads(
         (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
         .read_text(encoding="utf-8"),
     )
     assert payload["recommendation"] == "continue_soak"
-    assert payload["cases_completed"] == 3
-    # All three cases useful_true_positive (Tier 3 perfect baseline).
-    assert payload["useful_true_positive_count"] == 3
+    assert payload["cases_completed"] == 4
+    # All four cases useful_true_positive (perfect Tier 4 outcome).
+    assert payload["useful_true_positive_count"] == 4
     assert payload["useful_true_negative_count"] == 0
     assert payload["insufficient_fixture_count"] == 0
     assert payload["false_positive_count"] == 0
@@ -445,8 +447,7 @@ def test_phase58_aggregate_tier3_baseline_three_cases_complete() -> None:
     # Usefulness rate at the rule-5 threshold (0.6); only the
     # cases_completed<5 gate keeps continue_soak active.
     assert payload["operator_usefulness_rate"] >= 0.6
-    # Phase 5.8.x relabel — UX averages all reach 2.0 once case_003's
-    # evidence_traceability moves from 1 to 2.
+    # Phase 5.8.x evidence shape — UX averages all hold at 2.0.
     assert payload["summary_readability_avg"] == 2.0
     assert payload["evidence_traceability_avg"] == 2.0
     assert payload["actionability_avg"] == 2.0

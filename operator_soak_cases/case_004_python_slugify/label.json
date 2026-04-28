@@ -1,0 +1,12 @@
+{
+  "operator_label": "useful_true_positive",
+  "operator_rationale": [
+    "The gateway accepted C.python_slugify.cli_regex_pattern_forwarded as a precondition_supported claim, with no rejected or unsupported claims and no ADR-22 leak.",
+    "For the case_004 CLI forwarding fix, the report is useful because the accepted claim is tied to the intended precondition: --regex-pattern must be forwarded through slugify_params into slugify(), not merely that the package imports or the test runner starts.",
+    "The pytest evidence summary now includes the concrete terminal result, '83 passed in 0.07s', so the operator can see the scoped test file completed cleanly without needing to infer the clean pass from adapter behavior.",
+    "This is more than a generic green-test signal because the selected case and scoped regression are specifically about TestCommandParams.test_regex_pattern and the CLI argument-to-library contract.",
+    "case_004 can count as a completed useful soak case, with the usual caveat that the semantic link depends on the prebuilt audit packet claim and scoped regression target rather than pytest listing individual test names in the evidence summary."
+  ],
+  "labeled_by": "cgpro session phase58-soak (conversation 69ef3a8c-0198-8394-8f09-14a7b120d192) — Phase 5.8 case_004 label on commit 1bd0203 after Phase 5.8.x ANSI fix shipped (commit c7734b3); workflow run 25050370380 against un33k/python-slugify@7edf477 with target-install=true and the new pytest_summary_line evidence shape",
+  "labeled_at": "2026-04-28T13:00:00Z"
+}
