@@ -240,7 +240,7 @@ to `parent_base * 0.60 * 0.80 = 0.48` even when its local base was 0.
   descendant. Useful as an audit signal but flat as a ranking.
 * **Trajectory_pressure dominated by length-confound**: the underlying
   trajectory metrics carry the Phase-3 length-confound caveat
-  (PHASE3_AUDIT_REPORT.md §3); shadow inherits it via `0.25 *
+  (reports/legacy/PHASE3_AUDIT_REPORT.md §3); shadow inherits it via `0.25 *
   trajectory_pressure`.
 
 ---

@@ -48,7 +48,7 @@ What this module does NOT do:
   ADR-13 and ADR-22.
 * It does NOT predict outcome. The pressure values are diagnostic;
   treating them as predictions would re-create the Phase-3 length-
-  confound trap (PHASE3_AUDIT_REPORT.md §3).
+  confound trap (reports/legacy/PHASE3_AUDIT_REPORT.md §3).
 * It does NOT modify the vendored OIDA core (ADR-02 holds).
 """
 

@@ -9,8 +9,8 @@
 
 ## Current Blockers
 
-- None. Awaiting user review of `PHASE1_AUDIT_REPORT.md`.
-- Phase 4 is blocked on the M.2 2 TB storage upgrade (`infos.md` §3).
+- None. Awaiting user review of `reports/legacy/PHASE1_AUDIT_REPORT.md`.
+- Phase 4 is blocked on the M.2 2 TB storage upgrade (`docs/legacy/infos.md` §3).
 
 ## [2026-04-24 14:30:00] - Phase 1 deterministic audit shipped
 

@@ -1,6 +1,6 @@
 # OIDA Code Audit — Active Plan (merged)
 
-**Version 1.0 · 2026-04-24 · Supersedes `oida-code-mvp-blueprint.md` §11 and subsumes `roadmap.md`.**
+**Version 1.0 · 2026-04-24 · Supersedes `oida-code-mvp-blueprint.md` §11 and subsumes `docs/legacy/roadmap.md`.**
 
 This document is the single source of truth going forward. It merges the blueprint (architectural truths + schemas + formulas) with the roadmap (realistic schedule + observation model + obligation graph + research-source compatibility matrix). Where they conflict, this file wins.
 
@@ -9,14 +9,17 @@ This document is the single source of truth going forward. It merges the bluepri
 ## 0. Authority hierarchy (updated)
 
 ```
-PLAN.md                                      ← this file (wins on conflicts)
-  ├─ oida-code-mvp-blueprint.md §1-10, §12-13 (architectural truths)
-  ├─ roadmap.md                              (subsumed: kept for change-log traceability)
-  ├─ brainstorm2_improved.md
-  ├─ last.md
-  ├─ infos.md
-  └─ brainstorm2.md                          (lowest authority, mostly historical)
+PLAN.md                                          ← this file (wins on conflicts)
+  ├─ oida-code-mvp-blueprint.md §1-10, §12-13    (architectural truths)
+  ├─ docs/legacy/roadmap.md                      (subsumed: kept for change-log traceability)
+  ├─ docs/legacy/last.md                         (historical)
+  └─ docs/legacy/infos.md                        (historical: storage prerequisite + name-collision rationale)
 ```
+
+Pre-merge scratch (`brainstorm2.md`, `brainstorm2_improved.md`)
+removed from the working tree in `chore(repo): tidy root` — the
+narrative use of those files in `memory-bank/activeContext.md` is
+historical record only.
 
 Blueprint §11 (the "First 10 implementation days" aspirational plan) is **superseded** by §14 below.
 
@@ -336,7 +339,7 @@ Minimum JSON stays as blueprint §9. Added in later phases:
 - **Default local (R&D):** Qwen3.6-35B-A3B Q4_K_M via `llama.cpp` on RTX 3500 Ada Laptop. MoE 35B total, 3B active → ~20-30 tok/s with partial offload (ADR-04).
 - **Fallback (cheap classification):** smaller open-weight model (TBD; e.g. Qwen3.6-7B-Instruct Q5).
 - **Reality check (roadmap P0):** the dev laptop is a **prototyping station, not a production backend**. A real SaaS path needs managed inference (Anthropic / cloud GPU). ADR-04 stands for development; production-inference ADR deferred until Phase 4 post-wedge validation.
-- **Storage prerequisite (`infos.md` §3):** M.2 2 TB upgrade on C: gates any local LLM work. Phase 4 is blocked on this.
+- **Storage prerequisite (`docs/legacy/infos.md` §3):** M.2 2 TB upgrade on C: gates any local LLM work. Phase 4 is blocked on this.
 
 ---
 
@@ -346,7 +349,7 @@ Eight phases. Phase 0 is complete. Phase 1 begins on "go phase 1" from user.
 
 | # | Name | Dur. | Status | Entry gate | Primary deliverables | Exit criterion |
 |---|---|---|---|---|---|---|
-| **0** | Cadrage + bootstrap | 1w | **DONE** · commits `15138f3..1733f98` | — | pyproject, v1 models, CLI `inspect`, vendored scorer, `memory-bank/*`, `PHASE1_REPORT.md`, `PLAN.md` | `oida-code inspect` on own repo; ruff + mypy-strict + pytest 10/10 + cov 74%. |
+| **0** | Cadrage + bootstrap | 1w | **DONE** · commits `15138f3..1733f98` | — | pyproject, v1 models, CLI `inspect`, vendored scorer, `memory-bank/*`, `reports/legacy/PHASE1_REPORT.md`, `PLAN.md` | `oida-code inspect` on own repo; ruff + mypy-strict + pytest 10/10 + cov 74%. |
 | **1** | Deterministic audit | 2-3w | NEXT | P0 shipped | `verify/{lint,typing,semgrep_scan,codeql_scan,pytest_runner}`; `report/{json_report,markdown_report,sarif_export}`; `extract/blast_radius`; `score/verdict` (determinist path); `cli.py` wires `normalize`+`verify`+`audit` (--intent flag, --format json/sarif/md); `ingest/manifest.detect_commands` | **Stable report on 10 Python repos without human intervention.** JSON + SARIF + Markdown outputs validate against schemas. |
 | **2** | Observation model + obligation graph (scaffold) | 2w | | P1 ships | `models/{trace,obligation,progress_event}.py` with **3 obligation kinds implemented** (migration / precondition / api_contract) + 3 stubbed (invariant / security_rule / observability); `extract/{claims,preconditions,dependencies,obligation_graph}.py`; `score/mapper.py` with explicit default-origin table; `verify/hypothesis_runner` + `verify/mutmut_runner` (shell-out + parse only — **no test generation**); **5-10 synthetic traces** in `datasets/traces_v1/` as shape smoke-tests (independently-labeled PR dataset + recall metric move to Phase 3); `cli verify/audit` accept both `AuditRequest` and `NormalizedScenario`; P1 pytest/mypy subprocess Python-resolution carry-over fixed. | **Schema v2 stable + NormalizedScenario round-trips through OIDAAnalyzer + obligation extractor runs without crash on attrs/self/synthetic + extracted obligation list is non-empty with unique IDs + 10-repo smoke (crash/no-crash table).** Classification (explore/exploit) and recall gate move to Phase 3. |
 | **3** | Explore/Exploit adapter (re-scoped per ADR-17) | 1-2w | | P2 ships | `score/trajectory.py` implementing paper 2604.13151 §4 formulas (`St = ct + et + nt`, 4-case attribution, gain-based err); `models/trajectory.py` with `TrajectoryMetrics`; 5-8 synthetic traces under `tests/fixtures/traces/*.json`; `cli.py` gains `score-trace` subcommand | **Scorer separates 3 classifications on the synthetic set (precision ≥ 2/3):** exploration-dominated / exploitation-dominated / stale. Spearman ρ on a real-trace dataset is **Phase-4** work (blocked on Claude Code / Codex transcript ingest). |

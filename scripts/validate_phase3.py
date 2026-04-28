@@ -147,7 +147,7 @@ def compute_spearman(results: list[dict], min_steps: int = 50) -> dict:
       confound makes them unreliable without further normalization.
     * ``rho_progress_rate`` — ``progress_events / total_steps``, the
       length-normalized analogue. **Primary gate signal** per
-      PHASE3_AUDIT_REPORT §7.
+      reports/legacy/PHASE3_AUDIT_REPORT.md §7.
     * ``rho_no_progress_rate`` — direct no-progress fraction.
 
     Filtering: sessions shorter than ``min_steps`` are dropped because
