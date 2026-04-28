@@ -1,0 +1,12 @@
+{
+  "operator_label": "useful_true_positive",
+  "operator_rationale": [
+    "The gateway accepted C.voluptuous.required_any_complex_key_capability as a capability_sufficient claim, with no rejected or unsupported claims and no ADR-22 leak.",
+    "For the case_005 Required(Any(...)) public-API feature, this is useful because the accepted claim is tied to the intended capability: complex required keys must validate at least one candidate key while preserving value validation.",
+    "The folded pytest evidence now exposes the concrete scoped run result, '167 passed in 0.17s', so the operator can see the test file completed cleanly without relying on adapter inference.",
+    "The pass count alone would not prove the semantic capability, but the combination of the accepted capability_sufficient claim, the targeted audit packet, the scoped voluptuous/tests/tests.py run, and the pre-dispatch confirmation of the eight Required(Any(...)) tests is enough to ground the operator label.",
+    "case_005 counts as a completed useful soak case for the Tier 5 promotion gate, with the noted caveat that future capability cases would be even stronger if the evidence summary listed matched regression test names as well as the pytest terminal summary."
+  ],
+  "labeled_by": "cgpro session phase58-soak (conversation 69ef3a8c-0198-8394-8f09-14a7b120d192) — Phase 5.8 case_005 label on commit 325c397; workflow run 25051323517 against alecthomas/voluptuous@4cef6ce with target-install=true and the Phase 5.8.x pytest_summary_line evidence shape",
+  "labeled_at": "2026-04-28T13:30:00Z"
+}

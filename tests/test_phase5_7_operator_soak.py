@@ -333,12 +333,12 @@ def test_phase58_prep_bundle_carries_8_required_files(case_id: str) -> None:
         )
 
 
-def test_phase58_all_three_cases_carry_cgpro_authored_label_and_ux() -> None:
-    """All three Phase 5.8 cases (001, 002, 003) have now been
-    dispatched and labelled by cgpro. The earlier ``no_label_or_ux_yet``
-    structural lock no longer applies — every committed case_*/ dir
-    MUST carry label.json + ux_score.json, and the labeled_by /
-    scored_by fields MUST cite a cgpro session (NOT Claude).
+def test_phase58_all_five_cases_carry_cgpro_authored_label_and_ux() -> None:
+    """All five Phase 5.8 cases have now been dispatched and labelled
+    by cgpro. The earlier ``no_label_or_ux_yet`` structural lock no
+    longer applies — every committed case_*/ dir MUST carry
+    label.json + ux_score.json, and the labeled_by / scored_by fields
+    MUST cite a cgpro session (NOT Claude).
 
     Phase 5.8.1-C closed case_001 (workflow run 25022965745, label
     useful_true_positive). Phase 5.8.1-D closed case_002 (run
@@ -346,17 +346,21 @@ def test_phase58_all_three_cases_carry_cgpro_authored_label_and_ux() -> None:
     case_003 (run 25045245609, label useful_true_positive); Phase 5.8.x
     re-dispatched case_003 as run 25047711777 with the new
     pytest_summary_line evidence shape and cgpro relabelled UX
-    2/1/2/2 → 2/2/2/2 (label still useful_true_positive). With
-    cases_completed=3 the aggregator's rule 2 short-circuit
-    (cases_completed<3 → continue_soak) no longer fires; the next
-    rule that could flip the recommendation off continue_soak is
-    rule 5 (cases_completed>=5 with usefulness_rate>=0.6), which
-    requires scaffolding case_004 + case_005.
+    2/1/2/2 → 2/2/2/2 (label still useful_true_positive). Phase 5.8
+    closed case_004 (un33k/python-slugify@7edf477 run 25050370380,
+    label useful_true_positive UX 2/2/2/2) and case_005
+    (alecthomas/voluptuous@4cef6ce run 25051323517, label
+    useful_true_positive UX 2/2/2/2). With cases_completed=5 the
+    aggregator's rule 5 (cases_completed>=5 AND usefulness_rate>=0.6)
+    fires and recommendation flips off ``continue_soak`` to
+    ``document_opt_in_path``.
     """
     for case_id in (
         "case_001_oida_code_self",
         "case_002_python_semver",
         "case_003_markupsafe",
+        "case_004_python_slugify",
+        "case_005_voluptuous",
     ):
         case_dir = _CASES_DIR / case_id
         label_path = case_dir / "label.json"
@@ -413,39 +417,46 @@ def test_phase58_prep_runbook_exists_with_required_sections() -> None:
         assert forbidden not in body, f"RUNBOOK leaked forbidden token {forbidden!r}"
 
 
-def test_phase58_aggregate_tier4_four_cases_complete() -> None:
-    """Tier 4 — case_004 added on top of the Tier 3 baseline. case_001
-    (Phase 5.8.1-C run 25022965745), case_002 (Phase 5.8.1-D run
-    25040744063), case_003 (Phase 5.8.1-E run 25045245609 → Phase 5.8.x
-    re-dispatch run 25047711777), and case_004 (Phase 5.8 cgpro pre-pick
-    un33k/python-slugify@7edf477, run 25050370380) have all been
+def test_phase58_aggregate_tier5_promotion_recommendation_flipped() -> None:
+    """Tier 5 promotion gate cleared. case_001 (Phase 5.8.1-C run
+    25022965745), case_002 (Phase 5.8.1-D run 25040744063), case_003
+    (Phase 5.8.1-E run 25045245609 → Phase 5.8.x re-dispatch run
+    25047711777), case_004 (Phase 5.8 un33k/python-slugify@7edf477
+    run 25050370380), and case_005 (Phase 5.8
+    alecthomas/voluptuous@4cef6ce run 25051323517) have all been
     dispatched + labelled ``useful_true_positive`` by cgpro. The
-    aggregator's rule 5 (cases_completed>=5 with usefulness_rate>=0.6)
-    has NOT fired yet — promotion off continue_soak still requires
-    case_005. Rule 2 short-circuit (cases_completed<3 → continue_soak)
-    no longer fires; rules 3-4 require false_* counts >=2 (we have 0).
+    aggregator's rule 5 (cases_completed>=5 AND usefulness_rate>=0.6)
+    NOW FIRES — recommendation flips off ``continue_soak`` to
+    ``document_opt_in_path``. ``enable-tool-gateway`` remains
+    **default false** in the composite Action regardless (the
+    aggregator output is diagnostic only, not a product verdict).
 
     Phase 5.8.x evidence-shape upgrade (commits 93c7581, c7734b3 — the
-    pytest_summary_line schema field plus the ANSI-strip fix surfaced
-    on case_004) means every UX axis now scores 2 on every case from
-    case_004 onward; case_003 was relabelled from 2/1/2/2 to 2/2/2/2
-    in the same cycle, so all four UX averages are 2.000.
+    pytest_summary_line schema field plus the ANSI-strip fix) means
+    every UX axis scores 2 on every Tier-3-and-later case;
+    case_003 was relabelled from 2/1/2/2 to 2/2/2/2 in the same cycle,
+    so all four UX averages are 2.000 across all five cases. All five
+    accepted claims span four distinct VerifierClaimType Literal
+    values: capability_sufficient (case_005), observability_sufficient
+    (case_003), precondition_supported (case_004), negative_path_covered
+    (case_002), and one repeat negative_path_covered (case_001). Five
+    distinct verifier-grounded scenarios all returning useful_*.
     """
     payload = json.loads(
         (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
         .read_text(encoding="utf-8"),
     )
-    assert payload["recommendation"] == "continue_soak"
-    assert payload["cases_completed"] == 4
-    # All four cases useful_true_positive (perfect Tier 4 outcome).
-    assert payload["useful_true_positive_count"] == 4
+    # Rule 5 fires — promotion off continue_soak.
+    assert payload["recommendation"] == "document_opt_in_path"
+    assert payload["cases_completed"] == 5
+    # All five cases useful_true_positive (perfect Tier 5 outcome).
+    assert payload["useful_true_positive_count"] == 5
     assert payload["useful_true_negative_count"] == 0
     assert payload["insufficient_fixture_count"] == 0
     assert payload["false_positive_count"] == 0
     assert payload["false_negative_count"] == 0
     assert payload["official_field_leak_count"] == 0
-    # Usefulness rate at the rule-5 threshold (0.6); only the
-    # cases_completed<5 gate keeps continue_soak active.
+    # Usefulness rate at the rule-5 threshold (0.6) — gate cleared.
     assert payload["operator_usefulness_rate"] >= 0.6
     # Phase 5.8.x evidence shape — UX averages all hold at 2.0.
     assert payload["summary_readability_avg"] == 2.0

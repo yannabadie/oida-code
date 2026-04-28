@@ -1,0 +1,9 @@
+{
+  "summary_readability": 2,
+  "evidence_traceability": 2,
+  "actionability": 2,
+  "no_false_verdict": 2,
+  "notes": "summary_readability=2 because the outcome is explicit: verification_candidate, one accepted capability claim, no rejected/unsupported claims, diagnostic_only, and zero leak count. evidence_traceability=2 because [E.tool.pytest.0] includes the folded terminal summary '167 passed in 0.17s' and is connected to the accepted capability claim; the semantic bridge is supplied by the case packet and scoped regression target, not by the pass count alone. actionability=2 because the report gives a clear operator decision path for this bounded public-API feature case, with a useful caveat about not overreading the pass count. no_false_verdict=2 because the report remains diagnostic and does not emit merge-safe, production-safe, bug-free, or equivalent product-verdict wording.",
+  "scored_by": "cgpro session phase58-soak (conversation 69ef3a8c-0198-8394-8f09-14a7b120d192) — Phase 5.8 case_005 first-pass scoring on commit 325c397, workflow run 25051323517 against alecthomas/voluptuous@4cef6ce",
+  "scored_at": "2026-04-28T13:30:00Z"
+}

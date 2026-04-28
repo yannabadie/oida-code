@@ -28,10 +28,17 @@
       "operator_label": "useful_true_positive",
       "status": "complete",
       "workflow_run_id": "25050370380"
+    },
+    {
+      "case_id": "case_005_voluptuous",
+      "expected_risk": "medium",
+      "operator_label": "useful_true_positive",
+      "status": "complete",
+      "workflow_run_id": "25051323517"
     }
   ],
-  "cases_completed": 4,
-  "cases_total": 4,
+  "cases_completed": 5,
+  "cases_total": 5,
   "contract_violation_count": 0,
   "evidence_traceability_avg": 2.0,
   "false_negative_count": 0,
@@ -39,7 +46,7 @@
   "gateway_status_distribution": [
     [
       "verification_candidate",
-      4
+      5
     ]
   ],
   "insufficient_fixture_count": 0,
@@ -47,9 +54,9 @@
   "no_false_verdict_avg": 2.0,
   "official_field_leak_count": 0,
   "operator_usefulness_rate": 1.0,
-  "recommendation": "continue_soak",
+  "recommendation": "document_opt_in_path",
   "summary_readability_avg": 2.0,
   "unclear_count": 0,
   "useful_true_negative_count": 0,
-  "useful_true_positive_count": 4
+  "useful_true_positive_count": 5
 }

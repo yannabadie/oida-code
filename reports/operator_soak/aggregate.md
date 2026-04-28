@@ -4,9 +4,9 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 
 ## Counts
 
-- cases_total: 4
-- cases_completed: 4
-- useful_true_positive_count: 4
+- cases_total: 5
+- cases_completed: 5
+- useful_true_positive_count: 5
 - useful_true_negative_count: 0
 - false_positive_count: 0
 - false_negative_count: 0
@@ -17,7 +17,7 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 
 ## Distribution
 
-- verification_candidate: 4
+- verification_candidate: 5
 
 ## Rates
 
@@ -35,7 +35,8 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 | case_002_python_semver | complete | low | useful_true_positive | 25040744063 |
 | case_003_markupsafe | complete | medium | useful_true_positive | 25047711777 |
 | case_004_python_slugify | complete | low | useful_true_positive | 25050370380 |
+| case_005_voluptuous | complete | medium | useful_true_positive | 25051323517 |
 
-## Recommendation: `continue_soak`
+## Recommendation: `document_opt_in_path`
 
 Even if the recommendation reaches `document_opt_in_path`, `enable-tool-gateway` remains **default false** in the composite Action.
