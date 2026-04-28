@@ -1,16 +1,18 @@
 {
-  "event_id": "evt-1",
+  "event_id": "evt-case-002-semver-negative",
   "supported_claims": [],
   "rejected_claims": [],
   "missing_evidence_refs": [],
   "contradictions": [],
-  "warnings": [],
+  "warnings": [
+    "Pass 1 forward: claim about 'regression coverage exists and passes at this commit' cannot be grounded from event evidence alone — the verifier requests pytest on root-level test_semver.py to obtain a deterministic test_result evidence item before pass 2 evaluates the claim."
+  ],
   "requested_tools": [
     {
       "tool": "pytest",
-      "purpose": "re-run pytest scoped to tests/ to confirm tests pass",
+      "purpose": "Run pytest scoped to root-level test_semver.py at python-semver@0309c63; clean-pass produces [E.tool.pytest.0] (kind=test_result) which pass-2 cites for the negative-version regression-coverage claim.",
       "expected_evidence_kind": "test_result",
-      "scope": ["tests"]
+      "scope": ["test_semver.py"]
     }
   ]
 }

@@ -1,9 +1,9 @@
 [
   {
-    "event_id": "evt-1",
-    "claim_id": "C.cap",
+    "event_id": "evt-case-002-semver-negative",
+    "claim_id": "C.semver.negative_version_inputs_regression_covered",
     "requirement": {
-      "claim_id": "C.cap",
+      "claim_id": "C.semver.negative_version_inputs_regression_covered",
       "required_evidence_kinds": ["event", "test_result"],
       "satisfied_evidence_refs": ["[E.event.1]", "[E.tool.pytest.0]"],
       "missing_requirements": []

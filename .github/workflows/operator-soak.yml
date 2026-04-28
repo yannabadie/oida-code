@@ -36,9 +36,14 @@ on:
         required: true
         type: string
       target-ref:
-        description: "Branch or tag to audit (e.g. operator-soak/case-001-docstring)."
+        description: "Branch, tag, or commit SHA to audit (e.g. operator-soak/case-001-docstring or 0309c63... for an external repo)."
         required: true
         type: string
+      target-repo:
+        description: "External repo to audit in <owner>/<name> form. Empty/omitted means audit this same repo (yannabadie/oida-code). For case_002+ external repos (e.g. python-semver/python-semver), pass the upstream identifier."
+        required: false
+        type: string
+        default: ""
       bundle-dir:
         description: "Replay bundle path relative to main checkout (e.g. operator_soak_cases/case_001_oida_code_self/bundle)."
         required: true
@@ -84,11 +89,19 @@ jobs:
 
       # 2. Checkout the operator-selected target-ref into
       #    oida-target/ — this is what the gateway audits.
+      #    Phase 5.8.1-D: ``inputs.target-repo`` lets the soak audit
+      #    an EXTERNAL public repo (e.g. python-semver/python-semver
+      #    for case_002). When empty (or omitted) the input falls back
+      #    to ``${{ github.repository }}`` so the case_001 self-audit
+      #    semantic survives unchanged. fetch-depth: 0 is required for
+      #    older external commit SHAs that may not be reachable from
+      #    the default branch tip.
       - name: Checkout target-ref (audit subject)
         uses: actions/checkout@v4
         with:
+          repository: ${{ inputs.target-repo == '' && github.repository || inputs.target-repo }}
           ref: ${{ inputs.target-ref }}
-          fetch-depth: 2
+          fetch-depth: 0
           persist-credentials: false
           path: oida-target
 

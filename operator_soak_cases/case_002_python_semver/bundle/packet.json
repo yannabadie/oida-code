@@ -1,12 +1,19 @@
 {
-  "event_id": "evt-1",
-  "allowed_fields": ["capability", "benefit", "observability"],
-  "intent_summary": "ship feature X with passing tests",
+  "event_id": "evt-case-002-semver-negative",
+  "allowed_fields": ["capability", "tests_pass", "operator_accept"],
+  "intent_summary": "Phase 5.8 case_002: python-semver commit 0309c63 ('Fix #291: Disallow negative numbers in VersionInfo (#292)'). The change makes VersionInfo reject negative major/minor/patch inputs and adds regression tests at root-level test_semver.py. Verifier should ground a 'regression coverage exists and passes at this commit' claim against pytest evidence scoped to that file.",
   "evidence_items": [
     {
       "id": "[E.event.1]",
       "kind": "event",
-      "summary": "feature X event captured from intent doc",
+      "summary": "python-semver upstream commit 0309c63ce834b7d35aa3e29b8d5bb0357532b016 lands PR #292 ('Fix #291: Disallow negative numbers in VersionInfo'). Touches semver.py (VersionInfo constructor: ValueError on negative major/minor/patch) and root-level test_semver.py (new regression tests pinning the negative-input rejection).",
+      "source": "git",
+      "confidence": 0.95
+    },
+    {
+      "id": "[E.event.2]",
+      "kind": "event",
+      "summary": "Operator intent (cgpro session unslop-md): small hermetic Python repo with one narrow contract (VersionInfo constructor) and a known bug pinned by a fail-to-pass regression test. Expected outcome: pytest on root-level test_semver.py at 0309c63 returns rc=0; gateway emits [E.tool.pytest.0] clean-pass; pass-2 claim accepted with verification_candidate; ADR-22 hard wall holds.",
       "source": "ticket",
       "confidence": 0.9
     }
