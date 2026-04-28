@@ -73,6 +73,11 @@ class VerifierToolResult(BaseModel):
     runtime_ms: int = Field(default=0, ge=0)
     output_truncated: bool = False
     output_sha256: str | None = None
+    # Phase 5.8.x / ADR-47 — pytest-only terminal summary line ("29 passed,
+    # 0 skipped in 0.21s"), populated from stdout by PytestAdapter so the
+    # operator-facing evidence chain surfaces passed/skipped/failed counts
+    # without requiring a structured submodel. None for non-pytest tools.
+    pytest_summary_line: str | None = Field(default=None, max_length=400)
 
 
 class ToolPolicy(BaseModel):

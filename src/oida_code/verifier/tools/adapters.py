@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import abc
 import json
+import re
 import shutil
 import subprocess
 import time
@@ -124,6 +125,17 @@ class ToolAdapter(abc.ABC):
 
     name: ToolName
     binary: str
+
+    def extract_summary_line(self, stdout: str) -> str | None:
+        """Phase 5.8.x / ADR-47 — pytest-shaped hook for tools whose stdout
+        carries a single terminal summary line worth surfacing on
+        :attr:`VerifierToolResult.pytest_summary_line`.
+
+        Default implementation returns ``None``; only :class:`PytestAdapter`
+        overrides. The base must NOT know about pytest specifically — this
+        keeps adapter responsibilities narrow.
+        """
+        return None
 
     def _diagnostic_evidence(
         self, *, summary: str, confidence: float = 0.5,
@@ -243,6 +255,10 @@ class ToolAdapter(abc.ABC):
                     f"findings; output excerpt: {tail}"
                 ),
             ))
+        # Phase 5.8.x / ADR-47 — surface a structured terminal summary line
+        # alongside the citable evidence chain (default None for tools that
+        # don't override the hook).
+        summary_line = self.extract_summary_line(truncated_stdout)
         return VerifierToolResult(
             tool=self.name,
             status=status,  # type: ignore[arg-type]
@@ -252,6 +268,7 @@ class ToolAdapter(abc.ABC):
             runtime_ms=outcome.runtime_ms,
             output_truncated=was_truncated,
             output_sha256=digest,
+            pytest_summary_line=summary_line,
         )
 
     @abc.abstractmethod
@@ -401,6 +418,19 @@ class MypyAdapter(ToolAdapter):
 # ---------------------------------------------------------------------------
 
 
+_PYTEST_SUMMARY_LINE_RE = re.compile(
+    # optional '=' decoration + count-verb terms (passed / failed / skipped /
+    # error[s] / xfailed / xpassed / warning[s] / deselected) joined by commas,
+    # then "in N.NNs" wall-clock segment, optional decoration. The capture
+    # group strips both decorations so the surfaced string is the canonical
+    # "29 passed, 0 skipped in 0.21s" core line.
+    r"^=*\s*"
+    r"(\d+\s+(?:passed|failed|skipped|errors?|xfailed|xpassed|warnings?|deselected)"
+    r"\b.*\bin\s+[\d.]+s)"
+    r"\s*=*\s*$"
+)
+
+
 class PytestAdapter(ToolAdapter):
     name: ToolName = "pytest"
     binary: str = "pytest"
@@ -412,6 +442,22 @@ class PytestAdapter(ToolAdapter):
         if not paths:
             return ("pytest", "-q", "--no-header", "--maxfail=20")
         return ("pytest", "-q", "--no-header", "--maxfail=20", *paths)
+
+    def extract_summary_line(self, stdout: str) -> str | None:
+        """Phase 5.8.x / ADR-47 — return pytest's canonical terminal
+        summary ("29 passed, 0 skipped in 0.21s") so the result carries
+        passed/skipped/failed counts as a structured field.
+
+        Scans stdout from bottom to top so the LAST summary-shaped line
+        wins (pytest may emit a stale line earlier in noisy plugins). A
+        line with no terminal summary returns ``None`` — never fabricate
+        counts when the run didn't surface them.
+        """
+        for raw_line in reversed(stdout.splitlines()):
+            match = _PYTEST_SUMMARY_LINE_RE.match(raw_line.strip())
+            if match:
+                return match.group(1).strip()
+        return None
 
     def parse_outcome(
         self,
@@ -450,13 +496,25 @@ class PytestAdapter(ToolAdapter):
         # If pytest passed cleanly, surface a positive evidence item so
         # the LLM can cite it (otherwise an OK run produces no refs).
         if returncode == 0 and not findings and stdout.strip():
+            # Phase 5.8.x / ADR-47 — fold the canonical terminal summary
+            # ("29 passed, 0 skipped in 0.21s") into the operator-facing
+            # evidence summary so cgpro / human reviewers see counts even
+            # if their renderer only consumes evidence_items[*].summary.
+            summary_line = self.extract_summary_line(stdout)
+            scope = list(request.scope) or ["<all>"]
+            if summary_line is not None:
+                summary = (
+                    f"pytest passed scoped to {scope} "
+                    f"with no failures ({summary_line})"
+                )
+            else:
+                summary = (
+                    f"pytest passed scoped to {scope} with no failures"
+                )
             items.append(EvidenceItem(
                 id=_evidence_id("pytest", 0),
                 kind="test_result",
-                summary=(
-                    f"pytest passed scoped to {list(request.scope) or ['<all>']} "
-                    "with no failures"
-                )[:400],
+                summary=summary[:400],
                 source="pytest",
                 confidence=0.85,
             ))
