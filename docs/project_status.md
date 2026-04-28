@@ -26,6 +26,7 @@ doc-guard tests.
 | human-tier aggregate | `reports/beta/beta_feedback_aggregate.{json,md}` | — | `empty` |
 | **AI-tier cold-reader critique** | `reports/ai_adversarial/` | `agent_label` (free-form prose) | `active, separated` |
 | **Yann-solo dogfood** | `reports/yann_solo/` | `feedback_channel: yann_solo_dogfood` + `operator_role: project_author` | `allowed, internal only` |
+| **manual data acquisition** | `scripts/build_calibration_seed_index.py` + `reports/calibration_seed/` | module-level `MANUAL_EGRESS_SCRIPT = True` marker | `active, manual-only, public-only, runtime-isolated` |
 
 Per QA/A41 line 350, AI-tier output **is not** human operator
 feedback and never enters the human-tier aggregate. Per QA/A43
