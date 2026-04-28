@@ -6,7 +6,7 @@ Built on the OIDA v4.2 formal model of operational debt and corrupt success (Aba
 
 ## Status
 
-**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) + Phase 5.6 (opt-in gateway-grounded action path) + Phase 5.7 (operator soak protocol scaffolded) complete — structural pipeline
+**Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) + Phase 5.6 (opt-in gateway-grounded action path) + Phase 5.7 (operator soak protocol scaffolded) + Phase 5.8 (Tier 5 operator soak gate cleared — 5 cgpro-labelled useful_true_positive cases across 4 distinct VerifierClaimType values, recommendation=document_opt_in_path with enable-tool-gateway still default false) + Phase 5.8.x (pytest_summary_line schema field on VerifierToolResult + ANSI-strip parser fix; ADR-47, ADR-48) complete — structural pipeline
 validated; opt-in experimental shadow fusion shipped non-authoritative;
 formula decision recorded (KEEP V1 per ADR-23); estimator contracts
 defined per ADR-24; LLM estimator dry-run shipped per ADR-25 with

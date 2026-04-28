@@ -366,8 +366,8 @@ def test_phase58_all_five_cases_carry_cgpro_authored_label_and_ux() -> None:
         label_path = case_dir / "label.json"
         ux_path = case_dir / "ux_score.json"
         assert label_path.is_file(), (
-            f"{case_id} missing label.json (Tier 3 baseline expects all "
-            f"three cases dispatched + labelled)"
+            f"{case_id} missing label.json (Tier 5 promotion expects all "
+            f"five cases dispatched + labelled)"
         )
         assert ux_path.is_file(), (
             f"{case_id} missing ux_score.json"
