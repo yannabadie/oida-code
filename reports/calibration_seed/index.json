@@ -1,0 +1,59 @@
+[
+  {
+    "base_sha": "68a341f49596fa43c89e052d437723860b98a443",
+    "candidate_reason": "automated initial selection: 4 files changed, 31 lines, merge_status=merged; awaits manual claim assignment",
+    "case_id": "seed_003_pytest_dev_pytest_14420",
+    "changed_files_list": [
+      "AUTHORS",
+      "changelog/14389.bugfix.rst",
+      "src/_pytest/raises.py",
+      "testing/python/raises.py"
+    ],
+    "claim_id": null,
+    "claim_text": null,
+    "claim_type": null,
+    "collected_at": "2026-04-28T20:53:14Z",
+    "expected_grounding_outcome": "not_run",
+    "head_sha": "093184048e36453c5b8c1bb770f22e956a9f310d",
+    "human_review_required": true,
+    "label_source": "unknown_not_for_metrics",
+    "labels_observed": [],
+    "llm_assist_used": false,
+    "merge_status": "merged",
+    "pr_number": 14420,
+    "public_only": true,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1",
+    "selection_source": "manual",
+    "test_scope": null,
+    "title": "[PR #14391/cd7592c4 backport][9.0.x] Use direct cause for raises match failures"
+  },
+  {
+    "base_sha": "4afcd4906b9cf4468dc9ca8cf7c53126e190d008",
+    "candidate_reason": "automated initial selection: 3 files changed, 15 lines, merge_status=merged; manually reviewed and pinned as Phase 6.1'a worked example (small diff, single parameterized test, clear bugfix narrative)",
+    "case_id": "seed_008_pytest_dev_pytest_14407",
+    "changed_files_list": [
+      "changelog/14381.bugfix.rst",
+      "src/_pytest/config/__init__.py",
+      "testing/test_helpconfig.py"
+    ],
+    "claim_id": "C.cli_version_flag.repair_needed",
+    "claim_text": "After PR #14407 (backport of #14382 to the 9.0.x branch), pytest's CLI accepts the `-V` short-flag as equivalent to `--version`: both produce the version string `pytest <X.Y.Z>` via the early fast-path in `_pytest/config/__init__.py:main()`, without loading the rest of the pytest infrastructure. Prior to this change `-V` was not in the early-version fast-path counter, so it would either error or trigger full plugin loading depending on the calling context. Provenance note: this PR is a 9.0.x backport — the original fix was authored by a community contributor in PR #14382 against main, then cherry-picked by maintainers; the diff is materially identical (changelog entry + src counter update + test parametrization).",
+    "claim_type": "repair_needed",
+    "collected_at": "2026-04-28T20:53:16Z",
+    "expected_grounding_outcome": "evidence_present",
+    "head_sha": "480809ae02a97344e68e52eb015e68b840f2e05c",
+    "human_review_required": false,
+    "label_source": "yann_manual_review",
+    "labels_observed": [],
+    "llm_assist_used": false,
+    "merge_status": "merged",
+    "pr_number": 14407,
+    "public_only": true,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1",
+    "selection_source": "manual",
+    "test_scope": "testing/test_helpconfig.py::test_version_less_verbose",
+    "title": "[PR #14382/d72943a5 backport][9.0.x] Fix `-V` to show version information"
+  }
+]

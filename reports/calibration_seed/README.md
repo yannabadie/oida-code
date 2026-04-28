@@ -206,23 +206,84 @@ exclusions to `exclusions.json`. Idempotent: re-running with the
 same flags does not duplicate records (keyed by
 `(repo_url, pr_number)`).
 
-## What Phase 6.1'a-pre delivers (this commit)
+## What Phase 6.1'a-pre delivered (commit `463f92a`)
 
 * The lane charter (this README).
 * The schema documentation ([`schema.md`](schema.md)).
 * The script in dry-run mode (no real collection happens).
-* 7 structural tests in
+* 8 structural tests in
   `tests/test_phase6_1_manual_data_lane_isolation.py`.
 * The `manual_data_acquisition` lane row in
   `docs/project_status.md`.
 * The ADR-53 entry in `memory-bank/decisionLog.md`.
 
-What Phase 6.1'a-pre does NOT deliver:
+## What Phase 6.1'a delivers (this commit)
 
-* Actual collected data. The first 5-10 cases land in a later
-  Phase 6.1'a commit AFTER Yann manually reviews the contract
-  and runs the script with the explicit flags.
+* First real collection: 2 inclusion records (both from
+  `pytest-dev/pytest`) + 14 exclusion records (4 from
+  `pallets/click`, 10 from `pytest-dev/pytest`).
+* One worked example (`seed_008_pytest_dev_pytest_14407` —
+  `repair_needed` for the `-V` short-flag).
+  See [`worked_example_phase6_1_a.md`](worked_example_phase6_1_a.md).
+* ADR-54 captures the field-derivation pedagogy split (API-derived
+  / allowlist-categorical / free-form domain reasoning).
+* This README now records the corpus state and the holdout
+  discipline plan.
+
+## Corpus state (as of 2026-04-28)
+
+| Repo | Inclusions | Exclusions | Notes |
+|---|---|---|---|
+| `pallets/click` | 0 | 4 | All 4 caught by fork-PR fence (community contributors push from forks) |
+| `pytest-dev/pytest` | 2 | 10 | 5 fork / 3 non-python / 2 too-trivial; surviving 2 are 9.0.x backports |
+| **Total** | **2** | **14** | |
+
+**Selection-effect caveat (per advisor consultation
+2026-04-28):** the only PRs that survive the fork-PR fence on
+mainstream public Python projects are typically maintainer-side
+release-management PRs (backports, version bumps, dep bumps).
+Both current inclusions are 9.0.x backports. Phase 6.1'c MUST
+intentionally seek non-backport non-release-prep cases, or the
+corpus becomes structurally narrow.
+
+## Holdout discipline (piège 46 of QA/A44)
+
+QA/A44 §"Pièges" item 46 warns: "Benchmark qui optimise le
+generator. Garder des holdout cases." (Benchmark that
+optimises the generator. Keep holdout cases.)
+
+**Current state (N=2):** holdout split is NOT meaningful at this
+size — both cases will inevitably inform the generator. The
+corpus is therefore **pre-holdout**.
+
+**Discipline kicks in at Phase 6.1'c (N≥20):** when the corpus
+reaches ≥20 inclusions, the operator MUST split it into:
+
+* `train` partition — used to develop `prepare-gateway-bundle`
+  in Phase 6.1'b/d. Field: `partition: train` (added to schema
+  in Phase 6.1'c).
+* `holdout` partition — never used to tune the generator;
+  reserved for the Phase 6.1'd stress-test final reading. Field:
+  `partition: holdout`.
+
+**Discipline rule:** any change to `prepare-gateway-bundle` that
+is informed by reading a `holdout` case is a violation and the
+case must be moved to `train` (or replaced with a fresh
+candidate). The generator's holdout-set performance is the only
+honest signal that the helper generalises beyond its training
+corpus.
+
+This README will be updated when Phase 6.1'c lands the partition
+field, the schema extension, and a structural test enforcing
+that no case in `holdout` has been edited after the partition was
+fixed.
+
+What Phase 6.1'a does NOT deliver:
+
 * The bundle generator. That is Phase 6.1'b.
+* The 20-50 case corpus. That is Phase 6.1'c.
+* The generator stress-test. That is Phase 6.1'd.
+* AI-tier re-run + Yann-solo dogfood. That is Phase 6.1'e.
 * Public release. That is deferred indefinitely per
   QA/A44 §"HuggingFace usage policy".
 

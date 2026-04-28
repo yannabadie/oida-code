@@ -1,0 +1,114 @@
+[
+  {
+    "collected_at": "2026-04-28T20:45:28Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3151,
+    "repo_url": "https://github.com/pallets/click",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:45:27Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3260,
+    "repo_url": "https://github.com/pallets/click",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:45:26Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3267,
+    "repo_url": "https://github.com/pallets/click",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:45:27Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3330,
+    "repo_url": "https://github.com/pallets/click",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:15Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 14246,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:17Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 14382,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:15Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 14391,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:16Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 14393,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:17Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 14395,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:16Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 14401,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:17Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 14405,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:14Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 14419,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:15Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 14421,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-28T20:53:13Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 14426,
+    "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  }
+]
