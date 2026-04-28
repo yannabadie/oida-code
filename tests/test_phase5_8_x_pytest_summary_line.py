@@ -170,6 +170,29 @@ def test_pytest_extract_summary_picks_last_summary_line() -> None:
     assert adapter.extract_summary_line(out) == "29 passed in 0.21s"
 
 
+def test_pytest_extract_summary_strips_ansi_color_codes() -> None:
+    """Targets that pin ``addopts = "--color=yes"`` (e.g. python-slugify)
+    emit colored output even through subprocess pipes — the parser must
+    strip CSI/SGR escapes before applying the canonical regex.
+    """
+    adapter = PytestAdapter()
+    out = (
+        "\x1b[32m.\x1b[0m\x1b[32m.\x1b[0m\x1b[32m.\x1b[0m\n"
+        "\x1b[32m\x1b[32m\x1b[1m83 passed\x1b[0m\x1b[32m in 0.08s\x1b[0m\x1b[0m\n"
+    )
+    assert adapter.extract_summary_line(out) == "83 passed in 0.08s"
+
+
+def test_pytest_extract_summary_strips_ansi_with_skip_count() -> None:
+    """The dual-backend trap signal must survive ANSI decoration too."""
+    adapter = PytestAdapter()
+    out = (
+        "\x1b[32m\x1b[1m24 passed\x1b[0m, "
+        "\x1b[33m5 skipped\x1b[0m\x1b[32m in 1.23s\x1b[0m\n"
+    )
+    assert adapter.extract_summary_line(out) == "24 passed, 5 skipped in 1.23s"
+
+
 def test_ruff_adapter_does_not_implement_summary_line() -> None:
     """Other adapters keep returning None — the hook is pytest-shaped only."""
     adapter = RuffAdapter()

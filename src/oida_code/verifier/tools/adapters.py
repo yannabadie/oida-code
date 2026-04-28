@@ -430,6 +430,13 @@ _PYTEST_SUMMARY_LINE_RE = re.compile(
     r"\s*=*\s*$"
 )
 
+# CSI / SGR ANSI escapes — projects that pin ``addopts = "--color=yes"`` in
+# pyproject.toml (e.g. python-slugify) emit colored output even when stdout
+# is a pipe, so the summary parser must strip the codes before applying the
+# canonical regex. Matches CSI introducer + parameter bytes + final byte
+# (covers SGR colors and the broader CSI grammar without over-matching).
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+
 
 class PytestAdapter(ToolAdapter):
     name: ToolName = "pytest"
@@ -452,9 +459,14 @@ class PytestAdapter(ToolAdapter):
         wins (pytest may emit a stale line earlier in noisy plugins). A
         line with no terminal summary returns ``None`` — never fabricate
         counts when the run didn't surface them.
+
+        ANSI escape codes are stripped before matching because some
+        projects pin ``addopts = "--color=yes"`` in pyproject.toml,
+        which forces colored output even when stdout is a pipe.
         """
         for raw_line in reversed(stdout.splitlines()):
-            match = _PYTEST_SUMMARY_LINE_RE.match(raw_line.strip())
+            cleaned = _ANSI_ESCAPE_RE.sub("", raw_line).strip()
+            match = _PYTEST_SUMMARY_LINE_RE.match(cleaned)
             if match:
                 return match.group(1).strip()
         return None
