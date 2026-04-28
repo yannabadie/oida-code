@@ -5,8 +5,8 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 ## Counts
 
 - cases_total: 3
-- cases_completed: 2
-- useful_true_positive_count: 2
+- cases_completed: 3
+- useful_true_positive_count: 3
 - useful_true_negative_count: 0
 - false_positive_count: 0
 - false_negative_count: 0
@@ -17,13 +17,13 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 
 ## Distribution
 
-- verification_candidate: 2
+- verification_candidate: 3
 
 ## Rates
 
 - operator_usefulness_rate: 1.000
 - summary_readability_avg: 2.000
-- evidence_traceability_avg: 2.000
+- evidence_traceability_avg: 1.667
 - actionability_avg: 2.000
 - no_false_verdict_avg: 2.000
 
@@ -33,7 +33,7 @@ _Soak metrics over the controlled cases under `operator_soak_cases/`. Diagnostic
 |---|---|---|---|---|
 | case_001_oida_code_self | complete | low | useful_true_positive | 25022965745 |
 | case_002_python_semver | complete | low | useful_true_positive | 25040744063 |
-| case_003_markupsafe | awaiting_real_audit_packet_decision | medium | _pending_ | _pending_ |
+| case_003_markupsafe | complete | medium | useful_true_positive | 25045245609 |
 
 ## Recommendation: `continue_soak`
 

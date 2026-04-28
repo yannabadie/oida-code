@@ -1,0 +1,13 @@
+{
+  "operator_label": "useful_true_positive",
+  "operator_rationale": [
+    "The accepted claim is a positive observability assertion, and the run matched the pre-stated useful_true_positive hypothesis.",
+    "The target-install path addresses the known MarkupSafe trap by building the target before pytest, making the speedups backend observable.",
+    "The platform-specific editable wheel, Python 3.11.15 install path, runtime, and local replication support that the dual-backend path ran rather than being skipped.",
+    "The verifier accepted C.markupsafe.soft_str_dual_backend_observable with no rejected or unsupported claims, blockers, warnings, leaks, or forbidden artefact content.",
+    "The missing direct pytest summary line is a UX and evidence-surfacing gap, not enough to downgrade this run to unclear given the corroborating install and replication evidence.",
+    "Evidence traceability is scored 1 rather than 2 because the report should expose the 29 passed, 0 skipped summary directly inside [E.tool.pytest.0]."
+  ],
+  "labeled_by": "cgpro session unslop-md-2 (uuid 69f06934-623c-8392-b14f-1c1d2b69b0c2) — Phase 5.8.1-E first target-install dispatch on commit 469de38, workflow run 25045245609, target pallets/markupsafe@7856c3d via inputs.target-install=true",
+  "labeled_at": "2026-04-28T10:00:00Z"
+}

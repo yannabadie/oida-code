@@ -278,10 +278,17 @@ def test_phase58_case002_cgpro_selected_upstream_and_dispatched() -> None:
     )
 
 
-def test_phase58_case003_cgpro_selected_upstream_but_not_run() -> None:
-    """QA/A37 + QA/A38: case_003 selection came from cgpro, not from
-    Claude. QA/A38 §3 keeps the case scaffolded only — bundle is still
-    seeded, status is awaiting_real_audit_packet_decision.
+def test_phase58_case003_cgpro_selected_upstream_and_dispatched() -> None:
+    """QA/A37 + QA/A38 + Phase 5.8.1-E: case_003 selection came from
+    cgpro and Phase 5.8.1-E's new ``inputs.target-install`` enabled
+    the editable-install path required for markupsafe's C extension.
+    Workflow run 25045245609 dispatched against pallets/markupsafe@
+    7856c3d, built the _speedups extension via pip install -e ., ran
+    pytest with dual-backend coverage, and the verifier accepted the
+    soft_str observability claim. The case is now ``complete`` with
+    cgpro session unslop-md-2 having labelled it ``useful_true_positive``
+    UX 2/1/2/2 (evidence_traceability=1 because the gateway adapter
+    doesn't yet expose the explicit pytest summary line).
     """
     case_id = "case_003_markupsafe"
     payload = json.loads(
@@ -289,15 +296,18 @@ def test_phase58_case003_cgpro_selected_upstream_but_not_run() -> None:
     )
     fiche = OperatorSoakFiche.model_validate(payload)
     assert fiche.case_id == "case_003_markupsafe"
-    assert fiche.status == "awaiting_real_audit_packet_decision"
+    assert fiche.status == "complete"
     assert fiche.repo == "pallets/markupsafe"
     assert fiche.branch == "main"
     assert fiche.commit == "7856c3d945a969bc94a19989dda61c3d50ac2adb"
     assert fiche.expected_risk == "medium"
-    assert "cgpro session phase58-soak" in fiche.notes
-    assert "https://github.com/pallets/markupsafe/commit/" in fiche.notes
-    assert fiche.workflow_run_id is None
-    assert fiche.artifact_url is None
+    # Notes record the cgpro session history.
+    assert "cgpro session" in fiche.notes
+    assert "pallets/markupsafe" in fiche.notes
+    assert fiche.workflow_run_id == "25045245609"
+    assert fiche.artifact_url == (
+        "https://github.com/yannabadie/oida-code/actions/runs/25045245609"
+    )
 
 
 @pytest.mark.parametrize(
@@ -316,32 +326,55 @@ def test_phase58_prep_bundle_carries_8_required_files(case_id: str) -> None:
         )
 
 
-@pytest.mark.parametrize(
-    "case_id",
-    (
-        # case_001 (Phase 5.8.1-C) and case_002 (Phase 5.8.1-D) have
-        # both been dispatched + labelled by cgpro and legitimately
-        # carry label.json + ux_score.json. case_003 is still
-        # scaffolded; the structural lock keeps Claude from authoring
-        # those files for it before a real dispatch + cgpro label.
-        "case_003_markupsafe",
-    ),
-)
-def test_phase58_prep_no_label_or_ux_yet(case_id: str) -> None:
-    """Hard rule for SCAFFOLDED cases only: Claude must not author
-    label.json or ux_score.json. Cases that have not yet been
-    dispatched + labelled via cgpro must not carry these files. This
-    test is a structural lock — if a future Claude writes either file
-    for case 003 before it is dispatched and routed through cgpro,
-    this test trips immediately.
+def test_phase58_all_three_cases_carry_cgpro_authored_label_and_ux() -> None:
+    """All three Phase 5.8 cases (001, 002, 003) have now been
+    dispatched and labelled by cgpro. The earlier ``no_label_or_ux_yet``
+    structural lock no longer applies — every committed case_*/ dir
+    MUST carry label.json + ux_score.json, and the labeled_by /
+    scored_by fields MUST cite a cgpro session (NOT Claude).
+
+    Phase 5.8.1-C closed case_001 (workflow run 25022965745, label
+    useful_true_positive). Phase 5.8.1-D closed case_002 (run
+    25040744063, label useful_true_positive). Phase 5.8.1-E closed
+    case_003 (run 25045245609, label useful_true_positive). With
+    cases_completed=3 the aggregator's rule 2 short-circuit
+    (cases_completed<3 → continue_soak) no longer fires; the next
+    rule that could flip the recommendation off continue_soak is
+    rule 5 (cases_completed>=5 with usefulness_rate>=0.6), which
+    requires scaffolding case_004 + case_005.
     """
-    case_dir = _CASES_DIR / case_id
-    assert not (case_dir / "label.json").exists(), (
-        f"{case_id} carries a label.json — must be operator-written via cgpro, not by Claude"
-    )
-    assert not (case_dir / "ux_score.json").exists(), (
-        f"{case_id} carries a ux_score.json — must be operator-written, not in 5.8-prep"
-    )
+    for case_id in (
+        "case_001_oida_code_self",
+        "case_002_python_semver",
+        "case_003_markupsafe",
+    ):
+        case_dir = _CASES_DIR / case_id
+        label_path = case_dir / "label.json"
+        ux_path = case_dir / "ux_score.json"
+        assert label_path.is_file(), (
+            f"{case_id} missing label.json (Tier 3 baseline expects all "
+            f"three cases dispatched + labelled)"
+        )
+        assert ux_path.is_file(), (
+            f"{case_id} missing ux_score.json"
+        )
+        # Schema check + cgpro provenance.
+        label = OperatorLabelEntry.model_validate(
+            json.loads(label_path.read_text(encoding="utf-8")),
+        )
+        assert label.labeled_by is not None
+        assert "cgpro session" in label.labeled_by, (
+            f"{case_id} label.json labeled_by must cite a cgpro session, "
+            f"got {label.labeled_by!r}"
+        )
+        ux = OperatorUxScore.model_validate(
+            json.loads(ux_path.read_text(encoding="utf-8")),
+        )
+        assert ux.scored_by is not None
+        assert "cgpro session" in ux.scored_by, (
+            f"{case_id} ux_score.json scored_by must cite a cgpro session, "
+            f"got {ux.scored_by!r}"
+        )
 
 
 def test_phase58_prep_runbook_exists_with_required_sections() -> None:
@@ -370,33 +403,34 @@ def test_phase58_prep_runbook_exists_with_required_sections() -> None:
         assert forbidden not in body, f"RUNBOOK leaked forbidden token {forbidden!r}"
 
 
-def test_phase58_aggregate_still_continue_soak_under_three_completed() -> None:
-    """Phase 5.8 (QA/A34 §5.7-F rule 1) — recommendation stays
-    ``continue_soak`` while ``cases_completed < 3``. case_001 was
-    relabelled by cgpro from ``insufficient_fixture`` (run 24995045522)
-    to ``useful_true_negative`` (Phase 5.8.1-B rerun 25021820479) to
-    ``useful_true_positive`` (Phase 5.8.1-C rerun 25022965745).
-    case_002 (Phase 5.8.1-D first cross-repo dispatch, run 25040744063)
-    is now also ``useful_true_positive``. case_003 is still
-    ``awaiting_real_audit_packet_decision``, so the
-    ``cases_completed < 3`` short-circuit keeps the recommendation at
-    ``continue_soak``. ``usefulness_rate`` is 1.000 across both
-    completed cases but does not promote past ``continue_soak``
-    until ``cases_completed >= 5`` (rule 5).
+def test_phase58_aggregate_tier3_baseline_three_cases_complete() -> None:
+    """Tier 3 baseline reached. case_001 (Phase 5.8.1-C run
+    25022965745), case_002 (Phase 5.8.1-D run 25040744063), and
+    case_003 (Phase 5.8.1-E run 25045245609) have all been
+    dispatched + labelled ``useful_true_positive`` by cgpro. The
+    aggregator's rule 2 short-circuit (cases_completed<3 →
+    continue_soak) no longer fires; the recommendation is now
+    determined by rule 6 (default) since rules 3-4 require false_*
+    counts >=2 (we have 0) and rule 5 requires cases_completed>=5
+    (we have 3). Promotion off continue_soak therefore needs
+    case_004 + case_005 scaffolding.
     """
     payload = json.loads(
         (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
         .read_text(encoding="utf-8"),
     )
     assert payload["recommendation"] == "continue_soak"
-    assert payload["cases_completed"] < 3
-    # case_001 + case_002 both useful_true_positive (Phase 5.8.1-C/D).
-    assert payload["useful_true_positive_count"] == 2
+    assert payload["cases_completed"] == 3
+    # All three cases useful_true_positive (Tier 3 perfect baseline).
+    assert payload["useful_true_positive_count"] == 3
     assert payload["useful_true_negative_count"] == 0
     assert payload["insufficient_fixture_count"] == 0
     assert payload["false_positive_count"] == 0
     assert payload["false_negative_count"] == 0
     assert payload["official_field_leak_count"] == 0
+    # Usefulness rate at the rule-5 threshold (0.6); only the
+    # cases_completed<5 gate keeps continue_soak active.
+    assert payload["operator_usefulness_rate"] >= 0.6
 
 
 # ---------------------------------------------------------------------------

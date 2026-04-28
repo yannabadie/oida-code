@@ -1,0 +1,9 @@
+{
+  "summary_readability": 2,
+  "evidence_traceability": 1,
+  "actionability": 2,
+  "no_false_verdict": 2,
+  "notes": "Phase 5.8.1-E first target-install dispatch (workflow run 25045245609, target pallets/markupsafe@7856c3d via inputs.target-install=true). evidence_traceability scored 1 (not 2) because the gateway adapter's clean-pass synthesis emits 'pytest passed scoped to ... with no failures' but does NOT include the explicit pytest summary line ('29 passed, 0 skipped' vs '24 passed, 5 skipped' would have been the dual-backend trap signal). cgpro flagged this as a Phase 5.8.x adapter follow-up: 'Add pytest_summary_line to VerifierToolResult, including passed/skipped/failed counts and raw terminal summary when status is ok.' The other three axes scored 2: summary_readability (Accepted=1 Status=verification_candidate clearly rendered), actionability (the verifier-grounded path now produces actionable evidence on a C-extension-bearing external repo, validating both the cross-repo machinery from Phase 5.8.1-D AND the target-install machinery from Phase 5.8.1-E), no_false_verdict (no forbidden tokens, official fields null, ADR-22 hard wall holds). Indirect dual-backend evidence chain: editable wheel filename `linux_x86_64.whl` (proves _speedups.c compiled), setup-python pinned to 3.11.15, runtime 211ms consistent with 29 tests at 7ms each, local replication on /tmp/markupsafe-case003 with same `pip install -e .` produced verbose output showing 5 _native + 5 _speedups + 19 unparametrized = 29 passed 0 skipped.",
+  "scored_by": "cgpro session unslop-md-2 (uuid 69f06934-623c-8392-b14f-1c1d2b69b0c2) — Phase 5.8.1-E first target-install dispatch on commit 469de38, workflow run 25045245609",
+  "scored_at": "2026-04-28T10:00:00Z"
+}
