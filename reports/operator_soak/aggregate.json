@@ -11,9 +11,9 @@
     {
       "case_id": "case_002_python_semver",
       "expected_risk": "low",
-      "operator_label": null,
-      "status": "awaiting_real_audit_packet_decision",
-      "workflow_run_id": null
+      "operator_label": "useful_true_positive",
+      "status": "complete",
+      "workflow_run_id": "25040744063"
     },
     {
       "case_id": "case_003_markupsafe",
@@ -23,7 +23,7 @@
       "workflow_run_id": null
     }
   ],
-  "cases_completed": 1,
+  "cases_completed": 2,
   "cases_total": 3,
   "contract_violation_count": 0,
   "evidence_traceability_avg": 2.0,
@@ -32,7 +32,7 @@
   "gateway_status_distribution": [
     [
       "verification_candidate",
-      1
+      2
     ]
   ],
   "insufficient_fixture_count": 0,
@@ -44,5 +44,5 @@
   "summary_readability_avg": 2.0,
   "unclear_count": 0,
   "useful_true_negative_count": 0,
-  "useful_true_positive_count": 1
+  "useful_true_positive_count": 2
 }

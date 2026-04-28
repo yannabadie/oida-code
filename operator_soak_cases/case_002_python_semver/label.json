@@ -1,0 +1,13 @@
+{
+  "operator_label": "useful_true_positive",
+  "operator_rationale": [
+    "The accepted claim is a positive coverage assertion: negative VersionInfo major/minor/patch regression coverage exists and passes at the target commit.",
+    "Verifier status was verification_candidate with accepted_claims=1, rejected_claims=0, unsupported_claims=0, blockers=[], and warnings=[].",
+    "The accepted evidence path is clear: C.semver.negative_version_inputs_regression_covered is supported by [E.tool.pytest.0].",
+    "The pytest evidence is scoped to root-level test_semver.py and reports 281 passing tests with no failures.",
+    "The external target checkout path was validated for python-semver/python-semver at 0309c63, avoiding the tests/test_semver.py trap.",
+    "Because the run corroborated a positive claim rather than merely avoiding a false alarm, the consistent label with case_001 v3 is useful_true_positive."
+  ],
+  "labeled_by": "cgpro session unslop-md-2 (uuid 69f06934-623c-8392-b14f-1c1d2b69b0c2) — Phase 5.8.1-D first cross-repo dispatch on commit 11dc0ea, workflow run 25040744063, target python-semver/python-semver@0309c63. Initial cgpro turn returned useful_true_negative based on a truncated prompt (cgpro stdin layer cut the run-context preamble); on re-ask with the full context delivered, cgpro relabelled useful_true_positive consistent with case_001 v3.",
+  "labeled_at": "2026-04-28T08:30:00Z"
+}

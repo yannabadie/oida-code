@@ -246,10 +246,15 @@ def test_phase58_prep_scaffolded_case_dirs_exist(case_id: str) -> None:
     assert (case_dir / "bundle").is_dir()
 
 
-def test_phase58_case002_cgpro_selected_upstream_but_not_run() -> None:
-    """QA/A37 + QA/A38: case_002 selection came from cgpro, not from
-    Claude. QA/A38 §3 keeps the case scaffolded only — bundle is still
-    seeded, status is awaiting_real_audit_packet_decision.
+def test_phase58_case002_cgpro_selected_upstream_and_dispatched() -> None:
+    """QA/A37 + QA/A38 + Phase 5.8.1-D: case_002 selection came from
+    cgpro and Phase 5.8.1-D's new ``inputs.target-repo`` enabled the
+    cross-repo dispatch on workflow run 25040744063. The case is now
+    ``complete`` with cgpro session unslop-md-2 having labelled it
+    ``useful_true_positive`` (after a truncated-prompt round-trip
+    surfaced via QA/Q3.md). The bundle is no longer scaffolded — it
+    is the real audit packet for python-semver/python-semver@0309c63
+    PR #292 ('Fix #291: Disallow negative numbers in VersionInfo').
     """
     case_id = "case_002_python_semver"
     payload = json.loads(
@@ -257,14 +262,20 @@ def test_phase58_case002_cgpro_selected_upstream_but_not_run() -> None:
     )
     fiche = OperatorSoakFiche.model_validate(payload)
     assert fiche.case_id == "case_002_python_semver"
-    assert fiche.status == "awaiting_real_audit_packet_decision"
+    assert fiche.status == "complete"
     assert fiche.repo == "python-semver/python-semver"
     assert fiche.branch == "master"
     assert fiche.commit == "0309c63ce834b7d35aa3e29b8d5bb0357532b016"
-    assert "cgpro session phase58-soak" in fiche.notes
-    assert "https://github.com/python-semver/python-semver/commit/" in fiche.notes
-    assert fiche.workflow_run_id is None
-    assert fiche.artifact_url is None
+    # Notes record the full cgpro session history (initial selection
+    # in phase58-soak, dispatch + relabelling in unslop-md-2).
+    assert "cgpro session" in fiche.notes
+    # Notes must reference the upstream identity in some form -- the
+    # commit SHA (full or short) or the python-semver repo path.
+    assert "python-semver/python-semver" in fiche.notes
+    assert fiche.workflow_run_id == "25040744063"
+    assert fiche.artifact_url == (
+        "https://github.com/yannabadie/oida-code/actions/runs/25040744063"
+    )
 
 
 def test_phase58_case003_cgpro_selected_upstream_but_not_run() -> None:
@@ -308,12 +319,11 @@ def test_phase58_prep_bundle_carries_8_required_files(case_id: str) -> None:
 @pytest.mark.parametrize(
     "case_id",
     (
-        # case_001_oida_code_self has been dispatched and labelled by
-        # cgpro session phase58-soak (see
-        # test_case_001_has_cgpro_label_and_ux_score), so it
-        # legitimately has both files. The remaining cases (002, 003)
-        # are still scaffolded and must not carry labels.
-        "case_002_python_semver",
+        # case_001 (Phase 5.8.1-C) and case_002 (Phase 5.8.1-D) have
+        # both been dispatched + labelled by cgpro and legitimately
+        # carry label.json + ux_score.json. case_003 is still
+        # scaffolded; the structural lock keeps Claude from authoring
+        # those files for it before a real dispatch + cgpro label.
         "case_003_markupsafe",
     ),
 )
@@ -322,8 +332,8 @@ def test_phase58_prep_no_label_or_ux_yet(case_id: str) -> None:
     label.json or ux_score.json. Cases that have not yet been
     dispatched + labelled via cgpro must not carry these files. This
     test is a structural lock — if a future Claude writes either file
-    for cases 002 or 003 before they are dispatched and routed through
-    cgpro, this test trips immediately.
+    for case 003 before it is dispatched and routed through cgpro,
+    this test trips immediately.
     """
     case_dir = _CASES_DIR / case_id
     assert not (case_dir / "label.json").exists(), (
@@ -365,14 +375,14 @@ def test_phase58_aggregate_still_continue_soak_under_three_completed() -> None:
     ``continue_soak`` while ``cases_completed < 3``. case_001 was
     relabelled by cgpro from ``insufficient_fixture`` (run 24995045522)
     to ``useful_true_negative`` (Phase 5.8.1-B rerun 25021820479) to
-    ``useful_true_positive`` (Phase 5.8.1-C rerun 25022965745, after
-    the verify-grounded --repo-root override + cherry-picked v2 branch
-    unblocked pytest's actual execution against the audit subject).
-    cases 002 and 003 are still ``awaiting_real_audit_packet_decision``,
-    so the ``cases_completed < 3`` short-circuit keeps the
-    recommendation at ``continue_soak``. ``usefulness_rate`` is 1.000
-    on the single completed case but does not promote past
-    ``continue_soak`` until ``cases_completed >= 5`` (rule 5).
+    ``useful_true_positive`` (Phase 5.8.1-C rerun 25022965745).
+    case_002 (Phase 5.8.1-D first cross-repo dispatch, run 25040744063)
+    is now also ``useful_true_positive``. case_003 is still
+    ``awaiting_real_audit_packet_decision``, so the
+    ``cases_completed < 3`` short-circuit keeps the recommendation at
+    ``continue_soak``. ``usefulness_rate`` is 1.000 across both
+    completed cases but does not promote past ``continue_soak``
+    until ``cases_completed >= 5`` (rule 5).
     """
     payload = json.loads(
         (_REPO_ROOT / "reports" / "operator_soak" / "aggregate.json")
@@ -380,8 +390,8 @@ def test_phase58_aggregate_still_continue_soak_under_three_completed() -> None:
     )
     assert payload["recommendation"] == "continue_soak"
     assert payload["cases_completed"] < 3
-    # case_001 is now useful_true_positive (Phase 5.8.1-C rerun).
-    assert payload["useful_true_positive_count"] == 1
+    # case_001 + case_002 both useful_true_positive (Phase 5.8.1-C/D).
+    assert payload["useful_true_positive_count"] == 2
     assert payload["useful_true_negative_count"] == 0
     assert payload["insufficient_fixture_count"] == 0
     assert payload["false_positive_count"] == 0

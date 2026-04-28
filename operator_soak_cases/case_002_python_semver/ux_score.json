@@ -1,0 +1,9 @@
+{
+  "summary_readability": 2,
+  "evidence_traceability": 2,
+  "actionability": 2,
+  "no_false_verdict": 2,
+  "notes": "Phase 5.8.1-D first cross-repo dispatch (workflow run 25040744063, target python-semver/python-semver@0309c63 via new inputs.target-repo). All four UX axes at 2: summary_readability (Accepted=1 Unsupported=0 Status=diagnostic_only / verification_candidate clearly rendered); evidence_traceability (claim → enriched [E.tool.pytest.0] (kind=test_result) → 'pytest passed scoped to test_semver.py' → backward met); actionability (the verifier-grounded path now produces actionable evidence on an external repo, validating the cross-repo machinery); no_false_verdict (no forbidden tokens, official fields null, ADR-22 hard wall holds). cgpro relabelled useful_true_positive (initial useful_true_negative response was based on a truncated prompt — cgpro stdin layer cut the run-context preamble; on re-ask with the full context the label aligned with case_001 v3 useful_true_positive).",
+  "scored_by": "cgpro session unslop-md-2 (uuid 69f06934-623c-8392-b14f-1c1d2b69b0c2) — Phase 5.8.1-D first cross-repo dispatch on commit 11dc0ea, workflow run 25040744063",
+  "scored_at": "2026-04-28T08:30:00Z"
+}
