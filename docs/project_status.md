@@ -5,9 +5,36 @@ status page. It is updated at phase boundaries. Read this when
 you want to know what the project does today, what it does not,
 what is out of scope, and what the next named phase is.
 
-> Phase 6.0 is a **controlled beta**. The project is not
-> production-ready and does not claim to be. The honesty
-> statement of every report says so explicitly.
+> **Phase 6.0 closed as protocol-only** (per QA/A43, ADR-52). The
+> external-human beta attempt is documented as `not_run` because
+> external operators were not available for recruitment. Phase 6.1'
+> proceeds with explicitly-downgraded evidence: AI-tier cold-reader
+> critique + project-author solo dogfood. The project is not
+> production-ready and does not claim to be.
+
+## 0. Beta lane status
+
+The project recognises **three structurally-separated lanes** for
+pre-production validation. Each lane has its own path, its own
+schema, its own evidence weight, and its own aggregate. Cross-lane
+contamination is forbidden by path-isolation, schema pin, and
+doc-guard tests.
+
+| Lane | Path | Schema discriminator | Status |
+|---|---|---|---|
+| **external-human beta** | `reports/beta/` | `feedback_channel: human_beta` | `not_run, unavailable operators` |
+| human-tier aggregate | `reports/beta/beta_feedback_aggregate.{json,md}` | — | `empty` |
+| **AI-tier cold-reader critique** | `reports/ai_adversarial/` | `agent_label` (free-form prose) | `active, separated` |
+| **Yann-solo dogfood** | `reports/yann_solo/` | `feedback_channel: yann_solo_dogfood` + `operator_role: project_author` | `allowed, internal only` |
+
+Per QA/A41 line 350, AI-tier output **is not** human operator
+feedback and never enters the human-tier aggregate. Per QA/A43
+ADR-52, Yann-solo dogfood is **internal-only** and never counts as
+external-human signal. The lane separation is not advisory; it is
+enforced structurally (path-isolation in
+`scripts/run_beta_feedback_eval.py`, schema pin in the same script,
+operator-role validation in the form schema, plus four doc-guard
+tests in `tests/test_phase6_0_y_prime_lane_isolation.py`).
 
 ## 1. Usable now
 
