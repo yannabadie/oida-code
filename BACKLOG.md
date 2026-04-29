@@ -119,6 +119,58 @@ plain-language explainer + status doc are part of the Phase 6.0
 deliverables). Earliest re-evaluation is after Phase 6.0 beta
 feedback returns.
 
+## Long-term gaps (Phase 6.2 audit, integrated 2026-04-29)
+
+### G-6 — Phase 6.1' chain leaves discipline gaps unresolved
+
+The Phase 6.2 AI-tier audit (commit `101e633`,
+`reports/ai_adversarial/phase6_2_chain_review/`) surfaced 5
+convergent (3/3 providers) methodology critiques on the closed
+6.1' chain. None violate the strict-letter hard wall; each
+identifies discipline-spirit gaps the chain did not resolve:
+
+* **G-6a: LLM-replay-audit gap.** Both claim-supporting
+  round-trip outcomes (seed_008 train, seed_065 holdout) rest
+  on DeepSeek-authored verifier-pass replays. Pydantic
+  validates SHAPE; nothing validates CONTENT. Future work:
+  add a replay-audit step (e.g. random sample of LLM-authored
+  replays compared against ground truth, or independent
+  re-authoring across providers).
+* **G-6b: Freeze-rule carve-out scope.** "Predeclared env
+  bootstrap" should be operationally bounded — only flags
+  that existed BEFORE the holdout pass was designed, not
+  flags added in response to holdout failures.
+  `--install-extras`, `--install-group`, and
+  `--scm-pretend-version` were all added in response to
+  Phase 6.1'e step 4 holdout failures. Future work: a
+  structural test enforcing the predeclaration list.
+* **G-6c: Seed authoring quality is the unguarded human step.**
+  Only 3/46 calibration_seed records are pinned with full
+  Tier-3 authoring; seed_157's "over-broad test_scope" reveals
+  the operator-authored scope can be flawed even on
+  manually-reviewed cases. Future work: an authoring-quality
+  checklist or peer-review step before pinning.
+* **G-6d: N=5 is statistically thin.** Holdout ratio
+  [0.20, 0.40] guards against overfitting only with N≥20-50.
+  Future work: corpus expansion to ≥20 pinned cases before
+  any cross-target generalisation claim.
+* **G-6e: ADR-56 spirit-tension on seed_065.** The bootstrap
+  fixes in 6.1'f + 6.1'g were causally motivated by the
+  holdout's earlier failure; the chain acknowledges but does
+  not resolve this. Future work: a fresh holdout authored
+  AFTER the chain's tooling froze, then a freeze-rule pass
+  on it.
+* **G-6f: seed_157 demotion-and-replace deferred.** Per cgpro
+  QA/A47, the seed_157 case stays in `holdout` partition with
+  the "honest negative" classification. Future corpus-quality
+  maintenance work would demote it to train and pin a fresh
+  holdout from the 46 inclusions.
+
+**Status in the backlog:** documented. None of G-6a..f are
+scheduled. They re-enter scope only when the operator names a
+specific phase that addresses them (with an ADR explicitly
+in-scoping the gap).
+
 ## What this file is NOT
 
 * Not a roadmap. Items here have no ETA, no assignee, no commitment.
