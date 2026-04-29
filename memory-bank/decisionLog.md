@@ -2834,3 +2834,54 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 "Phase 6.1' chain + corpus-quality v1: 2 train verification_candidate + 2 holdout verification_candidate (1 entangled per G-6e + 1 independent post-audit). The audit-informed Tier-3 authoring (narrow test_scope, careful evidence_items) reduced the seed-record authoring defect class compared to seed_157. The empirical signal at N_pinned=6 / 2 holdouts is still thin; G-6a (replay-audit gap), G-6b (carve-out boundedness — addressed in commit 2), G-6d (N statistical thinness) remain in BACKLOG."
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 locks remain ACTIVE. Next: commit 2 — G-6b structural test for predeclared env bootstrap list (separate commit per the operator's pre-declared 2-commit plan).
+
+[2026-04-29 16:00:00] - **ADR-66: Phase 6.1' commit-2 — structural test pinning the predeclared env-bootstrap flag list on `scripts/clone_target_at_sha.py` (closes audit G-6b carve-out boundedness gap) + sibling SARIF-test fix to skip `.tmp/clones/` external repos.**
+**Why:** Phase 6.2 audit G-6b: "the carve-out should be explicitly bounded: only flags that existed BEFORE the holdout pass was designed, not flags added in response to holdout failures." Without a structural test, "predeclared" is just rhetoric — anyone can add a new flag and call it predeclared. This commit pins the list operationally so any future flag addition triggers a noisy test failure that requires the operator to explicitly justify the flag (with an ADR) AND update the test in the same commit. Per cgpro QA/A47 + the operator's pre-declared 2-commit plan, this is commit 2 of two (corpus-quality v1 was commit 1, ADR-65). Sibling fix in this same commit: `tests/test_phase4_9_step_summary_and_sarif.py::test_sarif_multiple_categories_do_not_collide` now skips `.tmp/` paths so it doesn't false-positive on the cloned target repos that the manual-lane `clone_target_at_sha.py` script places under `.tmp/clones/`.
+
+**Decision:**
+* **`tests/test_phase6_1_i_predeclared_bootstrap.py` (NEW, 3 tests):**
+  * `_PREDECLARED_BOOTSTRAP_FLAGS` constant — frozenset of 9 long-form flags currently shipped by `scripts/clone_target_at_sha.py`: `--repo`, `--head-sha`, `--manual-egress-ok`, `--clones-dir`, `--install-oida-code`, `--scm-pretend-version`, `--import-smoke`, `--install-extras`, `--install-group`.
+  * `test_predeclared_bootstrap_flag_set_is_pinned` — discovers the script's argparse long-form flags by grepping `parser.add_argument("--..."` patterns from the script source, asserts equality with the predeclared list. Two-direction failure messages: extras-in-script (carve-out widening, needs ADR), missing-in-script (test stale, needs cleanup). Either direction emits a clear instruction telling the operator EXACTLY what to do.
+  * `test_clone_module_carries_egress_marker` — sanity: pinning the flag set without preserving the MANUAL_EGRESS_SCRIPT marker would defeat the lane separation. Defensive belt-and-suspenders alongside `tests/test_phase6_1_d_llm_author_replays.py::test_llm_author_replays_carries_egress_marker` (which checks llm_author_replays.py specifically) and `tests/test_phase6_1_f_clone_bootstrap.py::test_clone_module_carries_egress_marker` (which also checks clone_target_at_sha.py).
+  * `test_predeclared_list_size_matches_audit_count` — explicit assertion that `len(_PREDECLARED_BOOTSTRAP_FLAGS) == 9`. The "10 flags moment" structurally noisy: if a future PR adds a 10th flag, this test fails AND the equality test fails AND the size assertion explains why both fail.
+* **Discovery mechanism: source-grep, NOT argparse-introspection.** The hermetic-test pattern from Phase 6.1'f reuses `importlib.spec_from_file_location` for module-level helpers, but for the argparse flag set we read the script source and regex-match `parser.add_argument("--<flag>"`. Reasoning: argparse introspection requires invoking the parser (with stub args), which has side-effects. Source-grep is a static check, hermetic, sub-millisecond. The regex `r'parser\.add_argument\(\s*"(--[a-z][a-z0-9-]*)"'` matches the canonical Python argparse long-flag style.
+* **Sibling fix in `tests/test_phase4_9_step_summary_and_sarif.py`:** `test_sarif_multiple_categories_do_not_collide` walked `_REPO_ROOT.rglob("*.yml")` which descends into `.tmp/clones/` containing the cloned target repos. Both `python_attrs_attrs_b13a7056` and `hynek_structlog_f7e9f78d` have their own `.github/workflows/zizmor.yml` files declaring `category: zizmor` — the test's invariant correctly identified this as a "two files, same category" collision but the files belong to EXTERNAL repos, not this project's CI surface. Fix: extend the existing skip filter (already skips `node_modules`) to also skip `.tmp/`. Comment cites ADR-65 + Phase 6.1' corpus-quality v1 as the surface where the clones come from. The fix is one `if` clause + a comment.
+* **Why a sibling fix in the same commit (not a separate commit):** the SARIF false-positive was discovered when the corpus-quality v1 commit's pytest run failed. The fix is a 6-line edit to a test that's structurally unrelated to G-6b but that was tripped by the same `.tmp/clones/` directory the corpus-quality work created. Folding the fix into commit 2 keeps the commit count tight (2 commits per the operator's plan, not 3) and keeps the related test-infrastructure work together.
+* **What this commit does NOT change:**
+  * `scripts/clone_target_at_sha.py` itself — same flag set as before; this commit just pins it via a test.
+  * Any seed records, partition discipline, or holdout scopes (cgpro QA/A47 hard rule).
+  * Any runtime-path code (`src/oida_code/`).
+  * `enable-tool-gateway` default.
+  * Any provider configuration.
+
+**Accepted:**
+* Source-grep over argparse-introspection: hermetic, sub-millisecond, matches the canonical pattern. The two regex limitations (won't match `--Some_Flag` if the flag is uppercase or contains underscores) are not a concern: argparse convention + the project's own conventions use lowercase-hyphen flags only.
+* Three-test design (equality + marker preservation + count assertion): equality is the load-bearing test; marker preservation belt-and-suspenders; count assertion gives a NOISY signal if the count changes (not a redundant check — its failure message names "the 10 flags moment" explicitly).
+* SARIF sibling fix in same commit: smaller commit count, tighter test-infrastructure narrative, neither fix is rate-limited by the other.
+* Test count delta: 1128 → 1131 (+3 new tests in `tests/test_phase6_1_i_predeclared_bootstrap.py`); the SARIF fix doesn't change test count (existing test still runs).
+* Per cgpro QA/A47: this is test infrastructure, NOT a runtime-path edit. The clone helper itself is unchanged; only the structural test that pins its flag surface is new.
+
+**Rejected:**
+* Adding the test to `tests/test_phase6_1_f_clone_bootstrap.py` or `tests/test_phase6_1_g_extras_and_groups.py` — those test files are about the clone helper's BEHAVIOR (install order, extras forwarding, smoke checks). The G-6b audit critique is about the FLAG SET ENVELOPE — different concern, deserves its own file.
+* Importing the predeclared list from a constant inside `scripts/clone_target_at_sha.py` — would couple the test to the script's internal layout. Re-stating the list in the test forces the operator to UPDATE TWO PLACES (script + test) in the same commit when adding a flag, which is exactly the noise the audit wanted.
+* Argparse-introspection (intercepting `ArgumentParser.parse_args`): requires running `main()` with stub argv, which has side-effects (e.g. directory creation if the parser default kicks in). Source-grep is more honest about what we're checking.
+* Skipping `node_modules` AND `.tmp` AND `.venv` AND every other plausibly-walked dir: only add what's actually surfaced. `.tmp` is the one we hit; future false-positives can extend the list one entry at a time.
+* Splitting the SARIF fix into its own micro-commit: would inflate commit count without methodology benefit; the fix is a discovered bug from the corpus-quality work; commit 2 is the right home.
+
+**Outcome:** Phase 6.1' commit 2 lands as 1 commit (this) touching: `memory-bank/decisionLog.md` (this ADR), `memory-bank/progress.md` (timeline), `tests/test_phase6_1_i_predeclared_bootstrap.py` (NEW, 3 tests, hermetic source-grep), `tests/test_phase4_9_step_summary_and_sarif.py` (1 sibling fix — add `.tmp` to skip filter, ~6 lines). Test count 1128 → 1131 (+3). ZERO new dependency. ZERO MCP runtime. ZERO provider tool-calling. ZERO change to `enable-tool-gateway` default. ZERO change to runtime path code. ZERO change to clone helper / generator / verifier / seed records / partitions / holdout scopes (per cgpro QA/A47). Manual-lane scripts unchanged at 3.
+
+**Audit findings closed by this commit:**
+* **G-6b (carve-out should be operationally bounded) → CLOSED.** The structural test pins the predeclared flag list. Adding a 10th flag without updating the test + citing an ADR fails CI loudly. The carve-out is now operationally bounded.
+
+**Audit findings still open in BACKLOG (G-6):**
+* G-6a (LLM-replay-audit gap) — not addressed.
+* G-6d (N statistical thinness) — not addressed.
+* G-6e (ADR-56 spirit-tension on seed_065) — partially addressed by ADR-65 (seed_018 success is causally independent of bootstrap fixes); seed_065 itself remains entangled.
+
+**Holdout discipline state — UNCHANGED from end of corpus-quality v1:**
+* N_pinned = 6 (4 train + 2 holdout).
+* Holdout: seed_065 (verification_candidate Phase 6.1'h), seed_018 (verification_candidate corpus-quality v1).
+* Train: seed_008, seed_062, seed_142, seed_157 (demoted).
+* Ratio 0.33 — comfortably inside [0.20, 0.40] enforcing band.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation + corpus-quality-v1 + commit-2 anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE. The 2-commit plan from the operator's "a et b" decision is now fully shipped: commit 1 closed G-6f via demote-and-replace + 2nd holdout verification_candidate; commit 2 closed G-6b via structural pinning. Three audit findings remain open (G-6a, G-6d, G-6e); none scheduled.

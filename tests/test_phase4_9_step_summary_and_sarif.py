@@ -168,6 +168,13 @@ def test_sarif_multiple_categories_do_not_collide() -> None:
     for path in _REPO_ROOT.rglob("*.yml"):
         if "node_modules" in path.parts:
             continue
+        # Phase 6.1' corpus-quality v1 (ADR-65): skip clones
+        # that the manual-lane `clone_target_at_sha.py` script
+        # places under `.tmp/clones/`. Those are EXTERNAL
+        # public repos with their own workflow files; they are
+        # not part of this repo's CI surface.
+        if ".tmp" in path.parts:
+            continue
         body = path.read_text(encoding="utf-8")
         if "github/codeql-action/upload-sarif" not in body:
             continue
