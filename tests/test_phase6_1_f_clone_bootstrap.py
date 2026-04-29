@@ -84,6 +84,7 @@ def test_install_order_oida_code_first(
         src_dir: Path,
         label: str,
         extra_env: dict[str, str] | None = None,
+        extras: tuple[str, ...] = (),
     ) -> None:
         calls.append((label, src_dir))
 
@@ -142,6 +143,7 @@ def test_install_order_target_only_when_no_oida_code(
         src_dir: Path,
         label: str,
         extra_env: dict[str, str] | None = None,
+        extras: tuple[str, ...] = (),
     ) -> None:
         calls.append(label)
 
@@ -269,6 +271,7 @@ def test_main_invokes_import_smoke_after_installs(
         src_dir: Path,
         label: str,
         extra_env: dict[str, str] | None = None,
+        extras: tuple[str, ...] = (),
     ) -> None:
         install_count["n"] += 1
 
@@ -321,7 +324,8 @@ def test_no_import_smoke_skips_smoke_step(
     )
     monkeypatch.setattr(
         mod, "_pip_install_editable",
-        lambda venv_python, src_dir, label, extra_env=None: None,
+        lambda venv_python, src_dir, label, extra_env=None,
+        extras=(): None,
     )
     smoke_count = {"n": 0}
     monkeypatch.setattr(

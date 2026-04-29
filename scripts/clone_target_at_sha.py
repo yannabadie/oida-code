@@ -35,6 +35,25 @@ fails. Use this for any target whose pytest tests load the
 package via a ``tests/conftest.py`` import (most non-pytest
 projects).
 
+**Test extras / groups + pytest smoke (Phase 6.1'g / ADR-61):**
+Two parallel flags, one per Python packaging standard:
+
+* ``--install-extras EXTRAS`` (repeatable, PEP 621) installs
+  the target as ``pip install -e <clone>[EXTRAS]``. Use when
+  the target declares dev/test deps under
+  ``[project.optional-dependencies]`` (e.g. sqlite-utils).
+* ``--install-group GROUP`` (repeatable, PEP 735) runs
+  ``pip install --group <pyproject>:GROUP`` after the editable
+  install. Use when the target declares dev/test deps under
+  ``[dependency-groups]`` (e.g. structlog). Requires pip
+  25.1+.
+
+Whenever any ``--install-extras`` OR ``--install-group`` is
+provided, the script also runs ``python -m pytest --version``
+as a post-install smoke; failure produces a
+``target_bootstrap_gap`` banner naming pytest. The flags close
+the second-order bootstrap class surfaced in Phase 6.1'e step 4.
+
 Usage::
 
     export PAT_GITHUB=...   # public repos do not strictly need
@@ -46,13 +65,24 @@ Usage::
         --install-oida-code \\
         --import-smoke _pytest
 
-    # For non-pytest targets:
+    # PEP 621 extras (sqlite-utils [project.optional-dependencies]):
     python scripts/clone_target_at_sha.py \\
         --repo simonw/sqlite-utils \\
         --head-sha e7ecb0ffdfcb15a879e0da202a00966623f1e79c \\
         --manual-egress-ok \\
         --install-oida-code \\
+        --install-extras test \\
         --import-smoke sqlite_utils
+
+    # PEP 735 groups (structlog [dependency-groups]):
+    python scripts/clone_target_at_sha.py \\
+        --repo hynek/structlog \\
+        --head-sha f7e9f78dbd31b967eeaebaf9f2e5f424065cdaf2 \\
+        --manual-egress-ok \\
+        --install-oida-code \\
+        --scm-pretend-version structlog=25.5.0.dev0 \\
+        --install-group tests \\
+        --import-smoke structlog
 
 The ``--install-oida-code`` flag pip-installs the local
 oida-code package into the venv so a subsequent
@@ -195,9 +225,26 @@ def _pip_install_editable(
     src_dir: Path,
     label: str,
     extra_env: dict[str, str] | None = None,
+    extras: tuple[str, ...] = (),
 ) -> None:
+    """Install ``src_dir`` editable into the venv, optionally
+    with ``[extras]`` syntax.
+
+    Phase 6.1'g (ADR-61) added the ``extras`` parameter. When
+    non-empty, pip is invoked as
+    ``python -m pip install -e <src_dir>[extra1,extra2]`` —
+    the bracket form is the standard pip extras syntax. With
+    ``subprocess.run`` (no shell), the brackets do not need
+    quoting; they are part of one argv entry.
+    """
+    src_arg = str(src_dir)
+    label_for_log = label
+    if extras:
+        joined = ",".join(extras)
+        src_arg = f"{src_arg}[{joined}]"
+        label_for_log = f"{label}[{joined}]"
     print(
-        f"pip install -e {label} into venv ...",
+        f"pip install -e {label_for_log} into venv ...",
         file=sys.stderr,
     )
     env = os.environ.copy()
@@ -206,7 +253,7 @@ def _pip_install_editable(
     res = subprocess.run(
         [
             str(venv_python), "-m", "pip", "install", "-e",
-            str(src_dir),
+            src_arg,
         ],
         env=env,
         check=False,
@@ -215,13 +262,99 @@ def _pip_install_editable(
     )
     if res.returncode != 0:
         print(
-            f"pip install -e {label} failed (rc="
+            f"pip install -e {label_for_log} failed (rc="
             f"{res.returncode}); stderr tail:",
             file=sys.stderr,
         )
         for line in res.stderr.splitlines()[-15:]:
             print(f"  {line}", file=sys.stderr)
         raise SystemExit(2)
+
+
+def _pip_install_groups(
+    venv_python: Path,
+    target_dir: Path,
+    groups: tuple[str, ...],
+    extra_env: dict[str, str] | None = None,
+) -> None:
+    """Phase 6.1'g (ADR-61) — install PEP 735 dependency-groups.
+
+    Run ``python -m pip install --group <pyproject>:<group>``
+    for each group. The ``<pyproject>:<group>`` form is the
+    explicit-path syntax pip accepts; we use it so the call is
+    cwd-independent.
+    """
+    if not groups:
+        return
+    pyproject = target_dir / "pyproject.toml"
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+    for group in groups:
+        ref = f"{pyproject}:{group}"
+        print(
+            f"pip install --group {group} (PEP 735) into venv ...",
+            file=sys.stderr,
+        )
+        res = subprocess.run(
+            [
+                str(venv_python), "-m", "pip", "install",
+                "--group", ref,
+            ],
+            env=env,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode != 0:
+            print(
+                f"pip install --group {group} failed (rc="
+                f"{res.returncode}); stderr tail:",
+                file=sys.stderr,
+            )
+            for line in res.stderr.splitlines()[-15:]:
+                print(f"  {line}", file=sys.stderr)
+            raise SystemExit(2)
+
+
+def _pytest_version_smoke(venv_python: Path) -> None:
+    """Phase 6.1'g (ADR-61) — verify ``python -m pytest
+    --version`` works in the venv. Auto-invoked by ``main()``
+    whenever any ``--install-extras`` is provided, because
+    extras-installs are how non-pytest projects bring pytest
+    into their dev/test environment. Failure is fast-and-clear:
+    a ``target_bootstrap_gap`` banner naming pytest, exit 2.
+    """
+    print(
+        "pytest-smoke: verifying `python -m pytest --version` "
+        "in venv ...",
+        file=sys.stderr,
+    )
+    res = subprocess.run(
+        [str(venv_python), "-m", "pytest", "--version"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if res.returncode != 0:
+        print(
+            f"target_bootstrap_gap: `python -m pytest "
+            f"--version` FAILED (rc={res.returncode}); pytest "
+            "is not in the venv after the editable install. "
+            "Did you forget --install-extras with the right "
+            "extras name (e.g. tests / dev / test)? stderr "
+            "tail:",
+            file=sys.stderr,
+        )
+        for line in res.stderr.splitlines()[-10:]:
+            print(f"  {line}", file=sys.stderr)
+        raise SystemExit(2)
+    output_lines = (res.stdout or res.stderr).strip().splitlines()
+    summary = output_lines[0] if output_lines else "<no output>"
+    print(
+        f"pytest-smoke: {summary}",
+        file=sys.stderr,
+    )
 
 
 def main() -> int:
@@ -278,6 +411,32 @@ def main() -> int:
             "--import-smoke structlog. Phase 6.1'f (ADR-60) "
             "introduced this flag in response to the holdout "
             "bootstrap gap surfaced in Phase 6.1'e step 4."
+        ),
+    )
+    parser.add_argument(
+        "--install-extras",
+        action="append", default=[],
+        metavar="EXTRAS",
+        help=(
+            "PEP 621 syntax: `pip install -e <clone>[EXTRAS]`. "
+            "Use when target declares dev/test deps under "
+            "[project.optional-dependencies] (e.g. "
+            "sqlite-utils, pytest itself). Repeatable: "
+            "--install-extras test --install-extras docs. "
+            "Phase 6.1'g (ADR-61)."
+        ),
+    )
+    parser.add_argument(
+        "--install-group",
+        action="append", default=[],
+        metavar="GROUP",
+        help=(
+            "PEP 735 syntax: `pip install --group GROUP -e "
+            "<clone>` runs after the editable install. Use "
+            "when target declares dev/test deps under "
+            "[dependency-groups] (e.g. structlog, attrs). "
+            "Repeatable: --install-group tests --install-group "
+            "typing. Phase 6.1'g (ADR-61). Requires pip 25.1+."
         ),
     )
     args = parser.parse_args()
@@ -346,13 +505,32 @@ def main() -> int:
         )
 
     # Step 3b (or step 3 if no oida-code): install target editable LAST.
+    extras_tuple = tuple(args.install_extras)
+    groups_tuple = tuple(args.install_group)
     _pip_install_editable(
-        venv_python, target_dir, args.repo, extra_env=scm_env,
+        venv_python,
+        target_dir,
+        args.repo,
+        extra_env=scm_env,
+        extras=extras_tuple,
     )
+
+    # Step 3c: PEP 735 groups (Phase 6.1'g).
+    if groups_tuple:
+        _pip_install_groups(
+            venv_python, target_dir, groups_tuple,
+            extra_env=scm_env,
+        )
 
     # Step 4: post-install importability smoke (Phase 6.1'f).
     if args.import_smoke:
         _import_smoke_check(venv_python, args.import_smoke)
+
+    # Step 5: pytest-smoke when any extras OR groups are
+    # requested (Phase 6.1'g — both are mechanisms to bring
+    # pytest into a non-pytest target's venv).
+    if extras_tuple or groups_tuple:
+        _pytest_version_smoke(venv_python)
 
     print()
     print(f"target: {args.repo}@{args.head_sha}")
