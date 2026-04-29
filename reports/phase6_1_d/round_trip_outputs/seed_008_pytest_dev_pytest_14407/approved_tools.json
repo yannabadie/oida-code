@@ -1,0 +1,20 @@
+{
+  "approved": [
+    {
+      "fingerprint": {
+        "adapter_version": "0.4.0",
+        "combined_sha256": "6d3fa08a9f7be722f8911282e0829b8baaf332866dd0f495f3339d95c1bb2140",
+        "description_sha256": "7f0121e7d91d3779beff6cedfa218a97e60032f50cd5e807873c1417f839d990",
+        "input_schema_sha256": "670153ef31c426139cc4234280dff172579a136b187dabb67064670a1503f793",
+        "output_schema_sha256": "c0c2eeb06783383e6eadec2cdd682ce2f33468051952b39d94ef352e629a1698",
+        "tool_id": "oida-code/pytest",
+        "tool_name": "pytest"
+      },
+      "reason": "phase6.1.b auto-emitted approval for the pytest gateway tool (read-only). The fingerprint is computed from the bundled gateway_definitions.json so the gateway admission layer passes drift checks.",
+      "status": "approved_read_only",
+      "tool_id": "oida-code/pytest"
+    }
+  ],
+  "quarantined": [],
+  "rejected": []
+}

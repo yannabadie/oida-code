@@ -147,8 +147,16 @@ def test_pass_stubs_pydantic_valid_with_skeleton_warning(
     tmp_path: Path,
 ) -> None:
     """All four pass*_*.json stubs validate against the
-    contract models AND carry the skeleton note in
-    warnings[]."""
+    contract models AND each non-empty stub carries the
+    skeleton note in warnings[].
+
+    Per ADR-57 (Phase 6.1'd discovery), pass*_backward.json
+    must be JSON LISTS, not single objects: pass1_backward
+    is the empty list, pass2_backward is a list of one
+    BackwardVerificationResult per claim. This matches the
+    keystone ``examples/gateway_opt_in/pass*_backward.json``
+    shape.
+    """
     out = tmp_path / "bundle"
     generate_bundle(_FIXTURE_RECORD, out)
 
@@ -157,26 +165,39 @@ def test_pass_stubs_pydantic_valid_with_skeleton_warning(
             (out / "pass1_forward.json").read_text(encoding="utf-8"),
         ),
     )
-    bwd1 = BackwardVerificationResult.model_validate(
-        json.loads(
-            (out / "pass1_backward.json").read_text(encoding="utf-8"),
-        ),
+    bwd1_list = json.loads(
+        (out / "pass1_backward.json").read_text(encoding="utf-8"),
+    )
+    assert isinstance(bwd1_list, list), (
+        "pass1_backward.json must be a JSON list (per ADR-57); "
+        f"got {type(bwd1_list).__name__}"
+    )
+    assert bwd1_list == [], (
+        "pass1_backward.json should be the empty list in the "
+        "skeleton (matches keystone)"
     )
     fwd2 = ForwardVerificationResult.model_validate(
         json.loads(
             (out / "pass2_forward.json").read_text(encoding="utf-8"),
         ),
     )
-    bwd2 = BackwardVerificationResult.model_validate(
-        json.loads(
-            (out / "pass2_backward.json").read_text(encoding="utf-8"),
-        ),
+    bwd2_list = json.loads(
+        (out / "pass2_backward.json").read_text(encoding="utf-8"),
     )
+    assert isinstance(bwd2_list, list), (
+        "pass2_backward.json must be a JSON list (per ADR-57); "
+        f"got {type(bwd2_list).__name__}"
+    )
+    assert len(bwd2_list) == 1, (
+        "pass2_backward.json should carry one BackwardVerificationResult "
+        f"per claim; got {len(bwd2_list)}"
+    )
+    bwd2 = BackwardVerificationResult.model_validate(bwd2_list[0])
+
     for replies, label in (
         (fwd1, "pass1_forward"),
-        (bwd1, "pass1_backward"),
         (fwd2, "pass2_forward"),
-        (bwd2, "pass2_backward"),
+        (bwd2, "pass2_backward[0]"),
     ):
         warnings = list(replies.warnings)
         assert any("skeleton" in w.lower() for w in warnings), (
@@ -190,6 +211,29 @@ def test_pass_stubs_pydantic_valid_with_skeleton_warning(
     assert spec.tool == "pytest"
     assert spec.scope == ("tests/test_cli.py::test_xtra_alias",)
     assert spec.expected_evidence_kind == "test_result"
+
+
+def test_approved_tools_is_admission_registry(tmp_path: Path) -> None:
+    """ADR-57 fix: approved_tools.json must be a
+    ToolAdmissionRegistry-shaped object with a fingerprinted
+    pytest decision, NOT a JSON array."""
+    from oida_code.verifier.tool_gateway.contracts import (
+        ToolAdmissionRegistry,
+    )
+
+    out = tmp_path / "bundle"
+    generate_bundle(_FIXTURE_RECORD, out)
+    body = json.loads(
+        (out / "approved_tools.json").read_text(encoding="utf-8"),
+    )
+    registry = ToolAdmissionRegistry.model_validate(body)
+    assert len(registry.approved) == 1
+    assert registry.approved[0].tool_id == "oida-code/pytest"
+    assert registry.approved[0].status == "approved_read_only"
+    fp = registry.approved[0].fingerprint
+    # Hashes are 64-char lowercase hex per the contract.
+    assert len(fp.description_sha256) == 64
+    assert len(fp.combined_sha256) == 64
 
 
 def test_no_secrets_in_packet(tmp_path: Path) -> None:

@@ -12,6 +12,7 @@ that need network credentials live under ``scripts/``.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -264,31 +265,117 @@ def _write_tool_policy(out_dir: Path) -> Path:
 
 
 def _write_gateway_definitions(out_dir: Path) -> Path:
-    body = {
-        "pytest": {
-            "tool_id": "oida-code/pytest",
-            "tool_name": "pytest",
-            "adapter_version": "0.4.0",
-            "description": "Run pytest (read-only).",
-            "input_schema": {
-                "type": "object",
-                "properties": {"scope": {"type": "array"}},
-            },
-            "output_schema": {
-                "type": "object",
-                "properties": {"status": {"type": "string"}},
-            },
-            "risk_level": "read_only",
-            "allowed_scopes": ["repo:read"],
-            "requires_network": False,
-            "allows_write": False,
+    return _dump(
+        out_dir / "gateway_definitions.json",
+        {"pytest": _pytest_definition()},
+    )
+
+
+def _canonical_dumps(value: Any) -> str:
+    """JCS-approximation matching
+    ``oida_code.verifier.tool_gateway.fingerprints._canonical_dumps``.
+
+    Inlined to keep ``src/oida_code/bundle/`` decoupled from the
+    verifier sub-package (the bundle generator has no other
+    verifier imports). If the verifier's canonical-JSON
+    serialiser changes, this duplicate must follow.
+    """
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+
+def _sha256(value: Any) -> str:
+    payload = (
+        value if isinstance(value, str) else _canonical_dumps(dict(value))
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _pytest_definition() -> dict[str, Any]:
+    """The single tool definition the bundle generator emits.
+
+    Mirrors the keystone ``examples/gateway_opt_in/gateway_definitions.json``
+    pytest entry exactly (description, input_schema, output_schema)
+    so the computed fingerprint is byte-identical.
+    """
+    return {
+        "tool_id": "oida-code/pytest",
+        "tool_name": "pytest",
+        "adapter_version": "0.4.0",
+        "description": "Run pytest (read-only).",
+        "input_schema": {
+            "type": "object",
+            "properties": {"scope": {"type": "array"}},
         },
+        "output_schema": {
+            "type": "object",
+            "properties": {"status": {"type": "string"}},
+        },
+        "risk_level": "read_only",
+        "allowed_scopes": ["repo:read"],
+        "requires_network": False,
+        "allows_write": False,
     }
-    return _dump(out_dir / "gateway_definitions.json", body)
+
+
+def _pytest_fingerprint() -> dict[str, str]:
+    d = _pytest_definition()
+    description_sha = _sha256(d["description"])
+    input_sha = _sha256(d["input_schema"])
+    output_sha = _sha256(d["output_schema"])
+    combined_sha = hashlib.sha256(
+        (
+            f"description:{description_sha}|"
+            f"input:{input_sha}|"
+            f"output:{output_sha}"
+        ).encode(),
+    ).hexdigest()
+    return {
+        "tool_id": d["tool_id"],
+        "tool_name": d["tool_name"],
+        "adapter_version": d["adapter_version"],
+        "description_sha256": description_sha,
+        "input_schema_sha256": input_sha,
+        "output_schema_sha256": output_sha,
+        "combined_sha256": combined_sha,
+    }
 
 
 def _write_approved_tools(out_dir: Path) -> Path:
-    return _dump(out_dir / "approved_tools.json", ["pytest"])
+    """Emit a ToolAdmissionRegistry-shaped approved_tools.json.
+
+    Phase 6.1'b shipped this file as ``["pytest"]`` (a JSON
+    array), which passes the structural ``validate_gateway_bundle``
+    file-presence check but fails Pydantic loading inside
+    ``verify-grounded`` (ADR-57 finding). The fix mirrors the
+    keystone ``examples/gateway_opt_in/approved_tools.json``
+    shape with the SHA256 fingerprint computed from the
+    matching ``gateway_definitions.json`` entry.
+    """
+    fingerprint = _pytest_fingerprint()
+    body = {
+        "approved": [
+            {
+                "tool_id": fingerprint["tool_id"],
+                "status": "approved_read_only",
+                "reason": (
+                    "phase6.1.b auto-emitted approval for the "
+                    "pytest gateway tool (read-only). The "
+                    "fingerprint is computed from the bundled "
+                    "gateway_definitions.json so the gateway "
+                    "admission layer passes drift checks."
+                ),
+                "fingerprint": fingerprint,
+            },
+        ],
+        "quarantined": [],
+        "rejected": [],
+    }
+    return _dump(out_dir / "approved_tools.json", body)
 
 
 def _write_pass1_forward_stub(
@@ -317,9 +404,14 @@ def _write_pass1_forward_stub(
     return _dump(out_dir / "pass1_forward.json", body)
 
 
-def _backward_body(
+def _backward_entry(
     seed_record: dict[str, Any], pass_label: str,
 ) -> dict[str, Any]:
+    """One BackwardVerificationResult entry. The verifier expects
+    pass*_backward.json as a JSON LIST (matching the keystone
+    ``examples/gateway_opt_in/pass*_backward.json`` shape), not a
+    single object — this was a Phase 6.1'b skeleton bug found
+    during the Phase 6.1'd round-trip probe (ADR-57)."""
     return {
         "event_id": _event_id(seed_record),
         "claim_id": seed_record["claim_id"],
@@ -340,10 +432,9 @@ def _backward_body(
 def _write_pass1_backward_stub(
     seed_record: dict[str, Any], out_dir: Path,
 ) -> Path:
-    return _dump(
-        out_dir / "pass1_backward.json",
-        _backward_body(seed_record, "pass-1"),
-    )
+    # Pass-1 backward is empty in the keystone — backward verification
+    # has no claim-level work to do at pass-1.
+    return _dump(out_dir / "pass1_backward.json", [])
 
 
 def _write_pass2_forward_stub(
@@ -366,7 +457,7 @@ def _write_pass2_backward_stub(
 ) -> Path:
     return _dump(
         out_dir / "pass2_backward.json",
-        _backward_body(seed_record, "pass-2"),
+        [_backward_entry(seed_record, "pass-2")],
     )
 
 

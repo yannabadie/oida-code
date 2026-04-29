@@ -1,0 +1,18 @@
+[
+  {
+    "claim_id": "C.cli_version_flag.repair_needed",
+    "event_id": "evt-seed_008_pytest_dev_pytest_14407",
+    "necessary_conditions_met": true,
+    "requirement": {
+      "claim_id": "C.cli_version_flag.repair_needed",
+      "missing_requirements": [],
+      "required_evidence_kinds": [
+        "test_result"
+      ],
+      "satisfied_evidence_refs": [
+        "[E.tool.pytest.0]"
+      ]
+    },
+    "warnings": []
+  }
+]

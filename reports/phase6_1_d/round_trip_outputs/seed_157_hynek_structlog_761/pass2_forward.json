@@ -1,0 +1,22 @@
+{
+  "contradictions": [],
+  "event_id": "evt-seed_157_hynek_structlog_761",
+  "missing_evidence_refs": [],
+  "rejected_claims": [],
+  "requested_tools": [],
+  "supported_claims": [
+    {
+      "claim_id": "C.callsite_qual_name.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "confidence": 0.55,
+      "event_id": "evt-seed_157_hynek_structlog_761",
+      "evidence_refs": [
+        "[E.event.1]",
+        "[E.tool.pytest.0]"
+      ],
+      "source": "forward",
+      "statement": "The PR adds CallsiteParameter.QUAL_NAME and handler _get_callsite_qual_name, with tests confirming correct behavior."
+    }
+  ],
+  "warnings": []
+}

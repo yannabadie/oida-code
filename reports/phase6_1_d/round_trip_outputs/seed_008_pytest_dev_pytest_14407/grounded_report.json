@@ -1,0 +1,71 @@
+{
+  "report": {
+    "status": "diagnostic_only",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [
+      {
+        "claim_id": "C.cli_version_flag.repair_needed",
+        "event_id": "evt-seed_008_pytest_dev_pytest_14407",
+        "claim_type": "repair_needed",
+        "statement": "The CLI version flag handling needs repair to correctly count -V occurrences.",
+        "confidence": 0.55,
+        "evidence_refs": [
+          "[E.event.1]",
+          "[E.event.2]",
+          "[E.tool.pytest.0]"
+        ],
+        "source": "forward",
+        "is_authoritative": false
+      }
+    ],
+    "blockers": [
+      "requested tool produced only diagnostic evidence (adapter status in error/timeout/tool_missing); cannot promote pass-2 claims (Phase 5.8.1-B)"
+    ],
+    "warnings": [
+      "claim C.cli_version_flag.repair_needed demoted: forward requested tool evidence but the loop produced no [E.tool_output.*] ref (Phase 5.2.1-B)"
+    ],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=1. some claims lack full corroboration; treat as diagnostic.",
+    "authoritative": false
+  },
+  "first_pass_report": {
+    "status": "blocked",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [],
+    "blockers": [
+      "no claim met all aggregation rules (forward + backward + evidence + tool non-contradiction)"
+    ],
+    "warnings": [],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=0. no claim was accepted; verifier output is blocked.",
+    "authoritative": false
+  },
+  "tool_results": [
+    {
+      "tool": "pytest",
+      "status": "error",
+      "evidence_items": [
+        {
+          "id": "[E.tool.pytest.0]",
+          "kind": "tool_finding",
+          "summary": "pytest exited rc=4 with no parseable findings; output excerpt: ERROR: file or directory not found: C:/Code/Unslop.ai/testing/test_helpconfig.py::test_version_less_verbose",
+          "source": "pytest",
+          "confidence": 0.5
+        }
+      ],
+      "findings": [],
+      "warnings": [],
+      "blockers": [],
+      "runtime_ms": 337,
+      "output_truncated": false,
+      "output_sha256": "a6fc53a5cef0fe8278c459c532a5e372bbe2dd65e4c365a7d7757a210299799f",
+      "pytest_summary_line": null
+    }
+  ],
+  "audit_log_paths": [
+    ".tmp\\llm_round_trip\\seed_008_pytest_dev_pytest_14407_audit\\2026-04-29\\pytest.jsonl"
+  ],
+  "enriched_evidence_refs": [],
+  "warnings": [],
+  "blockers": []
+}

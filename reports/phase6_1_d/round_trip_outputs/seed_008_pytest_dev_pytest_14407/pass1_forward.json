@@ -1,0 +1,18 @@
+{
+  "contradictions": [],
+  "event_id": "evt-seed_008_pytest_dev_pytest_14407",
+  "missing_evidence_refs": [],
+  "rejected_claims": [],
+  "requested_tools": [
+    {
+      "expected_evidence_kind": "test_result",
+      "purpose": "Run test_scope testing/test_helpconfig.py::test_version_less_verbose to verify repair_needed claim",
+      "scope": [
+        "testing/test_helpconfig.py::test_version_less_verbose"
+      ],
+      "tool": "pytest"
+    }
+  ],
+  "supported_claims": [],
+  "warnings": []
+}

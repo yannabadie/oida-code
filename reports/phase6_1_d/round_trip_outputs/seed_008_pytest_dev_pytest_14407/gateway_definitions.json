@@ -1,0 +1,30 @@
+{
+  "pytest": {
+    "adapter_version": "0.4.0",
+    "allowed_scopes": [
+      "repo:read"
+    ],
+    "allows_write": false,
+    "description": "Run pytest (read-only).",
+    "input_schema": {
+      "properties": {
+        "scope": {
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "output_schema": {
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "requires_network": false,
+    "risk_level": "read_only",
+    "tool_id": "oida-code/pytest",
+    "tool_name": "pytest"
+  }
+}
