@@ -37,6 +37,10 @@ context, not as a replacement for checking the current repo state.
 - Before any substantive `cgpro` consultation, run `cgpro status`. If
   it reports `Not signed in`, `Cloudflare challenge`, `Selector broken`,
   or another unhealthy state, stop and surface that exact blocker.
+- If `cgpro` is otherwise unavailable because the browser/session is
+  already being used elsewhere, wait about 10 minutes and retry before
+  treating it as a blocker. Do not downgrade to an unreviewed local
+  decision just because `cgpro` is temporarily busy.
 - Existing continuity thread for the latest chain:
   `phase61-review`, ChatGPT conversation
   `69f1bde2-70c0-8387-9c89-743f8780cb14`
@@ -76,6 +80,39 @@ cgpro ask --json --no-stream --timeout 600 --new-session --save phase6a-replay-a
 - Never invent or infer missing `cgpro` decisions. If the reply is
   empty, ambiguous, malformed, or outside the allowed response shape,
   keep the case pending and ask `cgpro` for clarification.
+
+## Autonomous Development Provider Protocol
+
+- The local `.env` may expose provider credentials. Inspect only env var
+  names, never values. As of 2026-04-29, observed names are
+  `DEEPSEEK_API_KEY`, `GROK_API_KEY`, `KIMI_API_KEY`,
+  `MINIMAX_API_KEY`, `HF_TOKEN`, and `PAT_GITHUB`.
+- Before selecting or invoking any provider model, refresh current
+  official provider documentation or live model-list output. Do not rely
+  on stale comments, old ADR pins, or historical defaults.
+- Prefer the newest/highest-capability model available for the task
+  unless the block explicitly optimizes for cost, latency, or replay
+  comparability. Record the model id, provider, date, and verification
+  source in the QA/ADR/report trail when a provider call matters.
+- Current local high-capability tools include `cgpro` with GPT-5.5 Pro,
+  `codex` CLI logged in through ChatGPT (use GPT-5.5 with xhigh
+  reasoning for hard code/research planning), and `gemini` CLI
+  (Gemini 3.1 Pro when available). Verify CLI model availability before
+  relying on a specific id.
+- For project decisions, consult `cgpro` at every substantive step. Use
+  Codex CLI, Gemini CLI, or direct provider API calls as secondary
+  research/critique channels only when the current block benefits from
+  independent analysis; never let an AI answer replace non-LLM evidence
+  when the block is explicitly about semantic or upstream truth.
+- Available data is not limited to this repo. If the block needs more
+  evidence, search the user's local project folders and the user's
+  GitHub repositories, but keep private/local data out of public reports
+  unless explicitly approved and relevant.
+- API keys are the practical substitute for unavailable hired external
+  developers, but they do not relax the trust boundary: runtime remains
+  locked down, provider/tool-calling stays opt-in and non-authoritative,
+  and all claims must stay tied to evidence, tests, docs, or explicit
+  downgraded AI-tier critique.
 
 ## Operating Rules
 
