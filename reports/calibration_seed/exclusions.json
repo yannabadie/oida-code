@@ -1,5 +1,173 @@
 [
   {
+    "collected_at": "2026-04-29T05:43:22Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3692,
+    "repo_url": "https://github.com/encode/httpx",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:20Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3699,
+    "repo_url": "https://github.com/encode/httpx",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:21Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3703,
+    "repo_url": "https://github.com/encode/httpx",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:20Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 3730,
+    "repo_url": "https://github.com/encode/httpx",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:20Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 3773,
+    "repo_url": "https://github.com/encode/httpx",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:49Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 760,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:48Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 765,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:45Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 770,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:44Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 773,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:45Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 774,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:44Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 780,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:44Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 781,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:43Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 784,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:43Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 785,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:42Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 791,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:42Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 792,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:41Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 795,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:40Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 796,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:40Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 798,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:39Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 801,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:38Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 803,
+    "repo_url": "https://github.com/hynek/structlog",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
     "collected_at": "2026-04-28T20:45:28Z",
     "exclusion_reason": "fork_pr_refused",
     "notes": null,
@@ -30,6 +198,550 @@
     "pr_number": 3330,
     "repo_url": "https://github.com/pallets/click",
     "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:39Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 377,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:38Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 380,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:38Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 381,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:36Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 382,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:37Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 383,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:36Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 384,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:35Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 385,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:35Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 387,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:35Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 388,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:34Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 390,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:33Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 391,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:33Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 392,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:34Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 393,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:31Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 395,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:31Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 396,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:30Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 401,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:29Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 404,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:27Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 408,
+    "repo_url": "https://github.com/pallets/itsdangerous",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:41Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 4021,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:52Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 4916,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:49Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5068,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:46Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5071,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:42Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5080,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:49Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5082,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:51Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 5084,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:50Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5092,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:53Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5094,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:52Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5096,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:51Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5097,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:50Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 5098,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:48Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5102,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:48Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5103,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:47Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 5104,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:47Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 5105,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:46Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 5108,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:45Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 5109,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:45Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 5111,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:43Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 5115,
+    "repo_url": "https://github.com/psf/black",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:55Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 11987,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:01Z",
+    "exclusion_reason": "pr_too_large",
+    "notes": null,
+    "pr_number": 13070,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:00Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 13080,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:57Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 13081,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:55Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 13105,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:57Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 13108,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:56Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 13109,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:56Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 13111,
+    "repo_url": "https://github.com/pydantic/pydantic",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:36Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 636,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:35Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 637,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:35Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 638,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:32Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 639,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:34Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 641,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:33Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 642,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:33Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 644,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:32Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 645,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:30Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 646,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:31Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 647,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:31Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 650,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:30Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 651,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:29Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 654,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:29Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 655,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:28Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 656,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:28Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 658,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:27Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 660,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:27Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 661,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:25Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 663,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:26Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 664,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:24Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 665,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:24Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 667,
+    "repo_url": "https://github.com/pytest-dev/pluggy",
+    "script_version": "phase6_1_c_v1"
   },
   {
     "collected_at": "2026-04-28T20:53:15Z",
@@ -109,6 +821,774 @@
     "notes": null,
     "pr_number": 14426,
     "repo_url": "https://github.com/pytest-dev/pytest",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:37Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1457,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:36Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1496,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:38Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1509,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:36Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1513,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:39Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1522,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:39Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 1523,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:37Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1526,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:38Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1527,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:35Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1528,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:34Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1530,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:34Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1535,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:33Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1537,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:30Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1541,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:31Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1542,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:32Z",
+    "exclusion_reason": "pr_too_large",
+    "notes": null,
+    "pr_number": 1545,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:40:32Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 1546,
+    "repo_url": "https://github.com/python-attrs/attrs",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:48Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10748,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:52Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10757,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:51Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10766,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:48Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10769,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:48Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10777,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:50Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10783,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:47Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10784,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:47Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10785,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:46Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10787,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:43Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10790,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:44Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10791,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:44Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10792,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:45Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10793,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:45Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10794,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:45Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10795,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:51Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10835,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:50Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10843,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:52Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10851,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:49Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 10854,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:49Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 10858,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:46Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 10861,
+    "repo_url": "https://github.com/python-poetry/poetry",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:17Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 296,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:16Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 303,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:17Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 307,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:15Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 310,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:15Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 311,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:13Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 314,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:14Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 316,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:14Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 317,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:13Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 321,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:12Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 322,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:11Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 323,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:12Z",
+    "exclusion_reason": "pr_too_large",
+    "notes": null,
+    "pr_number": 324,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:12Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 325,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:11Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 326,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:08Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 327,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:10Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 333,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:10Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 334,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:10Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 335,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:09Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 336,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:08Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 340,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:09Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 342,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:08Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 343,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:07Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 344,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:07Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 352,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:07Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 353,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:06Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 359,
+    "repo_url": "https://github.com/samuelcolvin/watchfiles",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:03Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 628,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:04Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 630,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:03Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 634,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:04Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 639,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:04Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 640,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:01Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 663,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:59Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 668,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:43:00Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 671,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:58Z",
+    "exclusion_reason": "pr_too_large",
+    "notes": null,
+    "pr_number": 678,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:42:55Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 691,
+    "repo_url": "https://github.com/simonw/sqlite-utils",
+    "script_version": "phase6_1_c_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:22Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1666,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:13Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1667,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:25Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1688,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:24Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1691,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:24Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1692,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:23Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1693,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:20Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1696,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:21Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1697,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:19Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1699,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:14Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 1700,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:17Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1701,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:18Z",
+    "exclusion_reason": "pr_too_trivial",
+    "notes": null,
+    "pr_number": 1702,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:15Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1703,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:19Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1704,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:08Z",
+    "exclusion_reason": "fork_pr_refused",
+    "notes": null,
+    "pr_number": 1708,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:13Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1710,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:11Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1711,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:12Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1712,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:10Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1713,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:08Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1715,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:09Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1716,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:05Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1722,
+    "repo_url": "https://github.com/tiangolo/typer",
+    "script_version": "phase6_1_a_pre_v1"
+  },
+  {
+    "collected_at": "2026-04-29T05:41:06Z",
+    "exclusion_reason": "non_python_change",
+    "notes": null,
+    "pr_number": 1723,
+    "repo_url": "https://github.com/tiangolo/typer",
     "script_version": "phase6_1_a_pre_v1"
   }
 ]

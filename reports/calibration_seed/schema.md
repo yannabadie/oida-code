@@ -36,8 +36,10 @@ for the Phase 6.1' bundle authoring stress-test corpus.
 | `llm_assist_used` | bool | yes | True iff a provider call was used to suggest the case or its claim. |
 | `human_review_required` | bool | yes | True iff the case is not yet ready for stress-test (e.g. claim text not assigned). |
 | `collected_at` | str (ISO 8601) | yes | UTC timestamp when the metadata was collected. |
-| `script_version` | str | yes | Version of `scripts/build_calibration_seed_index.py` that produced this record. Format: `phase6_1_a_pre_v1`. |
+| `script_version` | str | yes | Version of `scripts/build_calibration_seed_index.py` that produced this record. Format: `phase6_1_<block>_v<n>` (e.g. `phase6_1_a_pre_v1`, `phase6_1_c_v1`). |
 | `public_only` | bool | yes | Always `true`. Asserted at collection time; the script refuses if a private repo is encountered. |
+| `partition` | str \| null | yes | One of `train`, `holdout`, or `null`. `null` is the default for partial records (Tier 3 not yet pinned). Phase 6.1'c (ADR-56) added this field. See "Partition discipline" below. |
+| `partition_pinned_at` | str (ISO 8601) \| null | yes | UTC timestamp when `partition` was set (or `null` if `partition` is `null`). The structural test in `tests/test_phase6_1_c_partition_discipline.py` enforces that `partition_pinned_at` is set iff `partition` is non-null. Phase 6.1'c (ADR-56) added this field. |
 
 ### `evidence_items` shape
 
@@ -141,6 +143,74 @@ is not larger and prevent silently dropping inconvenient cases.
 | `notes` | str \| null | yes | Free-form operator notes. |
 | `collected_at` | str (ISO 8601) | yes | UTC timestamp when the exclusion was recorded. |
 | `script_version` | str | yes | Same format as `index.json`. |
+
+## Partition discipline (Phase 6.1'c / ADR-56)
+
+The `partition` field implements the holdout discipline
+referenced in Phase 6.1'a's README and ADR-54. The discipline
+prevents the bundle generator from being optimised against its
+own evaluation set (piège 46 of QA/A44).
+
+### Allowed values for `partition`
+
+* **`train`** — case is available for tuning the bundle
+  generator, the verifier, and any downstream tool. Train
+  cases inform the design of `prepare-gateway-bundle` and the
+  Phase 6.1'd stress-test machinery.
+* **`holdout`** — case is **frozen** for evaluation. The
+  generator and any tooling **must not** be tuned against the
+  contents of holdout cases. Tier-3 fields of a holdout case
+  must NOT be edited after `partition_pinned_at`. If a real
+  defect is found in a holdout case post-pin, the operator
+  should **demote** it to `train` (with a documented `reason`
+  in the case's `candidate_reason`) AND replace it with a
+  fresh holdout candidate.
+* **`null`** — case is not yet partitioned. This is the
+  default state for partial records (Tier 3 not yet pinned).
+  A record with `partition: null` is excluded from the
+  generator's holdout-vs-train metric until pinned.
+
+### Pinning protocol
+
+1. The case's Tier 3 fields (claim_id, claim_type, claim_text,
+   evidence_items, test_scope) must all be populated.
+2. `human_review_required` must be `false`.
+3. `expected_grounding_outcome` must be one of the structural
+   outcomes (NOT `not_run`).
+4. `label_source` must be one of the strict allowlist values
+   (NOT `unknown_not_for_metrics`).
+5. The operator sets `partition` and `partition_pinned_at`
+   simultaneously. The timestamp is the UTC clock at pin time.
+6. After pinning, no Tier-3 field of a holdout case may be
+   modified. The structural test enforces this by hashing the
+   Tier-3 fields and refusing if `partition_pinned_at` exists
+   without a matching hash record.
+
+### Holdout-set ratio guard
+
+Per QA/A44 §"Pièges" item 46 and ADR-56: the holdout fraction
+of the (train + holdout) pool must lie within the range
+**[0.20, 0.40]** — i.e. between 20% and 40% of pinned cases.
+At very small N (e.g. N_pinned < 5), this guard is not
+enforced (the structural test reports a single warning but
+does not fail). The 0.20–0.40 band balances:
+
+* **Too low** (<20%) — generator's holdout score is too
+  noisy to detect overfit.
+* **Too high** (>40%) — the train set is too small to
+  develop the generator on; wastes data.
+
+### Discipline lifecycle
+
+* **Phase 6.1'c (this block)** — schema field lands; ratio
+  guard active when `N_pinned ≥ 5`; structural test enforces
+  iff/timestamp coupling.
+* **Phase 6.1'd** — generator stress-test runs on TRAIN
+  cases only; bundle generation on HOLDOUT cases is the
+  generalisation metric.
+* **Phase 6.1'e** — AI-tier re-run + Yann-solo dogfood may
+  cite holdout outcomes; train-set outcomes only inform
+  generator-iteration decisions.
 
 ### Allowed exclusion reasons (`exclusion_reason`)
 

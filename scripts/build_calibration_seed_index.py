@@ -54,7 +54,7 @@ from typing import Any
 MANUAL_EGRESS_SCRIPT = True
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_SCRIPT_VERSION = "phase6_1_a_pre_v1"
+_SCRIPT_VERSION = "phase6_1_c_v1"
 _GITHUB_API = "https://api.github.com"
 
 _VALID_EXCLUSION_REASONS: frozenset[str] = frozenset(
@@ -185,7 +185,11 @@ def _classify_pr(
     flaky_test_suspected, etc.) are NOT applied here — those require
     human review and are handled in a later manual triage step.
     """
-    if pr.get("head", {}).get("repo", {}).get("fork", False):
+    head = pr.get("head") or {}
+    head_repo = head.get("repo") or {}
+    if head_repo.get("fork", False):
+        return False, "fork_pr_refused"
+    if not head_repo:
         return False, "fork_pr_refused"
     file_count = len(files)
     if file_count > cfg.max_files_per_pr:
