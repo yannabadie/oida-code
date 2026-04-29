@@ -35,11 +35,24 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import ssl
 import sys
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Tolerant SSL context — relaxes VERIFY_X509_STRICT (a
+    Python 3.13 default) so DeepSeek's cert chain (which has a
+    CA without an Authority Key Identifier extension) loads.
+    Hostname verification + cert-chain validation otherwise
+    enabled. Phase 6.1'd / ADR-57 documented this carve-out for
+    `scripts/llm_author_replays.py`; same applies here."""
+    ctx = ssl.create_default_context()
+    ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    return ctx
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -70,62 +83,101 @@ _DEFAULT_PROVIDERS: dict[str, dict[str, str]] = {
 }
 
 _DOC_PATHS_TO_REVIEW: tuple[Path, ...] = (
-    _REPO_ROOT / "docs" / "beta" / "README.md",
-    _REPO_ROOT / "docs" / "beta" / "beta_known_limits.md",
-    _REPO_ROOT / "docs" / "beta" / "beta_operator_quickstart.md",
-    _REPO_ROOT / "docs" / "beta" / "beta_case_template.md",
-    _REPO_ROOT / "docs" / "beta" / "beta_feedback_form.md",
-    _REPO_ROOT / "docs" / "concepts" / "oida_code_plain_language.md",
-    _REPO_ROOT / "docs" / "project_status.md",
-    _REPO_ROOT / "BACKLOG.md",
+    # Phase 6.2 review surface (per QA/A47 cgpro verdict_q1):
+    # the calibration_seed corpus discipline + the entire 6.1'
+    # chain's per-phase reports. The decisionLog.md ADRs stay
+    # out of the prompt to keep token count tractable; the
+    # phase reports already carry the decision rationale.
+    _REPO_ROOT / "reports" / "calibration_seed" / "README.md",
+    _REPO_ROOT / "reports" / "calibration_seed" / "schema.md",
+    _REPO_ROOT / "reports" / "calibration_seed" / "worked_example_phase6_1_a.md",
+    _REPO_ROOT / "reports" / "phase6_1_a_first_collection.md",
+    _REPO_ROOT / "reports" / "phase6_1_b_bundle_generator.md",
+    _REPO_ROOT / "reports" / "phase6_1_c_corpus_expansion.md",
+    _REPO_ROOT / "reports" / "phase6_1_d_round_trip.md",
+    _REPO_ROOT / "reports" / "phase6_1_e_steps_1_3.md",
+    _REPO_ROOT / "reports" / "phase6_1_e_step_4_holdouts.md",
+    _REPO_ROOT / "reports" / "phase6_1_f_bootstrap_corrective.md",
+    _REPO_ROOT / "reports" / "phase6_1_g_test_extras_corrective.md",
+    _REPO_ROOT / "reports" / "phase6_1_h_freeze_pass.md",
 )
 
 _SYSTEM_PROMPT = """\
-You are a Python developer with 5+ years experience, fluent in GitHub \
-PRs, pytest, mypy, and ruff. You have just been invited to a closed \
-beta of "oida-code" — an experimental tool that produces diagnostic \
-reports about AI code claims grounded in tool output. You have NEVER \
-seen this project before. You will read the attached beta operator \
-pack and produce an adversarial cold-reader critique.
+You are a senior Python developer with 5+ years experience in test \
+infrastructure, CI/CD, and methodology review. You have just been \
+asked to audit the closed-out "Phase 6.1'" methodology cycle of an \
+experimental tool called "oida-code". You will read the attached \
+phase reports + corpus discipline docs and produce an adversarial \
+methodology critique.
+
+CONTEXT (project-supplied; do not take on faith):
+- "oida-code" produces diagnostic reports about AI code claims \
+grounded in tool output (pytest, mypy, ruff). It explicitly does NOT \
+emit product verdicts: "merge-safe", "production-safe", "bug-free", \
+"verified", "security-verified" are forbidden phrases.
+- Phase 6.1' shipped 8 sub-blocks (a/b/c/d/e1-3/e4/f/g/h) building a \
+calibration_seed corpus + a bundle generator + a clone helper + a \
+holdout discipline (partition train/holdout + ratio guard + freeze \
+rule + bootstrap fixes).
+- Empirical end state: 2 verification_candidate (1 train seed_008, \
+1 holdout seed_065), 1 honest negative (seed_157 holdout — \
+documented as over-broad operator-authored test_scope).
+- The chain's stated cycle verdict (per cgpro QA/A47): "Phase 6.1' is \
+complete: it validated the discipline, fixed bootstrap blockers, \
+produced one train and one holdout verification_candidate, and \
+preserved one honest negative."
 
 YOUR TASK:
-Identify, with line-quoted evidence, places where the docs:
-1. Use confusing terms or load-bearing jargon that lacks a clear definition.
-2. Contradict each other or have inconsistencies across files.
-3. Could be misread as a product verdict (the project explicitly forbids \
-"merge-safe", "production-safe", "bug-free", "verified", "security-verified" \
-as product-verdict claims — flag if any wording sneaks in despite the policy).
-4. Block a cold reader from running their first beta case.
-5. Make the bundle authoring requirements feel disproportionate to the value.
+Identify, with line-quoted evidence, places where the chain's \
+methodology / discipline / claims:
+1. Use confusing terms or load-bearing jargon that lacks definition \
+across the phase reports.
+2. Contradict each other across phase reports (e.g. ADR-55 retraction \
+in ADR-57; freeze-rule scope shifts; whether seed_157 is "honest \
+negative" vs "tooling failure"; whether 1/2 holdout success is \
+"partial generalisation" or premature claim).
+3. Could be misread as a product verdict despite the no-product-verdict \
+policy (audit: did any phase report sneak in "merge-safe" /
+"production-safe" / "bug-free" / "verified" / "security-verified" \
+language, or imply a verdict via flowery summary lines?).
+4. Risk Goodhart effects on the holdout discipline (e.g. is the \
+ratio guard at N=5 tight enough? Does the seed authoring quality \
+defect on seed_157 imply more on the discipline?).
+5. Are the freeze-rule carve-outs (predeclared env bootstrap, \
+target-class-general fixes, observation-only investigation) being \
+applied consistently or do they widen too far?
+6. Are the success claims (verification_candidate on seed_008 / \
+seed_065) actually supported by the evidence cited, or is there \
+implicit handwaving (e.g. is the LLM-authored replay's confidence \
+appropriately reflected in the verifier outcome)?
 
 HARD RULES (non-negotiable):
 - DO NOT fill any operator feedback form. The human-beta lane is for \
 actual humans only; you are in a strictly separate adversarial lane.
 - DO NOT label any case useful_true_positive / useful_true_negative / \
-false_positive / false_negative / unclear / insufficient_fixture — \
-those labels are reserved for human operators.
+false_positive / false_negative / unclear / insufficient_fixture.
 - DO NOT recommend enabling enable-tool-gateway as default-true.
 - DO NOT propose emitting total_v_net / debt_final / corrupt_success.
-- Quote SPECIFIC LINES from the docs — copy at least the doc filename \
-and the relevant phrase. "The documentation could be clearer" is \
-useless; "in beta_known_limits.md the phrase 'verification_candidate \
-is the strongest positive signal' could be misread as endorsement \
-because it sits one paragraph above the pinned `Literal[False]` \
-explanation" is useful.
+- Quote SPECIFIC LINES from the docs — copy the doc filename and the \
+relevant phrase. "The methodology has gaps" is useless; \
+"phase6_1_h_freeze_pass.md says 'FIRST holdout generalisation \
+success' but the same report admits 1/2 succeeded — the headline is \
+asymmetric to the empirical signal" is useful.
 
 OUTPUT FORMAT (mandatory; reply with exactly this skeleton, in markdown):
 
-# Critique by <PROVIDER>/<MODEL>
+# Methodology critique by <PROVIDER>/<MODEL>
 
 ## Summary
-2-3 sentences. The single most important friction you observed.
+2-3 sentences. The single most important methodology friction you \
+observed across the chain.
 
 ## Confusion points (jargon, undefined terms)
-- `<docfile.md>`: "<exact quoted phrase>" — why a cold reader would not \
-understand this.
+- `<docfile.md>`: "<exact quoted phrase>" — why a cold reader would \
+not understand this.
 - (3-7 items max)
 
-## Contradictions / inconsistencies
+## Contradictions / inconsistencies across phase reports
 - `<docfile.md>` vs `<otherfile.md>`: "<phrase A>" vs "<phrase B>" — \
 why these read as conflicting.
 - (0-5 items)
@@ -135,19 +187,23 @@ why these read as conflicting.
 as a product verdict despite the no-product-verdict policy.
 - (0-5 items; OK if the answer is "none observed")
 
-## Bundle authoring blockers
-- "<specific blocker>" — what would stop a cold reader from preparing \
-the 8-file bundle.
+## Discipline / Goodhart risks
+- "<specific risk>" — where the freeze rule, ratio guard, partition \
+discipline, or seed authoring could go wrong.
 - (1-5 items)
 
-## What would stop you from running a beta case
-- (1-3 items)
+## Are the success claims actually supported?
+- For seed_008 verification_candidate AND seed_065 verification_candidate: \
+do the cited evidence chains actually justify the claims? Where do you \
+see implicit handwaving?
+- (1-5 items)
 
-## What would make you actually use this on a real PR
+## What would make you doubt the chain's "partial generalisation" claim
 - (1-3 items)
 
 ## Honest uncertainty
-- (0-3 items where you genuinely don't know if your reading is correct)
+- (0-3 items where you genuinely don't know if your reading is correct, \
+or where the surface didn't give you enough to judge)
 
 End the critique here. No closing pleasantries.
 """
@@ -214,7 +270,7 @@ def _post_chat_completions(
     )
     try:
         with urllib.request.urlopen(
-            req, timeout=_REVIEW_TIMEOUT_S,
+            req, timeout=_REVIEW_TIMEOUT_S, context=_ssl_context(),
         ) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
