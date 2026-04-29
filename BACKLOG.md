@@ -129,47 +129,78 @@ convergent (3/3 providers) methodology critiques on the closed
 6.1' chain. None violate the strict-letter hard wall; each
 identifies discipline-spirit gaps the chain did not resolve:
 
-* **G-6a: LLM-replay-audit gap.** Both claim-supporting
-  round-trip outcomes (seed_008 train, seed_065 holdout) rest
-  on DeepSeek-authored verifier-pass replays. Pydantic
-  validates SHAPE; nothing validates CONTENT. Future work:
-  add a replay-audit step (e.g. random sample of LLM-authored
-  replays compared against ground truth, or independent
-  re-authoring across providers).
-* **G-6b: Freeze-rule carve-out scope.** "Predeclared env
-  bootstrap" should be operationally bounded — only flags
-  that existed BEFORE the holdout pass was designed, not
-  flags added in response to holdout failures.
-  `--install-extras`, `--install-group`, and
-  `--scm-pretend-version` were all added in response to
-  Phase 6.1'e step 4 holdout failures. Future work: a
-  structural test enforcing the predeclaration list.
-* **G-6c: Seed authoring quality is the unguarded human step.**
-  Only 3/46 calibration_seed records are pinned with full
-  Tier-3 authoring; seed_157's "over-broad test_scope" reveals
-  the operator-authored scope can be flawed even on
-  manually-reviewed cases. Future work: an authoring-quality
-  checklist or peer-review step before pinning.
-* **G-6d: N=5 is statistically thin.** Holdout ratio
-  [0.20, 0.40] guards against overfitting only with N≥20-50.
-  Future work: corpus expansion to ≥20 pinned cases before
-  any cross-target generalisation claim.
-* **G-6e: ADR-56 spirit-tension on seed_065.** The bootstrap
-  fixes in 6.1'f + 6.1'g were causally motivated by the
-  holdout's earlier failure; the chain acknowledges but does
-  not resolve this. Future work: a fresh holdout authored
-  AFTER the chain's tooling froze, then a freeze-rule pass
-  on it.
-* **G-6f: seed_157 demotion-and-replace deferred.** Per cgpro
-  QA/A47, the seed_157 case stays in `holdout` partition with
-  the "honest negative" classification. Future corpus-quality
-  maintenance work would demote it to train and pin a fresh
-  holdout from the 46 inclusions.
+* **G-6a: LLM-replay-audit gap. STATUS: OPEN (next empirical
+  priority per cgpro QA/A48).** Both claim-supporting
+  round-trip outcomes (seed_008 train, seed_065 holdout) AND
+  the corpus-quality v1 outcome (seed_018 holdout) rest on
+  DeepSeek-authored verifier-pass replays. Pydantic validates
+  SHAPE; nothing validates CONTENT. Cgpro QA/A48 verdict:
+  "replay validity is more load-bearing than N growth" — this
+  should be the next empirical priority before corpus
+  expansion. Future work options: a `scripts/audit_llm_replays.py`
+  that (i) re-authors via a 2nd provider and diffs, OR
+  (ii) statically checks the LLM's `evidence_refs` against the
+  packet's evidence ids, OR (iii) hand-reviews replays against
+  upstream PR test outputs.
+* **G-6b: Freeze-rule carve-out scope. STATUS: CLOSED by
+  ADR-66 (commit `97fe278`, 2026-04-29).** New structural
+  test `tests/test_phase6_1_i_predeclared_bootstrap.py`
+  pins the predeclared env-bootstrap flag list at exactly 9
+  flags via hermetic source-grep of `parser.add_argument`
+  calls in `scripts/clone_target_at_sha.py`. Adding a 10th
+  flag without updating the list AND citing an explicit ADR
+  fails CI loudly. Two-direction failure messages tell the
+  operator exactly what to do (extra-in-script → carve-out
+  widening needs ADR; missing-in-script → test stale needs
+  cleanup). The carve-out is now operationally bounded
+  structurally, not just rhetorically.
+* **G-6c: Seed authoring quality is the unguarded human step.
+  STATUS: PARTIALLY ADDRESSED.** Phase 6.1' corpus-quality v1
+  (ADR-65) pinned seed_018 with audit-informed Tier-3 (NARROW
+  test_scope `tests/test_make.py::TestFields::test_instance`,
+  careful 2-item evidence_items, claim_text concision). The
+  `verification_candidate` outcome is empirical evidence the
+  authoring lesson reduces the seed-record defect class.
+  However: 6/46 records are pinned overall; the discipline
+  has NO mechanism to audit Tier-3 authoring quality across
+  the 40 unpinned records. Future work: a checklist or
+  peer-review step before pinning.
+* **G-6d: N=5/N=6 is statistically thin. STATUS: OPEN.**
+  Currently N_pinned=6 (4 train + 2 holdout); ratio 2/6=0.33.
+  Holdout ratio [0.20, 0.40] guards against overfitting only
+  with N≥20-50. Future work: corpus expansion to ≥20 pinned
+  cases before any cross-target generalisation claim. Per
+  cgpro QA/A48: this is lower priority than G-6a — replay
+  validity matters more than N growth.
+* **G-6e: ADR-56 spirit-tension on seed_065. STATUS:
+  PARTIALLY ADDRESSED.** seed_065's bootstrap fixes (6.1'f +
+  6.1'g) were causally motivated by the holdout's own
+  earlier failure — entanglement persists for that case.
+  However, Phase 6.1' corpus-quality v1 (ADR-65) pinned
+  seed_018 AFTER all bootstrap fixes shipped; seed_018's
+  `verification_candidate` outcome is causally INDEPENDENT
+  of any tooling change motivated by its own behaviour. The
+  chain now has 1 cleanly-counted holdout success (seed_018)
+  plus 1 entangled-but-passing holdout (seed_065). Future
+  work: future holdouts pinned-after-tooling-frozen
+  contribute additional clean signal; the seed_065
+  entanglement remains a documented historical artefact.
+* **G-6f: seed_157 demotion-and-replace. STATUS: CLOSED by
+  ADR-65 (commit `71df92e`, 2026-04-29).** seed_157 demoted
+  to train with documented reason (over-broad test_scope per
+  audit G-6c; specific PR tests pass individually). Original
+  Tier-3 fields PRESERVED in record (don't erase trajectory).
+  seed_018 (attrs#1529) pinned as new holdout with
+  audit-informed Tier-3, freeze-rule pass produced
+  `verification_candidate`. Per cgpro QA/A47 protocol: this
+  was a SEPARATE LATER labelled corpus-quality maintenance
+  task, NOT a Phase 6.1' rewriting.
 
-**Status in the backlog:** documented. None of G-6a..f are
-scheduled. They re-enter scope only when the operator names a
-specific phase that addresses them (with an ADR explicitly
-in-scoping the gap).
+**Status in the backlog (post-corpus-quality-v1 + G-6b
+structural pin + consolidation v2):** G-6b and G-6f CLOSED;
+G-6c and G-6e PARTIALLY addressed; G-6a and G-6d remain OPEN
+with no scheduled work. G-6a is the cgpro-recommended next
+empirical priority before any corpus expansion (G-6d).
 
 ## What this file is NOT
 

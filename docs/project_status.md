@@ -1,4 +1,4 @@
-# `oida-code` — project status (2026-04-29)
+# `oida-code` — project status (2026-04-29, post-consolidation v2)
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when
@@ -14,16 +14,22 @@ what is out of scope, and what the next named phase is.
 > **Phase 6.1' chain has now closed (commits af87f75 → e57d2cc).**
 > A subsequent AI-tier audit (Phase 6.2, commit `101e633`) surfaced
 > 5 convergent methodology critiques + 5 sharp single-provider
-> critiques. The chain shipped its discipline, fixed bootstrap
-> blockers, and produced 2 claim-supporting round-trip outcomes
-> (1 train seed_008 + 1 holdout seed_065) plus 1 honest negative
-> (seed_157 — over-broad operator-authored test_scope, documented
-> by the audit as also possibly a tooling-failure interpretation).
+> critiques. **Two follow-up commits** then closed two of the audit
+> findings: corpus-quality maintenance v1 (`71df92e`, ADR-65) demoted
+> seed_157 and pinned seed_018 (attrs#1529, audit-informed Tier-3,
+> 2nd holdout `verification_candidate`); G-6b structural pin
+> (`97fe278`, ADR-66) bound the predeclared env-bootstrap flag list
+> via a structural test. **Cycle one-liner (post-consolidation v2):**
+> "Phase 6.1' plus corpus-quality v1 produced two holdout
+> claim-supporting round-trips—one entangled, one independent—and
+> bounded the bootstrap carve-out; replay-content audit and larger-N
+> validation remain open."
 >
 > **The project is not production-ready and does not claim to be.**
 > The empirical signal from the calibration_seed corpus is thin
-> (N_pinned=5 with 2 holdouts evaluated); the chain itself is best
-> read as "discipline validated end-to-end" rather than "system
+> (N_pinned=6 with 2 holdouts evaluated); the chain itself is best
+> read as "discipline validated end-to-end + bootstrap carve-out
+> bounded + 1 cleanly-counted holdout success" rather than "system
 > generalises across targets". See §8 below for the audit-informed
 > caveats.
 
@@ -192,11 +198,50 @@ It surfaced 5 convergent (3/3) methodology critiques plus 5
 single-provider sharp critiques. See §8 for the
 audit-informed framing of the chain's empirical signal.
 
-The chain's stated cycle verdict (per cgpro QA/A47) was:
-"Phase 6.1' is complete: it validated the discipline, fixed
-bootstrap blockers, produced one train and one holdout
-verification_candidate, and preserved one honest negative."
-The Phase 6.2 audit refines this — see §8.
+**Two follow-up commits closed two audit findings:**
+
+* **Corpus-quality maintenance v1** (`71df92e`, ADR-65): seed_157
+  was demoted to train (with documented reason: over-broad
+  operator-authored test_scope per audit G-6c; the two specific
+  PR tests pass individually but the class-scope collected
+  pre-existing unrelated failing tests). A first replacement
+  candidate (`seed_058_pallets_itsdangerous_378`, FIPS+SHA-1
+  fix) was REJECTED honestly: itsdangerous declares test deps
+  in `requirements/*.txt` (older pip-tools pattern), and adding
+  a 3rd `--install-requirements-file` flag to the clone helper
+  would have been exactly the carve-out widening that audit
+  G-6b warned against. The selected replacement,
+  `seed_018_python_attrs_attrs_1529` ("Add instance support to
+  attrs.fields()"), uses PEP 735 `[dependency-groups] tests`
+  (already supported by `--install-group`); Tier-3 was
+  authored audit-informed (NARROW test_scope per G-6c lesson:
+  `tests/test_make.py::TestFields::test_instance` — specific
+  test, not class). The freeze-rule pass produced
+  `verification_candidate`. **Crucially, seed_018's success
+  is causally INDEPENDENT of the bootstrap fixes** (pinned
+  AFTER all 6.1'f/g fixes shipped) — partially addresses the
+  G-6e ADR-56 spirit-tension critique on seed_065.
+* **G-6b structural pin** (`97fe278`, ADR-66): a new structural
+  test (`tests/test_phase6_1_i_predeclared_bootstrap.py`,
+  +3 hermetic source-grep tests) pins the predeclared
+  env-bootstrap flag list at exactly 9 flags (`--repo`,
+  `--head-sha`, `--manual-egress-ok`, `--clones-dir`,
+  `--install-oida-code`, `--scm-pretend-version`,
+  `--import-smoke`, `--install-extras`, `--install-group`).
+  Adding a 10th flag without updating the predeclared list +
+  citing an explicit ADR fails CI loudly. The freeze-rule
+  carve-out is now operationally bounded structurally, not
+  just rhetorically. A sibling fix to
+  `tests/test_phase4_9_step_summary_and_sarif.py` extends the
+  existing skip filter to `.tmp/` so the test does not
+  false-positive on cloned target repos.
+
+**Updated cycle verdict (post-consolidation v2; supersedes
+QA/A47 verdict_q3 in canonical reading):** "Phase 6.1' plus
+corpus-quality v1 produced two holdout claim-supporting
+round-trips—one entangled, one independent—and bounded the
+bootstrap carve-out; replay-content audit and larger-N
+validation remain open."
 
 ## 5. Current roadmap
 
@@ -211,19 +256,54 @@ commitment to dates.
   claim-supporting round-trip; one honest negative.
 * **Phase 6.2** (CLOSED). AI-tier audit of the 6.1' chain.
   See §8 for findings incorporated into this status.
-* **Corpus-quality maintenance** (deferred, labelled per
-  cgpro QA/A47). Whenever the operator chooses, this would
-  demote-and-replace seed_157 with a fresh authoring-clean
-  holdout from the 46 inclusions, then run a single-case
-  freeze-rule pass.
+* **Corpus-quality maintenance v1** (CLOSED, ADR-65). seed_157
+  demoted to train; seed_018 (attrs#1529) pinned as new
+  holdout with audit-informed Tier-3; freeze-rule pass produced
+  2nd holdout `verification_candidate`. Closes audit G-6f.
+* **G-6b structural pin** (CLOSED, ADR-66). Predeclared
+  env-bootstrap flag list bounded operationally via
+  `tests/test_phase6_1_i_predeclared_bootstrap.py`. Closes
+  audit G-6b.
+* **Consolidation v2** (CLOSED, ADR-67 — this commit). Docs
+  alignment: project_status §4/§5/§8 updated, BACKLOG G-6
+  statuses refreshed, close-out v2 written. Natural pause
+  point for the chain.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 
-After this point: the project may either (a) ship a Phase 7
-research moat, (b) revisit official fusion fields once a real
-predictive-validation dataset exists, or (c) extend the
-calibration_seed corpus and run a broader holdout pass. None
-is currently scheduled.
+**Open audit findings (per `BACKLOG.md` G-6, in priority
+order per cgpro QA/A48):**
+
+1. **G-6a — LLM-replay-audit gap** (next empirical priority
+   per cgpro: "replay validity is more load-bearing than N
+   growth"). The verifier acceptance currently rests on
+   DeepSeek-authored replay files whose CONTENT is not
+   independently audited; Pydantic checks SHAPE not CONTENT.
+   Future work: a `scripts/audit_llm_replays.py` that either
+   re-authors via a 2nd provider and diffs, OR statically
+   checks `evidence_refs` against the packet, OR hand-reviews
+   replays against upstream PR test outputs.
+2. **G-6d — Statistical thinness** (corpus expansion toward
+   N≥20). Currently N_pinned=6 with 2 holdouts evaluated.
+3. **G-6e — Partial** (seed_018's success is causally
+   independent of the bootstrap fixes; seed_065's success
+   remains entangled with 6.1'f/g motivations).
+4. **G-6c — Partial** (seed_018 demonstrates audit-informed
+   Tier-3 authoring; broader Tier-3 authoring discipline /
+   checklist not yet codified for the 40 unpinned cases).
+
+Older BACKLOG items (Grok review, 2026-04-28): G-1 official
+OIDA fusion fields blocked, G-2 Python-first, G-3 large-scale
+validation missing, G-4 docs/roadmap confusion (partially
+addressed by §4/§8 here + close-out reports), G-5
+plain-language explanation (partially addressed).
+
+After this consolidation: the project may either (a) pursue
+G-6a (replay-content audit) per cgpro priority, (b) extend the
+corpus toward G-6d, (c) ship a Phase 7 research moat, or (d)
+revisit official fusion fields once a predictive-validation
+dataset exists. None is currently scheduled. The chain is
+now at a natural pause point.
 
 ## 6. Architecture honesty
 
@@ -281,42 +361,55 @@ WITH these caveats.
   reports retain this phrasing; this canonical status page
   does NOT propagate it. The chain has 2 claim-supporting
   round-trip outcomes, not "successes" or "wins".
-* **seed_157's reclassification trajectory was a real shift.**
-  Phase 6.1'e step 4 categorised the case's failure as
-  `target_bootstrap_gap` (NOT counted as holdout evidence);
-  Phase 6.1'h reclassified it as "honest claim-level negative"
-  (counted as holdout evidence, attributed to "over-broad
-  operator-authored test_scope"). The shift was not formalised
-  in a new ADR until ADR-62; readers of any Phase 6.1'e/h
-  report should understand the trajectory was a real
-  reclassification, not a single-step categorisation.
-* **Freeze-rule "predeclared env bootstrap" carve-out should
-  be operationally bounded.** The audit's sharpest
-  recommendation: "only flags that existed BEFORE the holdout
-  pass was designed, not flags added in response to holdout
-  failures." `--install-extras`, `--install-group`, and
-  `--scm-pretend-version` were ALL added in response to
-  Phase 6.1'e step 4 holdout failures. Their treatment as
-  "env bootstrap, not tooling edits" is contestable; future
-  passes should constrain the carve-out explicitly.
-* **LLM-replay-audit gap.** Both claim-supporting outcomes
+* **seed_157's reclassification trajectory was a real shift,
+  RESOLVED by corpus-quality v1.** Phase 6.1'e step 4
+  categorised the case's failure as `target_bootstrap_gap`
+  (NOT counted as holdout evidence); Phase 6.1'h reclassified
+  it as "honest claim-level negative" (counted as holdout
+  evidence, attributed to "over-broad operator-authored
+  test_scope"). The shift was not formalised in a new ADR
+  until ADR-62; readers of any Phase 6.1'e/h report should
+  understand the trajectory was a real reclassification.
+  **ADR-65 (corpus-quality v1, commit `71df92e`) resolved the
+  trajectory** by demoting seed_157 to train and replacing it
+  with seed_018 (attrs#1529, audit-informed Tier-3, narrow
+  test_scope). Audit finding G-6f is **CLOSED**.
+* **Freeze-rule "predeclared env bootstrap" carve-out — NOW
+  OPERATIONALLY BOUNDED.** The audit's sharpest recommendation
+  was "only flags that existed BEFORE the holdout pass was
+  designed, not flags added in response to holdout failures."
+  ADR-66 (commit `97fe278`) added a structural test
+  (`tests/test_phase6_1_i_predeclared_bootstrap.py`) that
+  pins the predeclared flag list at exactly 9 flags. Adding a
+  10th flag without updating the predeclared list AND citing
+  an explicit ADR fails CI loudly. Audit finding G-6b is
+  **CLOSED**.
+* **LLM-replay-audit gap (G-6a) — STILL OPEN.** Both
+  claim-supporting outcomes (and the new seed_018 outcome)
   rest on DeepSeek-authored replay files. Pydantic validates
   the replay's SHAPE; nothing validates its CONTENT. If the
   LLM hallucinated content matching verifier expectations, the
   outcome could be a false positive. The chain has no
-  replay-audit step.
-* **N=5 is statistically thin for any generalisation claim.**
-  At N_pinned=5 with the [0.20, 0.40] holdout ratio, a single
-  case movement spans the entire allowed band. The signal is
-  consistent with overfitting to pytest-runnable targets.
-* **ADR-56 spirit-tension on seed_065.** The bootstrap fixes
-  in 6.1'f + 6.1'g were directly motivated by the holdout's
-  earlier failure. The chain itself acknowledges this tension
-  ("fixing it in the same block would blur whether the minimal
-  hypothesis closed the observed failure class") but does not
-  resolve it. seed_065's `verification_candidate` outcome is
-  causally entangled with fixes the chain shipped because
-  seed_065 failed.
+  replay-audit step. Per cgpro QA/A48: this is the next
+  empirical priority before corpus expansion, because "replay
+  validity is more load-bearing than N growth".
+* **N=6 is still statistically thin for any generalisation
+  claim (G-6d).** At N_pinned=6 with 2 holdouts evaluated,
+  ratio 2/6=0.33, the signal is consistent with overfitting
+  to pytest-runnable targets. The audit's recommended
+  threshold is N≥20.
+* **ADR-56 spirit-tension on seed_065 — PARTIALLY ADDRESSED
+  (G-6e).** seed_065's `verification_candidate` outcome is
+  causally entangled with the 6.1'f/g bootstrap fixes that
+  were motivated by seed_065's own earlier failure. **However,
+  seed_018's `verification_candidate` outcome (corpus-quality
+  v1, ADR-65) is causally INDEPENDENT** — pinned AFTER all
+  bootstrap fixes shipped, success not motivated by any of
+  its own prior failures. The chain now has 1 cleanly-counted
+  holdout success (seed_018) plus 1 entangled-but-passing
+  holdout (seed_065). G-6c (seed authoring quality) is
+  partially addressed by seed_018's audit-informed Tier-3
+  (narrow test_scope, careful evidence_items).
 
 For the full audit, see
 [`reports/ai_adversarial/phase6_2_chain_review/aggregate.md`](../reports/ai_adversarial/phase6_2_chain_review/aggregate.md).

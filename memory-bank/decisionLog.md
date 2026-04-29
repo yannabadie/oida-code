@@ -2885,3 +2885,49 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 * Ratio 0.33 — comfortably inside [0.20, 0.40] enforcing band.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation + corpus-quality-v1 + commit-2 anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE. The 2-commit plan from the operator's "a et b" decision is now fully shipped: commit 1 closed G-6f via demote-and-replace + 2nd holdout verification_candidate; commit 2 closed G-6b via structural pinning. Three audit findings remain open (G-6a, G-6d, G-6e); none scheduled.
+
+[2026-04-29 16:30:00] - **ADR-67: Methodology consolidation v2 — `docs/project_status.md` + `BACKLOG.md` + `reports/phase6_1_close_out_v2.md` updated to reflect ADR-65/66 outcomes; G-6b/f marked CLOSED, G-6c/e PARTIAL, G-6a/d OPEN; chain reaches natural pause point.**
+**Why:** Per cgpro QA/A48 verdict_q1 (`pursue_f`) + verdict_q2 (`one_more_block_before_pause`): canonical docs/backlog lag the actual ADR-65/66 state. ADR-65 records seed_157 demotion, seed_018 pinning, and 2nd holdout `verification_candidate`. ADR-66 records the predeclared-bootstrap structural pin. But `BACKLOG.md` G-6b/f and `docs/project_status.md` §5 still presented those gaps as future/deferred work. Per cgpro verdict_q3 (updated cycle one-liner): "Phase 6.1' plus corpus-quality v1 produced two holdout claim-supporting round-trips—one entangled, one independent—and bounded the bootstrap carve-out; replay-content audit and larger-N validation remain open." Consolidation v2 ships this canonical reading.
+
+**Decision:**
+
+* **`docs/project_status.md` updates:**
+  * Title-block date and status: post-consolidation v2 framing. Cycle one-liner replaced verbatim with the QA/A48 verdict_q3 sentence.
+  * §4 (Phase 6.1' chain — what shipped + audit): ADR-65 corpus-quality v1 + ADR-66 G-6b structural pin documented as closed-out work; the seed_018 entanglement-vs-independence distinction made explicit; first-candidate seed_058 rejection-on-honest-engineering trail recorded.
+  * §5 (Current roadmap): "Corpus-quality maintenance (deferred)" → "Corpus-quality maintenance v1 (CLOSED, ADR-65)"; new "G-6b structural pin (CLOSED, ADR-66)" line; new "Consolidation v2 (CLOSED, ADR-67 — this commit)"; updated open-priorities list with G-6a (replay-content audit) named as the next empirical priority per cgpro QA/A48 ("replay validity is more load-bearing than N growth"); G-6d (corpus expansion) named as lower priority following G-6a.
+  * §8 (Phase 6.2 audit-informed caveats): seed_157 reclassification bullet → "RESOLVED by corpus-quality v1"; freeze-rule carve-out bullet → "NOW OPERATIONALLY BOUNDED"; LLM-replay-audit gap bullet → "STILL OPEN" with cgpro priority note; N statistical thinness bullet updated with new N=6/ratio 0.33; ADR-56 spirit-tension bullet → "PARTIALLY ADDRESSED" with the seed_018 independence + seed_065 entanglement distinction explicit.
+* **`BACKLOG.md` G-6 status updates:**
+  * G-6a: "STATUS: OPEN (next empirical priority per cgpro QA/A48)" + concrete future-work options (audit_llm_replays.py with 3 sub-options).
+  * G-6b: "STATUS: CLOSED by ADR-66 (commit `97fe278`, 2026-04-29)" + structural test description.
+  * G-6c: "STATUS: PARTIALLY ADDRESSED" with seed_018's audit-informed Tier-3 cited as the empirical evidence; remaining 40 unpinned records flagged.
+  * G-6d: "STATUS: OPEN" with cgpro priority context (lower than G-6a).
+  * G-6e: "STATUS: PARTIALLY ADDRESSED" with seed_018 independence + seed_065 entanglement explicit.
+  * G-6f: "STATUS: CLOSED by ADR-65 (commit `71df92e`, 2026-04-29)" + demote-and-replace narrative.
+  * Status-in-the-backlog summary block updated to match.
+* **`reports/phase6_1_close_out_v2.md` (NEW):** single-page post-2-commit close-out summary that supersedes v1 in canonical reading. Includes the updated cycle one-liner; final audit-finding-by-finding status table; what the chain claims vs does NOT claim post-v2; explicit "natural pause point" framing per cgpro QA/A48 verdict_q2; the empirical priority order (G-6a then G-6d) per cgpro verdict_q1 priority. v1 close-out (`reports/phase6_1_close_out.md`) is PRESERVED for trajectory; this v2 supersedes it for canonical reading.
+* **`memory-bank/progress.md`** — appended timeline entry summarising consolidation v2.
+
+* **No content edits to:** seed records / partition discipline / holdout scopes / generator / verifier / clone helper / LLM prompts / replay shapes (per cgpro QA/A47 + QA/A48 hard rule). No new tests. No new code.
+
+**Accepted:**
+* Updated cycle one-liner ("two holdout claim-supporting round-trips—one entangled, one independent—and bounded the bootstrap carve-out") is the canonical reading; supersedes QA/A47 verdict_q3 and the v1 close-out's verdict.
+* The entanglement-vs-independence distinction (seed_065 entangled per G-6e; seed_018 independent post-audit) is now explicit in canonical surfaces — readers don't have to reconstruct it from ADR-65's reasoning.
+* G-6a is named as the next empirical priority (per cgpro QA/A48 verdict_q1: "replay validity is more load-bearing than N growth"). The chain commits to this ordering even though G-6a is not scheduled.
+* The chain reaches a natural pause point (per cgpro QA/A48 verdict_q2). G-6a and G-6d remain real but are next-phase choices, not unfinished cleanup.
+* v1 close-out is PRESERVED, not deleted. This v2 supersedes it as canonical reading; readers wanting the trajectory consult v1.
+* No retroactive edits to historical Phase 6.1' reports or Phase 6.2 audit reports — they retain their original phrasing as historical record. Only new canonical surfaces (project_status.md, BACKLOG.md G-6 statuses, close-out v2) carry the audit-informed framing.
+
+**Rejected:**
+* Touching `src/oida_code/` / `scripts/` / seed records / partitions / Tier-3 fields / replay prompts / verifier / generator — direct violation of cgpro QA/A47 + QA/A48 hard rule. Consolidation v2 is documentation-only.
+* Adding new tests in this commit — cgpro QA/A48 next_action explicitly says "no new provider calls are needed" and the consolidation is docs-only. New tests would imply new code paths, which contradicts the docs-only scope.
+* Deleting `reports/phase6_1_close_out.md` (v1) — would erase the trajectory. v2 supersedes v1 as canonical reading; v1 stays for record.
+* Renaming or removing the historical `reports/phase6_1_a..h_*.md` reports — same trajectory-preservation argument.
+* Adding a 7th BACKLOG G-6 sub-item in this commit — no new audit findings are introduced; the consolidation only updates STATUS on existing items.
+* Pre-scheduling G-6a or G-6d work — they remain documented but unscheduled per cgpro QA/A48 framing.
+* Pivoting to AI-tier rerun on a fresh surface OR pre-Phase-6 BACKLOG (G-1..G-5) — both are out-of-scope for consolidation v2; cgpro recommended pursue_f (this commit), with G-6a as the next empirical priority IF and WHEN the operator chooses to resume.
+
+**Outcome:** Methodology consolidation v2 lands as 1 commit (this) touching: `memory-bank/decisionLog.md` (this ADR), `memory-bank/progress.md` (timeline), `docs/project_status.md` (title block + §4 + §5 + §8 updated), `BACKLOG.md` (G-6 sub-items now have STATUS: CLOSED / OPEN / PARTIALLY ADDRESSED labels), `reports/phase6_1_close_out_v2.md` (NEW). Test count UNCHANGED at 1131. ZERO new dependency. ZERO MCP runtime. ZERO provider tool-calling. ZERO change to `enable-tool-gateway` default. ZERO change to runtime path code (`src/oida_code/`). ZERO change to `scripts/`. ZERO change to seed records / partitions / Tier-3 fields. ZERO change to LLM prompts / replay shapes / verifier / generator / clone helper. Per cgpro QA/A48 hard rule. Manual-lane scripts unchanged at 3.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+The 6.1' chain is now formally closed with the post-consolidation-v2 canonical reading. Future work (G-6a replay-content audit, G-6d corpus expansion, etc.) is documented but unscheduled. The empirical priority ordering (G-6a before G-6d) is recorded in BOTH `docs/project_status.md` §5 AND `BACKLOG.md` G-6a status note.
