@@ -1,0 +1,146 @@
+{
+  "review_version": "phase6_a1_manual_semantic_replay_review_v1",
+  "review_scope": "manual_archived_replay_semantic_alignment",
+  "reviewed_at": "2026-04-29T21:45:00+02:00",
+  "semantic_replay_alignment_validated": true,
+  "product_safety_validated": false,
+  "predictive_validity_validated": false,
+  "future_replay_correctness_validated": false,
+  "summary": {
+    "case_count": 3,
+    "manual_semantic_pass": 3,
+    "manual_semantic_fail": 0,
+    "ambiguous_insufficient_evidence": 0
+  },
+  "cases": [
+    {
+      "case_id": "seed_008_pytest_dev_pytest_14407",
+      "partition": "train",
+      "outcome": "manual_semantic_pass",
+      "replay_dir": "reports/phase6_1_e/round_trip_outputs/seed_008_pytest_dev_pytest_14407",
+      "seed_claim_id": "C.cli_version_flag.repair_needed",
+      "seed_claim_type": "repair_needed",
+      "seed_claim_text": "After PR #14407 (backport of #14382 to the 9.0.x branch), pytest's CLI accepts the `-V` short-flag as equivalent to `--version`: both produce the version string `pytest <X.Y.Z>` via the early fast-path in `_pytest/config/__init__.py:main()`, without loading the rest of the pytest infrastructure.",
+      "reviewed_replay_files": [
+        "packet.json",
+        "pass1_forward.json",
+        "pass2_forward.json",
+        "pass2_backward.json",
+        "grounded_report.json"
+      ],
+      "non_llm_evidence_checked": [
+        "reports/calibration_seed/index.json seed record",
+        "local clone diff .tmp/clones/pytest_dev_pytest_480809ae between base 4afcd4906b9cf4468dc9ca8cf7c53126e190d008 and head 480809ae02a97344e68e52eb015e68b840f2e05c",
+        "local pytest rerun in clone venv"
+      ],
+      "upstream_evidence": {
+        "repo_url": "https://github.com/pytest-dev/pytest",
+        "pr_number": 14407,
+        "base_sha": "4afcd4906b9cf4468dc9ca8cf7c53126e190d008",
+        "head_sha": "480809ae02a97344e68e52eb015e68b840f2e05c",
+        "diff_summary": "The diff adds changelog/14381.bugfix.rst, changes main() to count --version plus -V in the early version fast-path, and parametrizes testing/test_helpconfig.py::test_version_less_verbose over --version and -V.",
+        "pytest_rerun_command": ".venv\\Scripts\\python.exe -m pytest testing/test_helpconfig.py::test_version_less_verbose -q",
+        "pytest_rerun_exit_code": 0,
+        "pytest_rerun_summary": "2 passed in 0.37s"
+      },
+      "semantic_checks": {
+        "claim_id_matches_seed": true,
+        "claim_type_matches_seed": true,
+        "pass1_scope_matches_seed": true,
+        "pass2_statement_aligned_with_seed": true,
+        "tool_result_supports_claim": true,
+        "backward_requirement_requires_test_result": true,
+        "grounded_report_accepts_only_pass2_supported_claims": true,
+        "no_new_semantic_conclusion_added_by_report": true
+      },
+      "reviewer_notes": "The replay statement is narrower than the full seed claim because it focuses on counting -V occurrences. The upstream diff and rerun show the core seed semantics: -V is included in the same early version path as --version and the parametrized test passes for both flags.",
+      "residual_uncertainty": "No residual ambiguity for the archived replay's core claim alignment. This does not validate broad pytest CLI behavior beyond the reviewed scope."
+    },
+    {
+      "case_id": "seed_065_simonw_sqlite_utils_680",
+      "partition": "holdout",
+      "outcome": "manual_semantic_pass",
+      "replay_dir": "reports/phase6_1_h/round_trip_outputs/seed_065_simonw_sqlite_utils_680",
+      "seed_claim_id": "C.column_type_mapping.repair_needed",
+      "seed_claim_type": "repair_needed",
+      "seed_claim_text": "After PR #680 (sqlite-utils), the column_type_mapping in db.py maps Python `float`, `decimal.Decimal`, and the numpy float types (np.float16/32/64) to SQLite `REAL` instead of `FLOAT`.",
+      "reviewed_replay_files": [
+        "packet.json",
+        "pass1_forward.json",
+        "pass2_forward.json",
+        "pass2_backward.json",
+        "grounded_report.json"
+      ],
+      "non_llm_evidence_checked": [
+        "reports/calibration_seed/index.json seed record",
+        "local clone diff .tmp/clones/simonw_sqlite_utils_e7ecb0ff between base fb93452ea8e677f0a2fb002f9c2483072432a6cd and head e7ecb0ffdfcb15a879e0da202a00966623f1e79c",
+        "local pytest rerun in clone venv"
+      ],
+      "upstream_evidence": {
+        "repo_url": "https://github.com/simonw/sqlite-utils",
+        "pr_number": 680,
+        "base_sha": "fb93452ea8e677f0a2fb002f9c2483072432a6cd",
+        "head_sha": "e7ecb0ffdfcb15a879e0da202a00966623f1e79c",
+        "diff_summary": "The diff changes COLUMN_TYPE_MAPPING for float, decimal.Decimal, and numpy float types from FLOAT to REAL, adds REAL to accepted CLI column types for compatibility, and adds tests/test_cli.py::test_csv_detect_types_creates_real_columns.",
+        "pytest_rerun_command": ".venv\\Scripts\\python.exe -m pytest tests/test_cli.py::test_csv_detect_types_creates_real_columns -q",
+        "pytest_rerun_exit_code": 0,
+        "pytest_rerun_summary": "1 passed"
+      },
+      "semantic_checks": {
+        "claim_id_matches_seed": true,
+        "claim_type_matches_seed": true,
+        "pass1_scope_matches_seed": true,
+        "pass2_statement_aligned_with_seed": true,
+        "tool_result_supports_claim": true,
+        "backward_requirement_requires_test_result": true,
+        "grounded_report_accepts_only_pass2_supported_claims": true,
+        "no_new_semantic_conclusion_added_by_report": true
+      },
+      "reviewer_notes": "The replay statement covers the central mapping repair from FLOAT to REAL. It is narrower than the full seed because it does not enumerate every numpy type or the CLI backward-compatibility detail, but it does not widen or contradict the seed claim.",
+      "residual_uncertainty": "No residual ambiguity for the archived replay's accepted claim. The review covers this test-scoped mapping claim only."
+    },
+    {
+      "case_id": "seed_018_python_attrs_attrs_1529",
+      "partition": "holdout",
+      "outcome": "manual_semantic_pass",
+      "replay_dir": "reports/phase6_1_corpus_quality_v1/round_trip_outputs/seed_018_python_attrs_attrs_1529",
+      "seed_claim_id": "C.attrs_fields_instance_support.capability_sufficient",
+      "seed_claim_type": "capability_sufficient",
+      "seed_claim_text": "After PR #1529 (attrs), `attr.fields()` accepts an attrs INSTANCE in addition to an attrs CLASS. When called on an instance whose `type(...)` carries `__attrs_attrs__`, the implementation in `src/attr/_make.py:fields()` recurses with `type(cls)` and returns the same tuple `fields(C)` would return.",
+      "reviewed_replay_files": [
+        "packet.json",
+        "pass1_forward.json",
+        "pass2_forward.json",
+        "pass2_backward.json",
+        "grounded_report.json"
+      ],
+      "non_llm_evidence_checked": [
+        "reports/calibration_seed/index.json seed record",
+        "local clone diff .tmp/clones/python_attrs_attrs_b13a7056 between base 3a68d4913221abc6f8ad3be50937f7ae49300a98 and head b13a7056c5f407abbd9f3e572ee48ad65afce91c",
+        "local pytest rerun in clone venv"
+      ],
+      "upstream_evidence": {
+        "repo_url": "https://github.com/python-attrs/attrs",
+        "pr_number": 1529,
+        "base_sha": "3a68d4913221abc6f8ad3be50937f7ae49300a98",
+        "head_sha": "b13a7056c5f407abbd9f3e572ee48ad65afce91c",
+        "diff_summary": "The diff updates fields() docs and implementation to accept attrs instances by checking type(cls).__attrs_attrs__ and recursing with type(cls), while tests/test_make.py::TestFields::test_instance now asserts fields(C()) is fields(C) and a sibling test preserves TypeError for non-attrs instances.",
+        "pytest_rerun_command": ".venv\\Scripts\\python.exe -m pytest tests/test_make.py::TestFields::test_instance -q",
+        "pytest_rerun_exit_code": 0,
+        "pytest_rerun_summary": "1 passed in 0.26s"
+      },
+      "semantic_checks": {
+        "claim_id_matches_seed": true,
+        "claim_type_matches_seed": true,
+        "pass1_scope_matches_seed": true,
+        "pass2_statement_aligned_with_seed": true,
+        "tool_result_supports_claim": true,
+        "backward_requirement_requires_test_result": true,
+        "grounded_report_accepts_only_pass2_supported_claims": true,
+        "no_new_semantic_conclusion_added_by_report": true
+      },
+      "reviewer_notes": "The replay statement matches the implementation path and scoped test: attrs instances now resolve to their class fields. The report does not add a broader attrs API claim.",
+      "residual_uncertainty": "No residual ambiguity for the archived replay's accepted claim. This does not validate attrs behavior beyond the reviewed fields() instance scope."
+    }
+  ]
+}

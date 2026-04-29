@@ -129,8 +129,8 @@ convergent (3/3 providers) methodology critiques on the closed
 6.1' chain. None violate the strict-letter hard wall; each
 identifies discipline-spirit gaps the chain did not resolve:
 
-* **G-6a: LLM-replay-audit gap. STATUS: PARTIALLY ADDRESSED
-  by ADR-68 static audit; semantic validation still OPEN.**
+* **G-6a: LLM-replay-audit gap. STATUS: CLOSED for the
+  current archived load-bearing replay set by ADR-68 + ADR-69.**
   Both claim-supporting round-trip outcomes (seed_008 train,
   seed_065 holdout) AND the corpus-quality v1 outcome
   (seed_018 holdout) rest on DeepSeek-authored verifier-pass
@@ -145,12 +145,18 @@ identifies discipline-spirit gaps the chain did not resolve:
   `reports/phase6_a_replay_audit/audit.md` reports 3/3 passing,
   0 errors, 0 warnings. Scope is explicitly
   `static_content_consistency` and `semantic_truth_validated=false`;
-  this does NOT prove provider-independent replay validity,
-  upstream PR truth, product safety, or semantic correctness.
-  Cgpro QA/A49 records why this static lane was the right first
-  G-6a block. Remaining stronger work options: (i) re-author via
-  a 2nd provider and diff, OR (ii) hand-review replays against
-  upstream PR test outputs.
+  this alone did NOT prove semantic correctness. ADR-69 then
+  manually reviewed the same three archived replay cases against
+  non-LLM upstream evidence: seed record, packet evidence, public
+  upstream base/head diff, scoped pytest rerun, pass2 support, and
+  grounded-report acceptance. Result:
+  `reports/phase6_a_semantic_replay_review/review.md` reports
+  3/3 `manual_semantic_pass`, no fail, no ambiguous case. Closure
+  is limited to this archived replay set; future LLM-authored
+  replay sets must inherit static-plus-manual review before their
+  replay content carries claim-supporting weight. This does NOT
+  prove product safety, predictive validity, broad generalisation,
+  or future replay correctness.
 * **G-6b: Freeze-rule carve-out scope. STATUS: CLOSED by
   ADR-66 (commit `97fe278`, 2026-04-29).** New structural
   test `tests/test_phase6_1_i_predeclared_bootstrap.py`
@@ -206,12 +212,12 @@ identifies discipline-spirit gaps the chain did not resolve:
   task, NOT a Phase 6.1' rewriting.
 
 **Status in the backlog (post-corpus-quality-v1 + G-6b
-structural pin + consolidation v2 + ADR-68 static audit):** G-6b
-and G-6f CLOSED; G-6a, G-6c, and G-6e PARTIALLY addressed;
-G-6d remains OPEN with no scheduled work. G-6a's static
-consistency lane is done; its semantic/provider-independent lane
-remains the cgpro-recommended empirical priority before any
-corpus expansion (G-6d).
+structural pin + consolidation v2 + ADR-68/ADR-69 replay
+review):** G-6a, G-6b, and G-6f CLOSED for their stated current
+scopes; G-6c and G-6e PARTIALLY addressed; G-6d remains OPEN with
+no scheduled work. With G-6a closed for the current archived
+load-bearing replay set, G-6d corpus expansion becomes the next
+empirical priority if development continues.
 
 ## What this file is NOT
 

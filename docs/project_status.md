@@ -1,4 +1,4 @@
-# `oida-code` — project status (2026-04-29, post-Phase 6.a static audit)
+# `oida-code` — project status (2026-04-29, post-ADR-69 semantic replay review)
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when
@@ -14,7 +14,7 @@ what is out of scope, and what the next named phase is.
 > **Phase 6.1' chain has now closed (commits af87f75 → e57d2cc).**
 > A subsequent AI-tier audit (Phase 6.2, commit `101e633`) surfaced
 > 5 convergent methodology critiques + 5 sharp single-provider
-> critiques. **Three follow-up commits** then closed or partially
+> critiques. **Four follow-up commits** then closed or partially
 > addressed audit findings: corpus-quality maintenance v1
 > (`71df92e`, ADR-65) demoted seed_157 and pinned seed_018
 > (attrs#1529, audit-informed Tier-3,
@@ -23,13 +23,15 @@ what is out of scope, and what the next named phase is.
 > via a structural test; Phase 6.a static replay-content audit
 > (`reports/phase6_a_replay_audit/`, ADR-68) found no static
 > consistency errors in the three load-bearing archived replays while
-> explicitly keeping `semantic_truth_validated=false`. **Cycle
-> one-liner (post-Phase 6.a static audit):**
+> explicitly keeping `semantic_truth_validated=false`; ADR-69 manual
+> semantic replay review then checked the same three archived cases
+> against upstream non-LLM diff/test evidence and found 3/3
+> `manual_semantic_pass`. **Cycle one-liner (post-ADR-69):**
 > "Phase 6.1' plus corpus-quality v1 produced two holdout
 > claim-supporting round-trips—one entangled, one independent—and
-> bounded the bootstrap carve-out; Phase 6.a found no static replay
-> inconsistency on the three load-bearing archives; semantic replay
-> validation and larger-N validation remain open."
+> bounded the bootstrap carve-out; static plus manual semantic replay
+> review closed G-6a for the current archived load-bearing replay set;
+> larger-N validation remains open."
 >
 > **The project is not production-ready and does not claim to be.**
 > The empirical signal from the calibration_seed corpus is thin
@@ -204,7 +206,7 @@ It surfaced 5 convergent (3/3) methodology critiques plus 5
 single-provider sharp critiques. See §8 for the
 audit-informed framing of the chain's empirical signal.
 
-**Three follow-up commits closed or partially addressed audit findings:**
+**Four follow-up commits closed or partially addressed audit findings:**
 
 * **Corpus-quality maintenance v1** (`71df92e`, ADR-65): seed_157
   was demoted to train (with documented reason: over-broad
@@ -254,14 +256,24 @@ audit-informed framing of the chain's empirical signal.
   0 errors, 0 warnings. Scope is deliberately narrow:
   `audit_scope=static_content_consistency` and
   `semantic_truth_validated=false`.
+* **Phase 6.a.1 manual semantic replay review** (ADR-69): new
+  report `reports/phase6_a_semantic_replay_review/review.md`
+  checks the same three load-bearing archived replay cases against
+  non-LLM upstream evidence: seed record, packet evidence, public
+  base/head diff, scoped pytest rerun in the target clone venv,
+  pass2 support, and grounded-report acceptance. Result: 3/3
+  `manual_semantic_pass`, 0 fail, 0 ambiguous. Per QA/A50,
+  `PAT_GITHUB` was not required because direct diff/test evidence
+  was sufficient and none of the claims depended on PR comments or
+  maintainer discussion.
 
-**Updated cycle verdict (post-Phase 6.a static audit; supersedes
-QA/A48 verdict_q3 in canonical reading):** "Phase 6.1' plus
+**Updated cycle verdict (post-ADR-69; supersedes QA/A48 verdict_q3
+in canonical reading):** "Phase 6.1' plus
 corpus-quality v1 produced two holdout claim-supporting
 round-trips—one entangled, one independent—and bounded the
-bootstrap carve-out; Phase 6.a found no static replay inconsistency
-on the three load-bearing archives; semantic replay validation and
-larger-N validation remain open."
+bootstrap carve-out; static plus manual semantic replay review
+closed G-6a for the current archived load-bearing replay set;
+larger-N validation remains open."
 
 ## 5. Current roadmap
 
@@ -295,26 +307,24 @@ commitment to dates.
   3/3 passing, 0 errors, 0 warnings. This partially addresses
   G-6a only; `semantic_truth_validated=false`, so second-provider
   or manual upstream-output validation remains open.
+* **Phase 6.a.1 manual semantic replay review** (CURRENT REPLAY
+  SET CLOSED, ADR-69). Manual review checked seed_008, seed_065,
+  and seed_018 against upstream diff/test evidence and recorded
+  3/3 `manual_semantic_pass`. Closes G-6a for the current archived
+  load-bearing replay set only; future LLM-authored replay sets
+  need the same static-plus-manual review discipline.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 
 **Open audit findings (per `BACKLOG.md` G-6, in priority
-order per cgpro QA/A48/QA/A49):**
+order per cgpro QA/A48/QA/A49/QA/A50):**
 
-1. **G-6a — Partial: static consistency lane complete; semantic
-   replay validation remains next empirical priority.** Per cgpro
-   QA/A49, the first G-6a block was the cheap offline static audit.
-   It found no static inconsistency in the three load-bearing
-   archived replays, but it does not validate provider-independent
-   replay truth or upstream PR semantics. Remaining stronger work:
-   re-author via a 2nd provider and diff, OR hand-review replays
-   against upstream PR test outputs.
-2. **G-6d — Statistical thinness** (corpus expansion toward
+1. **G-6d — Statistical thinness** (corpus expansion toward
    N≥20). Currently N_pinned=6 with 2 holdouts evaluated.
-3. **G-6e — Partial** (seed_018's success is causally
+2. **G-6e — Partial** (seed_018's success is causally
    independent of the bootstrap fixes; seed_065's success
    remains entangled with 6.1'f/g motivations).
-4. **G-6c — Partial** (seed_018 demonstrates audit-informed
+3. **G-6c — Partial** (seed_018 demonstrates audit-informed
    Tier-3 authoring; broader Tier-3 authoring discipline /
    checklist not yet codified for the 40 unpinned cases).
 
@@ -324,12 +334,13 @@ validation missing, G-4 docs/roadmap confusion (partially
 addressed by §4/§8 here + close-out reports), G-5
 plain-language explanation (partially addressed).
 
-After ADR-68: the project may either (a) pursue remaining G-6a
-semantic replay validation per cgpro priority, (b) extend the
-corpus toward G-6d, (c) ship a Phase 7 research moat, or (d)
+After ADR-69: the project may either (a) extend the corpus toward
+G-6d, (b) codify G-6c seed-authoring review discipline as part of
+that expansion, (c) ship a Phase 7 research moat, or (d)
 revisit official fusion fields once a predictive-validation
 dataset exists. None is currently scheduled. The chain is now at
-a natural pause point with one static G-6a lane closed.
+a natural pause point with G-6a closed for the current archived
+load-bearing replay set.
 
 ## 6. Architecture honesty
 
@@ -410,19 +421,20 @@ WITH these caveats.
   10th flag without updating the predeclared list AND citing
   an explicit ADR fails CI loudly. Audit finding G-6b is
   **CLOSED**.
-* **LLM-replay-audit gap (G-6a) — PARTIALLY ADDRESSED by
-  ADR-68 static audit; semantic validation still OPEN.** Both
+* **LLM-replay-audit gap (G-6a) — CLOSED for the current archived
+  load-bearing replay set by ADR-68 + ADR-69.** Both
   claim-supporting outcomes (and the new seed_018 outcome)
   rest on DeepSeek-authored replay files. Pydantic validates
   SHAPE; ADR-68 now validates static content consistency across
   seed/packet/pass/report/evidence references for the three
   load-bearing archives and found no static inconsistency
   (3/3 pass, 0 errors, 0 warnings). The audit explicitly sets
-  `semantic_truth_validated=false`: if the replay content is
-  internally consistent but semantically wrong about upstream PR
-  truth, this audit would not catch it. Per cgpro QA/A49, the
-  remaining empirical priority is provider-independent or manual
-  semantic replay validation before corpus expansion.
+  `semantic_truth_validated=false`; ADR-69 then manually reviewed
+  the same cases against upstream non-LLM diff/test evidence and
+  found 3/3 `manual_semantic_pass`. Closure is scoped: future
+  LLM-authored replay sets still need static-plus-manual review,
+  and this does not validate product safety, predictive validity,
+  broad generalisation, or future replay correctness.
 * **N=6 is still statistically thin for any generalisation
   claim (G-6d).** At N_pinned=6 with 2 holdouts evaluated,
   ratio 2/6=0.33, the signal is consistent with overfitting

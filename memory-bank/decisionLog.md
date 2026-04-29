@@ -2979,3 +2979,40 @@ The 6.1' chain is now formally closed with the post-consolidation-v2 canonical r
 **G-6a state after ADR-68:** PARTIALLY ADDRESSED. Static replay-content consistency lane is closed. Remaining G-6a lane: provider-independent or manual semantic replay validation against upstream PR/test truth. G-6d (larger-N corpus expansion) remains lower priority than the remaining semantic replay validation.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-29 21:45:00] - **ADR-69: Phase 6.a.1 manual semantic replay review closes G-6a for the current archived load-bearing replay set.**
+**Why:** ADR-68 closed only the static consistency lane and deliberately set `semantic_truth_validated=false`. Per cgpro QA/A49, the next block was manual upstream-output review before any G-6d corpus expansion. After Yann clarified that `.env` has `PAT_GITHUB` and many GitHub data sources are available, cgpro QA/A50 confirmed the PAT does NOT expand this block: direct local clone diff plus scoped pytest rerun is sufficient non-LLM evidence for the three code/test-grounded replay claims.
+
+**Decision:**
+
+* Scope stays exactly the three archived load-bearing replay cases:
+  * `seed_008_pytest_dev_pytest_14407`
+  * `seed_065_simonw_sqlite_utils_680`
+  * `seed_018_python_attrs_attrs_1529`
+* Do not use `PAT_GITHUB` for this block. GitHub API data is optional provenance only if a local base/head SHA, PR number, diff boundary, or file list is ambiguous. None was ambiguous here.
+* Review standard: seed claim -> packet evidence -> upstream base/head diff -> scoped pytest result -> pass2 supported claim -> grounded-report accepted claim.
+* Allowed outcomes: `manual_semantic_pass`, `manual_semantic_fail`, `ambiguous_insufficient_evidence`.
+* Closure is scoped to the current archived replay set. Future LLM-authored replay sets must inherit static-plus-manual review before their replay content carries claim-supporting weight.
+
+**Evidence checked:**
+
+* `seed_008`: pytest-dev/pytest PR #14407, diff `4afcd4906b9cf4468dc9ca8cf7c53126e190d008` -> `480809ae02a97344e68e52eb015e68b840f2e05c`; local rerun `.venv\Scripts\python.exe -m pytest testing/test_helpconfig.py::test_version_less_verbose -q` -> `2 passed in 0.37s`; replay claim aligns to `-V` entering the same early version path as `--version`.
+* `seed_065`: simonw/sqlite-utils PR #680, diff `fb93452ea8e677f0a2fb002f9c2483072432a6cd` -> `e7ecb0ffdfcb15a879e0da202a00966623f1e79c`; local rerun `.venv\Scripts\python.exe -m pytest tests/test_cli.py::test_csv_detect_types_creates_real_columns -q` -> `1 passed`; replay claim aligns to float/decimal/numpy float mapping from `FLOAT` to `REAL`.
+* `seed_018`: python-attrs/attrs PR #1529, diff `3a68d4913221abc6f8ad3be50937f7ae49300a98` -> `b13a7056c5f407abbd9f3e572ee48ad65afce91c`; local rerun `.venv\Scripts\python.exe -m pytest tests/test_make.py::TestFields::test_instance -q` -> `1 passed in 0.26s`; replay claim aligns to `fields(C()) is fields(C)` for attrs instances.
+
+**Accepted:**
+
+* Local upstream clone diffs and scoped pytest reruns are first-class non-LLM evidence when SHAs match the seed record and the claim is code/test-grounded.
+* `PAT_GITHUB` remains available for future ambiguity resolution or broader corpus work, but it is not a scope-expansion trigger.
+* Add a review-artifact test that validates report shape and hard-wall wording. The test does NOT pretend to validate semantics.
+
+**Rejected:**
+
+* Using the DeepSeek replay as evidence for itself.
+* Pulling PR comments/reviews/discussions when the claim does not depend on maintainer rationale.
+* Bundling G-6d corpus expansion, second-provider reauthoring, prompt edits, verifier edits, or partition changes into ADR-69.
+* Claiming product safety, predictive validity, broad generalisation, provider-independent validity beyond the reviewed archived set, or future replay correctness.
+
+**Outcome:** ADR-69 ships `QA/A50.md`, `reports/phase6_a_semantic_replay_review/review.json`, `reports/phase6_a_semantic_replay_review/review.md`, `tests/test_phase6_a_semantic_replay_review.py`, and canonical status/backlog/progress updates. Review result: 3/3 `manual_semantic_pass`, 0 fail, 0 ambiguous. Test count 1139 -> 1143 (+4 artifact-guard tests). G-6a is CLOSED for the current archived load-bearing replay set by ADR-68 static consistency plus ADR-69 manual semantic review. G-6d becomes the next empirical priority if development continues; G-6c/G-6e remain PARTIALLY ADDRESSED.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
