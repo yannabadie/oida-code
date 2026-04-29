@@ -1,0 +1,18 @@
+{
+  "contradictions": [],
+  "event_id": "evt-seed_018_python_attrs_attrs_1529",
+  "missing_evidence_refs": [],
+  "rejected_claims": [],
+  "requested_tools": [
+    {
+      "expected_evidence_kind": "test_result",
+      "purpose": "Run tests/test_make.py::TestFields::test_instance to verify capability_sufficient claim.",
+      "scope": [
+        "tests/test_make.py::TestFields::test_instance"
+      ],
+      "tool": "pytest"
+    }
+  ],
+  "supported_claims": [],
+  "warnings": []
+}

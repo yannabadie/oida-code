@@ -107,7 +107,7 @@
   },
   {
     "base_sha": "3a68d4913221abc6f8ad3be50937f7ae49300a98",
-    "candidate_reason": "automated initial selection: 6 files changed, 48 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 6 files changed, 48 lines, merge_status=merged; manually reviewed and pinned as Phase 6.1' corpus-quality maintenance v1 HOLDOUT replacement for demoted seed_157 (ADR-65, 2026-04-29). Reason: clean capability_sufficient semantics; pure-Python diff (no rust-core complications); ONE existing test modified plus ONE new sibling test (narrow test_scope per audit G-6c lesson \u2014 specific test name, not class scope); non-backport; non-release-prep; uses PEP 735 [dependency-groups] tests which the clone helper supports natively (no carve-out widening per audit G-6b); 4th distinct repo in the pinned set (python-attrs/attrs joins pytest-dev/pytest, simonw/sqlite-utils, hynek/structlog).",
     "case_id": "seed_018_python_attrs_attrs_1529",
     "changed_files_list": [
       "changelog.d/1529.change.md",
@@ -117,25 +117,41 @@
       "tests/test_make.py",
       "tests/test_mypy.yml"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.attrs_fields_instance_support.capability_sufficient",
+    "claim_text": "After PR #1529 (attrs), `attr.fields()` accepts an attrs INSTANCE in addition to an attrs CLASS. When called on an instance whose `type(...)` carries `__attrs_attrs__`, the implementation in `src/attr/_make.py:fields()` recurses with `type(cls)` and returns the same tuple `fields(C)` would return. Non-attrs instances (e.g. `object()`) still raise `TypeError` with the updated message 'Passed object must be a class or attrs instance.' This is a new capability previously unsupported in the public API.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:40:35Z",
-    "expected_grounding_outcome": "not_run",
+    "evidence_items": [
+      {
+        "confidence": 0.95,
+        "id": "[E.event.1]",
+        "kind": "event",
+        "source": "git",
+        "summary": "PR python-attrs/attrs#1529 modifies src/attr/_make.py:fields(). Production change: when the input is not a class AND not a generic_base, the function now checks `getattr(type(cls), '__attrs_attrs__', None)` and recurses with type(cls) if the instance is from an attrs class. The TypeError message is updated to 'Passed object must be a class or attrs instance.'."
+      },
+      {
+        "confidence": 0.9,
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "source": "ticket",
+        "summary": "tests/test_make.py::TestFields::test_instance is REWRITTEN: was raising TypeError on `fields(C())`; now asserts `fields(C()) is fields(C)` (parametrized via @given(simple_classes()) from hypothesis). A new sibling test test_handler_non_attrs_instance asserts TypeError still raised for non-attrs instances like `object()`."
+      }
+    ],
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "b13a7056c5f407abbd9f3e572ee48ad65afce91c",
-    "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "human_review_required": false,
+    "label_source": "yann_manual_review",
     "labels_observed": [],
     "llm_assist_used": false,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "holdout",
+    "partition_pinned_at": "2026-04-29T15:30:00Z",
     "pr_number": 1529,
     "public_only": true,
     "repo_url": "https://github.com/python-attrs/attrs",
     "script_version": "phase6_1_a_pre_v1",
     "selection_source": "manual",
-    "test_scope": null,
+    "test_scope": "tests/test_make.py::TestFields::test_instance",
     "title": "Add instance support to attrs.fields()"
   },
   {
@@ -468,7 +484,7 @@
   },
   {
     "base_sha": "93ae366874bbd4f69d90495c45b2cd336387496c",
-    "candidate_reason": "automated initial selection: 3 files changed, 18 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 3 files changed, 12 lines, merge_status=merged; awaits manual claim assignment",
     "case_id": "seed_058_pallets_itsdangerous_378",
     "changed_files_list": [
       "CHANGES.rst",
@@ -479,6 +495,7 @@
     "claim_text": null,
     "claim_type": null,
     "collected_at": "2026-04-29T05:41:38Z",
+    "evidence_items": [],
     "expected_grounding_outcome": "not_run",
     "head_sha": "7f4dcf83a07bb3d53f4e0e65ef1b43327b4cca90",
     "human_review_required": true,
@@ -1449,7 +1466,7 @@
   },
   {
     "base_sha": "f002806241bbb5e6cae4d69681738afda4cac0d4",
-    "candidate_reason": "automated initial selection: 3 files changed, 82 lines, merge_status=merged; manually reviewed and pinned as Phase 6.1'c HOLDOUT case (clear capability_sufficient semantics \u2014 new CallsiteParameter enum value with handler; has positive + negative path tests; NOT a backport, NOT release-prep)",
+    "candidate_reason": "automated initial selection: 3 files changed, 82 lines, merge_status=merged; manually reviewed and pinned as Phase 6.1'c HOLDOUT case (clean capability_sufficient semantics \u2014 new CallsiteParameter enum value with handler; has positive + negative path tests; NOT a backport, NOT release-prep). Phase 6.1' corpus-quality maintenance v1 (ADR-65, 2026-04-29): DEMOTED to train. Reason: Phase 6.1'h freeze-rule pass produced status=diagnostic_only with pytest rc=1 due to over-broad operator-authored test_scope (class-level TestCallsiteParameterAdder included pre-existing tests unrelated to PR #761 that fail in the isolated venv); the two specific tests added by PR #761 (test_qual_name_structlog, test_qual_name_logging_origin_absent) each pass individually. Per cgpro QA/A47 corpus-quality maintenance protocol: demote-and-replace, not rewrite Phase 6.1'h result.",
     "case_id": "seed_157_hynek_structlog_761",
     "changed_files_list": [
       "CHANGELOG.md",
@@ -1483,8 +1500,8 @@
     "labels_observed": [],
     "llm_assist_used": false,
     "merge_status": "merged",
-    "partition": "holdout",
-    "partition_pinned_at": "2026-04-29T05:58:00Z",
+    "partition": "train",
+    "partition_pinned_at": "2026-04-29T15:00:00Z",
     "pr_number": 761,
     "public_only": true,
     "repo_url": "https://github.com/hynek/structlog",

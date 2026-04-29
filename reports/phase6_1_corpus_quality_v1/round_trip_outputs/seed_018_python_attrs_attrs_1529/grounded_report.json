@@ -1,0 +1,68 @@
+{
+  "report": {
+    "status": "verification_candidate",
+    "accepted_claims": [
+      {
+        "claim_id": "C.attrs_fields_instance_support.capability_sufficient",
+        "event_id": "evt-seed_018_python_attrs_attrs_1529",
+        "claim_type": "capability_sufficient",
+        "statement": "The fields() function now correctly handles attrs instances by returning the class's __attrs_attrs__.",
+        "confidence": 0.55,
+        "evidence_refs": [
+          "[E.event.1]",
+          "[E.tool.pytest.0]"
+        ],
+        "source": "forward",
+        "is_authoritative": false
+      }
+    ],
+    "rejected_claims": [],
+    "unsupported_claims": [],
+    "blockers": [],
+    "warnings": [],
+    "recommendation": "verifier aggregation accepted=1 rejected=0 unsupported=0. RESERVED: status='verification_candidate' is diagnostic only; ADR-22 still blocks official V_net at v0.4.x.",
+    "authoritative": false
+  },
+  "first_pass_report": {
+    "status": "blocked",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [],
+    "blockers": [
+      "no claim met all aggregation rules (forward + backward + evidence + tool non-contradiction)"
+    ],
+    "warnings": [],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=0. no claim was accepted; verifier output is blocked.",
+    "authoritative": false
+  },
+  "tool_results": [
+    {
+      "tool": "pytest",
+      "status": "ok",
+      "evidence_items": [
+        {
+          "id": "[E.tool.pytest.0]",
+          "kind": "test_result",
+          "summary": "pytest passed scoped to ['tests/test_make.py::TestFields::test_instance'] with no failures (1 passed, 1 warning in 1.57s)",
+          "source": "pytest",
+          "confidence": 0.85
+        }
+      ],
+      "findings": [],
+      "warnings": [],
+      "blockers": [],
+      "runtime_ms": 3174,
+      "output_truncated": false,
+      "output_sha256": "091c5f9a9fbb281efd73911173dc7482f6a05dcbd8aa7d6d50783c3c4fb83b8c",
+      "pytest_summary_line": "1 passed, 1 warning in 1.57s"
+    }
+  ],
+  "audit_log_paths": [
+    ".tmp\\round_trip_corpus_v1\\seed_018_python_attrs_attrs_1529_audit\\2026-04-29\\pytest.jsonl"
+  ],
+  "enriched_evidence_refs": [
+    "[E.tool.pytest.0]"
+  ],
+  "warnings": [],
+  "blockers": []
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "claim_id": "C.attrs_fields_instance_support.capability_sufficient",
+    "event_id": "evt-seed_018_python_attrs_attrs_1529",
+    "necessary_conditions_met": true,
+    "requirement": {
+      "claim_id": "C.attrs_fields_instance_support.capability_sufficient",
+      "missing_requirements": [],
+      "required_evidence_kinds": [
+        "test_result"
+      ],
+      "satisfied_evidence_refs": [
+        "[E.test_result.1]"
+      ]
+    },
+    "warnings": []
+  }
+]

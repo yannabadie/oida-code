@@ -1,0 +1,26 @@
+{
+  "allowed_fields": [
+    "capability",
+    "tests_pass",
+    "operator_accept"
+  ],
+  "deterministic_estimates": [],
+  "event_id": "evt-seed_018_python_attrs_attrs_1529",
+  "evidence_items": [
+    {
+      "confidence": 0.95,
+      "id": "[E.event.1]",
+      "kind": "event",
+      "source": "git",
+      "summary": "PR python-attrs/attrs#1529 modifies src/attr/_make.py:fields(). Production change: when the input is not a class AND not a generic_base, the function now checks `getattr(type(cls), '__attrs_attrs__', None)` and recurses with type(cls) if the instance is from an attrs class. The TypeError message is updated to 'Passed object must be a class or attrs instance.'."
+    },
+    {
+      "confidence": 0.9,
+      "id": "[E.test_result.1]",
+      "kind": "test_result",
+      "source": "ticket",
+      "summary": "tests/test_make.py::TestFields::test_instance is REWRITTEN: was raising TypeError on `fields(C())`; now asserts `fields(C()) is fields(C)` (parametrized via @given(simple_classes()) from hypothesis). A new sibling test test_handler_non_attrs_instance asserts TypeError still raised for non-attrs instances like `object()`."
+    }
+  ],
+  "intent_summary": "Phase 6.1'b auto-generated bundle for case_id seed_018_python_attrs_attrs_1529 (https://github.com/python-attrs/attrs PR #1529, head_sha b13a7056). Claim C.attrs_fields_instance_support.capability_sufficient (type capability_sufficient); test_scope tests/test_make.py::TestFields::test_instance."
+}
