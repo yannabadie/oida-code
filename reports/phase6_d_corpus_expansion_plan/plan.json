@@ -1,0 +1,117 @@
+{
+  "backlog_status_after_success": {
+    "g6c": "partially_addressed_until_checklist_is_exercised",
+    "g6d": "open",
+    "g6d_0": "complete_after_this_plan_only",
+    "next_block": "G-6d.1 pin 4 new cases from existing index, split 3 train / 1 holdout, then clone and scoped-pytest feasibility."
+  },
+  "candidate_policy": {
+    "accept_only_if": [
+      "public_only is true",
+      "merge_status is merged",
+      "repo_url, pr_number, base_sha, and head_sha are non-null",
+      "diff is inspectable without private data",
+      "test_scope is narrow and runnable in the target checkout",
+      "claim_id, claim_text, and claim_type are clear and non-verdict-like",
+      "evidence_items include a diff or implementation fact",
+      "evidence_items include a test result or runnable-scope fact",
+      "partition is frozen before outcome inspection"
+    ],
+    "diversity_preference": "Prefer repo and claim-type diversity only after evidence quality and runnable-scope quality are satisfied.",
+    "fresh_github_harvesting": "defer_to_separate_block_if_needed",
+    "primary_pool": "reports/calibration_seed/index.json existing 46 inclusions",
+    "reject_or_defer_if": [
+      "release-prep only",
+      "dependency-only",
+      "formatting-only",
+      "generated-heavy",
+      "non-Python-adapter-dependent",
+      "over-broad test scope",
+      "PR-comment-dependent",
+      "requires clone-helper carve-out widening"
+    ]
+  },
+  "current_corpus": {
+    "candidate_pool_count": 46,
+    "holdout_count": 2,
+    "holdout_ratio": 0.33,
+    "pinned_case_ids": [
+      "seed_008_pytest_dev_pytest_14407",
+      "seed_018_python_attrs_attrs_1529",
+      "seed_062_simonw_sqlite_utils_690",
+      "seed_065_simonw_sqlite_utils_680",
+      "seed_142_hynek_structlog_790",
+      "seed_157_hynek_structlog_761"
+    ],
+    "pinned_count": 6,
+    "train_count": 4,
+    "unpinned_count": 40
+  },
+  "future_replay_review": {
+    "inherits_adr68_static_audit": true,
+    "inherits_adr69_manual_semantic_review": true,
+    "provider_output_is_not_non_llm_evidence": true
+  },
+  "next_empirical_tranche": {
+    "description": "Pin four new cases from the existing 46-case index before any replay authoring.",
+    "holdout": 1,
+    "phase": "G-6d.1",
+    "resulting_holdout_count": 3,
+    "resulting_holdout_ratio": 0.3,
+    "resulting_pinned_count": 10,
+    "resulting_train_count": 7,
+    "total": 4,
+    "train": 3
+  },
+  "plan_id": "phase6_d_0_corpus_expansion_plan",
+  "planning_date": "2026-04-29",
+  "scope": {
+    "kind": "planning_and_instrumentation_only",
+    "new_replay_sets": 0,
+    "partition_changes": 0,
+    "phase": "G-6d.0",
+    "pins_added": 0,
+    "requires_pat_github": false,
+    "requires_provider_calls": false,
+    "round_trip_outputs_created": 0,
+    "runtime_path_changed": false
+  },
+  "script_version": "phase6_d_0_corpus_expansion_plan_v1",
+  "seed_authoring_checklist": {
+    "checklist_path": "docs/calibration_seed_authoring_checklist.md",
+    "completion_required_before_future_pin": true,
+    "g6c_folded_into_g6d": true,
+    "protocol_path": "docs/calibration_seed_expansion_protocol.md"
+  },
+  "source_index": "reports/calibration_seed/index.json",
+  "stop_conditions": [
+    "implementation starts pinning cases",
+    "implementation changes any partition",
+    "implementation generates replays or round_trip_outputs",
+    "index parse/count mismatch from pinned=6 holdout=2",
+    "candidate policy uses provider judgment as evidence",
+    "candidate policy uses post-outcome convenience",
+    "candidate requires clone-helper carve-out widening",
+    "plan implies G-6d is closed",
+    "plan implies G-6c is closed by documentation alone",
+    "plan claims broad generalisation or product safety",
+    "fresh GitHub harvesting becomes required"
+  ],
+  "target": {
+    "additions_required": 14,
+    "allowed_holdout_ratio": {
+      "max": 0.4,
+      "min": 0.2
+    },
+    "minimum_pinned_count": 20,
+    "recommended_full_additions": {
+      "holdout": 4,
+      "resulting_holdout_count": 6,
+      "resulting_holdout_ratio": 0.3,
+      "resulting_pinned_count": 20,
+      "resulting_train_count": 14,
+      "total": 14,
+      "train": 10
+    }
+  }
+}

@@ -3016,3 +3016,36 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 **Outcome:** ADR-69 ships `QA/A50.md`, `reports/phase6_a_semantic_replay_review/review.json`, `reports/phase6_a_semantic_replay_review/review.md`, `tests/test_phase6_a_semantic_replay_review.py`, and canonical status/backlog/progress updates. Review result: 3/3 `manual_semantic_pass`, 0 fail, 0 ambiguous. Test count 1139 -> 1143 (+4 artifact-guard tests). G-6a is CLOSED for the current archived load-bearing replay set by ADR-68 static consistency plus ADR-69 manual semantic review. G-6d becomes the next empirical priority if development continues; G-6c/G-6e remain PARTIALLY ADDRESSED.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-29 22:30:00] - **ADR-70: G-6d.0 corpus expansion planning - deterministic plan + G-6c checklist, no pins.**
+**Why:** ADR-69 closed G-6a for the current archived load-bearing replay set, making G-6d the next empirical priority if development continues. Per the operator's autonomous-development rule, Codex consulted cgpro before choosing the next block. QA/A51 recommended a small G-6d.0 planning/instrumentation commit first, not immediate pinning or replay authoring. The goal is to make N-growth disciplined before the next manual Tier-3 pass starts.
+
+**Decision:**
+
+* Add `scripts/plan_g6d_corpus_expansion.py` as a deterministic planning script. It reads `reports/calibration_seed/index.json`, validates the current baseline (46 inclusions, 6 pinned, 4 train, 2 holdout), and writes `reports/phase6_d_corpus_expansion_plan/plan.json` + `.md`.
+* Record the current state: 46 candidate records, 6 pinned records, 4 train, 2 holdout, 40 unpinned, holdout ratio 0.33.
+* Set the full G-6d target at N>=20 pinned cases. From the current baseline this means +14 pins, recommended as +10 train and +4 holdout, ending at N=20 and holdout ratio 0.30.
+* Set the next empirical tranche (G-6d.1) to +4 pins from the existing 46-case index, split 3 train / 1 holdout, ending at N=10 and holdout ratio 0.30.
+* Add `docs/calibration_seed_expansion_protocol.md` with candidate policy, stop conditions, replay-review inheritance, and no-provider/no-PAT/no-partition-change boundaries.
+* Add `docs/calibration_seed_authoring_checklist.md` so G-6c seed-authoring quality is folded into future G-6d pinning. The checklist is mandatory before future pins, but G-6c is not closed until it is exercised on new cases.
+* Add `tests/test_phase6_d_corpus_expansion_plan.py` to pin the plan shape and hard walls: no pins, no partition changes, no replay outputs, no provider calls, no PAT requirement, G-6d remains open, G-6c remains partial, and future LLM-authored replay sets inherit ADR-68 static audit + ADR-69 manual semantic review.
+
+**Accepted:**
+
+* Planning before empirical pinning. At N=6, a sloppy pinning pass would only move the brittleness elsewhere.
+* Use the existing 46-case index as the primary pool. Fresh GitHub harvesting is a later separate block only if the 40 unpinned existing records cannot supply enough high-quality candidates.
+* Require narrow runnable pytest scope, inspectable diff, public provenance, evidence_items with implementation/test facts, and partition freeze before outcome inspection.
+* Treat provider output as authoring assistance only. It is not non-LLM evidence.
+
+**Rejected:**
+
+* Pinning new cases in ADR-70.
+* Changing `reports/calibration_seed/index.json` partitions.
+* Creating bundles, replay outputs, or `round_trip_outputs`.
+* Calling providers, calling GitHub, or using `PAT_GITHUB`.
+* Touching runtime code, gateway defaults, provider config, clone helper flags, verifier, generator, or replay prompts.
+* Claiming that a protocol/checklist closes G-6d, closes G-6c, proves broad generalisation, validates future replay correctness, or supports product safety.
+
+**Outcome:** ADR-70 lands as one planning/instrumentation block touching: `QA/A51.md`, `scripts/plan_g6d_corpus_expansion.py`, `docs/calibration_seed_expansion_protocol.md`, `docs/calibration_seed_authoring_checklist.md`, `reports/phase6_d_corpus_expansion_plan/plan.json`, `reports/phase6_d_corpus_expansion_plan/plan.md`, `tests/test_phase6_d_corpus_expansion_plan.py`, plus canonical updates in `BACKLOG.md`, `docs/project_status.md`, `memory-bank/decisionLog.md`, and `memory-bank/progress.md`. Test count 1143 -> 1152 (+9). No seed records changed. No partition changed. No provider or GitHub call is required by the plan. G-6d remains OPEN; G-6d.0 is complete only as a planning/instrumentation sub-block. G-6c remains PARTIALLY ADDRESSED until the checklist is exercised on future pins.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

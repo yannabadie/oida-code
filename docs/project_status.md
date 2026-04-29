@@ -1,4 +1,4 @@
-# `oida-code` — project status (2026-04-29, post-ADR-69 semantic replay review)
+# `oida-code` — project status (2026-04-29, post-ADR-70 G-6d.0 planning)
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when
@@ -32,6 +32,9 @@ what is out of scope, and what the next named phase is.
 > bounded the bootstrap carve-out; static plus manual semantic replay
 > review closed G-6a for the current archived load-bearing replay set;
 > larger-N validation remains open."
+> ADR-70 then added a planning-only G-6d.0 corpus expansion protocol:
+> no new pins, no partition changes, no provider calls, no GitHub
+> harvesting, and G-6d remains open.
 >
 > **The project is not production-ready and does not claim to be.**
 > The empirical signal from the calibration_seed corpus is thin
@@ -96,8 +99,8 @@ These capabilities are usable today by an external operator:
   ADR-55+57) emits 9 files (8 verifier-required + README) from a
   Tier-3-complete calibration_seed record.
 * **Calibration seed corpus** (`reports/calibration_seed/`):
-  46 inclusions across 13 public Python repos; 5 pinned cases
-  (3 train + 2 holdout) with operator-authored Tier-3 fields.
+  46 inclusions across 13 public Python repos; 6 pinned cases
+  (4 train + 2 holdout) with operator-authored Tier-3 fields.
 * **Manual-lane scripts** (3):
   * `build_calibration_seed_index.py` (Phase 6.1'a-pre, ADR-53)
     — collects PR metadata.
@@ -313,20 +316,31 @@ commitment to dates.
   3/3 `manual_semantic_pass`. Closes G-6a for the current archived
   load-bearing replay set only; future LLM-authored replay sets
   need the same static-plus-manual review discipline.
+* **G-6d.0 corpus-expansion planning** (PLANNING SUB-BLOCK
+  CLOSED, ADR-70). `scripts/plan_g6d_corpus_expansion.py` reads
+  the current calibration seed index and writes
+  `reports/phase6_d_corpus_expansion_plan/plan.{json,md}`. It
+  records N=6 (4 train + 2 holdout), target N>=20, first tranche
+  +4 pins split 3 train / 1 holdout, and full target +14 pins
+  split +10 train / +4 holdout. It also codifies the G-6c
+  authoring checklist. It does not add pins, change partitions,
+  generate replays, call providers, call GitHub, or close G-6d.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 
 **Open audit findings (per `BACKLOG.md` G-6, in priority
-order per cgpro QA/A48/QA/A49/QA/A50):**
+order per cgpro QA/A48/QA/A49/QA/A50/QA/A51):**
 
 1. **G-6d — Statistical thinness** (corpus expansion toward
    N≥20). Currently N_pinned=6 with 2 holdouts evaluated.
+   G-6d.0 planned the expansion; empirical pinning has not
+   started.
 2. **G-6e — Partial** (seed_018's success is causally
    independent of the bootstrap fixes; seed_065's success
    remains entangled with 6.1'f/g motivations).
 3. **G-6c — Partial** (seed_018 demonstrates audit-informed
-   Tier-3 authoring; broader Tier-3 authoring discipline /
-   checklist not yet codified for the 40 unpinned cases).
+   Tier-3 authoring; ADR-70 codifies the broader authoring
+   checklist, but it has not yet been exercised on new pins).
 
 Older BACKLOG items (Grok review, 2026-04-28): G-1 official
 OIDA fusion fields blocked, G-2 Python-first, G-3 large-scale
@@ -334,13 +348,12 @@ validation missing, G-4 docs/roadmap confusion (partially
 addressed by §4/§8 here + close-out reports), G-5
 plain-language explanation (partially addressed).
 
-After ADR-69: the project may either (a) extend the corpus toward
-G-6d, (b) codify G-6c seed-authoring review discipline as part of
-that expansion, (c) ship a Phase 7 research moat, or (d)
-revisit official fusion fields once a predictive-validation
-dataset exists. None is currently scheduled. The chain is now at
-a natural pause point with G-6a closed for the current archived
-load-bearing replay set.
+After ADR-70: the next empirical step is G-6d.1, pinning 4 new
+cases from the existing index (3 train / 1 holdout) and then
+checking clone/scoped-pytest feasibility before any replay
+authoring. Phase 7 research moat work or official fusion-field
+revisit remain off the critical path until a larger, cleaner
+validation dataset exists.
 
 ## 6. Architecture honesty
 
@@ -439,7 +452,8 @@ WITH these caveats.
   claim (G-6d).** At N_pinned=6 with 2 holdouts evaluated,
   ratio 2/6=0.33, the signal is consistent with overfitting
   to pytest-runnable targets. The audit's recommended
-  threshold is N≥20.
+  threshold is N≥20. ADR-70 plans the next tranche but does
+  not add evidence; G-6d remains open.
 * **ADR-56 spirit-tension on seed_065 — PARTIALLY ADDRESSED
   (G-6e).** seed_065's `verification_candidate` outcome is
   causally entangled with the 6.1'f/g bootstrap fixes that

@@ -176,17 +176,22 @@ identifies discipline-spirit gaps the chain did not resolve:
   careful 2-item evidence_items, claim_text concision). The
   `verification_candidate` outcome is empirical evidence the
   authoring lesson reduces the seed-record defect class.
-  However: 6/46 records are pinned overall; the discipline
-  has NO mechanism to audit Tier-3 authoring quality across
-  the 40 unpinned records. Future work: a checklist or
-  peer-review step before pinning.
+  ADR-70 / G-6d.0 now codifies the missing review mechanism in
+  `docs/calibration_seed_authoring_checklist.md` and folds
+  checklist completion into future G-6d pinning. This remains
+  PARTIAL until the checklist is exercised on new pins; 40/46
+  records remain unpinned.
 * **G-6d: N=5/N=6 is statistically thin. STATUS: OPEN.**
   Currently N_pinned=6 (4 train + 2 holdout); ratio 2/6=0.33.
   Holdout ratio [0.20, 0.40] guards against overfitting only
-  with N≥20-50. Future work: corpus expansion to ≥20 pinned
-  cases before any cross-target generalisation claim. Per
-  cgpro QA/A48: this is lower priority than G-6a — replay
-  validity matters more than N growth.
+  with N≥20-50. ADR-70 / G-6d.0 adds a deterministic planning
+  script (`scripts/plan_g6d_corpus_expansion.py`), report
+  (`reports/phase6_d_corpus_expansion_plan/plan.{json,md}`),
+  and protocol docs. No cases are pinned and no partitions are
+  changed. Next empirical block: G-6d.1 should pin 4 new cases
+  from the existing 46-case index, split 3 train / 1 holdout,
+  moving to N=10 with holdout ratio 0.30. Full target remains
+  +14 pins to reach N=20 (recommended +10 train / +4 holdout).
 * **G-6e: ADR-56 spirit-tension on seed_065. STATUS:
   PARTIALLY ADDRESSED.** seed_065's bootstrap fixes (6.1'f +
   6.1'g) were causally motivated by the holdout's own
@@ -213,11 +218,11 @@ identifies discipline-spirit gaps the chain did not resolve:
 
 **Status in the backlog (post-corpus-quality-v1 + G-6b
 structural pin + consolidation v2 + ADR-68/ADR-69 replay
-review):** G-6a, G-6b, and G-6f CLOSED for their stated current
-scopes; G-6c and G-6e PARTIALLY addressed; G-6d remains OPEN with
-no scheduled work. With G-6a closed for the current archived
-load-bearing replay set, G-6d corpus expansion becomes the next
-empirical priority if development continues.
+review + ADR-70 G-6d.0 plan):** G-6a, G-6b, and G-6f CLOSED for
+their stated current scopes; G-6c and G-6e PARTIALLY addressed;
+G-6d remains OPEN. G-6d.0 is complete as a planning/instrumentation
+sub-block only; the next empirical priority is G-6d.1 pinning 4
+new cases from the existing index.
 
 ## What this file is NOT
 
