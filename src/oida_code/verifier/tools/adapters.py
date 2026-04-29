@@ -301,6 +301,69 @@ def _evidence_id(tool: ToolName, idx: int) -> str:
     return f"[E.tool.{tool}.{idx}]"
 
 
+def _extract_pytest_plugin_args(repo_root: Path) -> tuple[str, ...]:
+    """Phase 6.1'e fix (ADR-58 step 3): scan the target's
+    ``pyproject.toml`` for ``[tool.pytest].addopts`` (or
+    ``[tool.pytest.ini_options].addopts``) and extract any
+    ``-p <plugin>`` pair (or ``--plugins=<plugin>``-style flag).
+
+    Returns a flat tuple of args to insert into the verifier's
+    pytest argv. The ``-o addopts=`` neutralisation in
+    :class:`PytestAdapter` would otherwise strip these and turn
+    plugin-registered options (e.g. ``pytester_example_dir``)
+    into "Unknown config option" errors, killing the run.
+
+    Returns an empty tuple if:
+
+    * the target has no ``pyproject.toml``,
+    * the file fails to parse as TOML,
+    * neither ``[tool.pytest]`` nor ``[tool.pytest.ini_options]``
+      defines an ``addopts`` entry,
+    * ``addopts`` contains no ``-p`` directive.
+
+    Reads only — no side effects on the target tree.
+    """
+    try:
+        import tomllib
+    except ImportError:  # pragma: no cover  — Python < 3.11
+        return ()
+    pyproject = repo_root / "pyproject.toml"
+    if not pyproject.is_file():
+        return ()
+    try:
+        data = tomllib.loads(
+            pyproject.read_text(encoding="utf-8"),
+        )
+    except Exception:  # pragma: no cover  — defensive parsing
+        return ()
+    tool = data.get("tool", {})
+    candidates: list[Any] = []
+    pytest_section = tool.get("pytest")
+    if isinstance(pytest_section, dict):
+        if "addopts" in pytest_section:
+            candidates.append(pytest_section["addopts"])
+        ini_options = pytest_section.get("ini_options")
+        if isinstance(ini_options, dict) and "addopts" in ini_options:
+            candidates.append(ini_options["addopts"])
+    out: list[str] = []
+    for raw in candidates:
+        tokens: list[str] = []
+        if isinstance(raw, list):
+            tokens = [str(x) for x in raw]
+        elif isinstance(raw, str):
+            tokens = raw.split()
+        i = 0
+        while i < len(tokens):
+            tok = tokens[i]
+            if tok == "-p" and i + 1 < len(tokens):
+                out.append("-p")
+                out.append(tokens[i + 1])
+                i += 2
+                continue
+            i += 1
+    return tuple(out)
+
+
 class RuffAdapter(ToolAdapter):
     name: ToolName = "ruff"
     binary: str = "ruff"
@@ -452,8 +515,22 @@ class PytestAdapter(ToolAdapter):
         # which suppresses the terminal summary line and breaks
         # pytest_summary_line. ``-o addopts=`` overrides any ini setting
         # for that key with an empty string.
+        #
+        # Phase 6.1'e fix (ADR-58 step 3): when the target's addopts
+        # include ``-p <plugin>`` directives (pre-loading plugins like
+        # ``pytester``), the neutralization above also strips those.
+        # Plugins registered options (e.g. ``pytester_example_dir``)
+        # then become "Unknown config option" errors, killing the run.
+        # Preserve any ``-p <plugin>`` pairs from the target's
+        # ``[tool.pytest].addopts`` (or ``[tool.pytest.ini_options]``)
+        # so plugin-registered options remain known.
         paths = _scope_paths(request, repo_root)
-        base = ("pytest", "-o", "addopts=", "-q", "--no-header", "--maxfail=20")
+        plugin_args = _extract_pytest_plugin_args(repo_root)
+        base: tuple[str, ...] = (
+            "pytest", "-o", "addopts=",
+            *plugin_args,
+            "-q", "--no-header", "--maxfail=20",
+        )
         if not paths:
             return base
         return (*base, *paths)

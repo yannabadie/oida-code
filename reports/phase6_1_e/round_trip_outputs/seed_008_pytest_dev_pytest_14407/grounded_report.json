@@ -1,0 +1,69 @@
+{
+  "report": {
+    "status": "verification_candidate",
+    "accepted_claims": [
+      {
+        "claim_id": "C.cli_version_flag.repair_needed",
+        "event_id": "evt-seed_008_pytest_dev_pytest_14407",
+        "claim_type": "repair_needed",
+        "statement": "The CLI version flag handling needs repair to correctly count -V occurrences.",
+        "confidence": 0.55,
+        "evidence_refs": [
+          "[E.event.1]",
+          "[E.event.2]",
+          "[E.tool.pytest.0]"
+        ],
+        "source": "forward",
+        "is_authoritative": false
+      }
+    ],
+    "rejected_claims": [],
+    "unsupported_claims": [],
+    "blockers": [],
+    "warnings": [],
+    "recommendation": "verifier aggregation accepted=1 rejected=0 unsupported=0. RESERVED: status='verification_candidate' is diagnostic only; ADR-22 still blocks official V_net at v0.4.x.",
+    "authoritative": false
+  },
+  "first_pass_report": {
+    "status": "blocked",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [],
+    "blockers": [
+      "no claim met all aggregation rules (forward + backward + evidence + tool non-contradiction)"
+    ],
+    "warnings": [],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=0. no claim was accepted; verifier output is blocked.",
+    "authoritative": false
+  },
+  "tool_results": [
+    {
+      "tool": "pytest",
+      "status": "ok",
+      "evidence_items": [
+        {
+          "id": "[E.tool.pytest.0]",
+          "kind": "test_result",
+          "summary": "pytest passed scoped to ['testing/test_helpconfig.py::test_version_less_verbose'] with no failures (2 passed in 0.63s)",
+          "source": "pytest",
+          "confidence": 0.85
+        }
+      ],
+      "findings": [],
+      "warnings": [],
+      "blockers": [],
+      "runtime_ms": 1859,
+      "output_truncated": false,
+      "output_sha256": "c178449272bb51b7cf4ea950c6169cee3d94d323b8186f6cd7eca96df22dc4a9",
+      "pytest_summary_line": "2 passed in 0.63s"
+    }
+  ],
+  "audit_log_paths": [
+    ".tmp\\round_trip_e\\seed_008_audit\\2026-04-29\\pytest.jsonl"
+  ],
+  "enriched_evidence_refs": [
+    "[E.tool.pytest.0]"
+  ],
+  "warnings": [],
+  "blockers": []
+}

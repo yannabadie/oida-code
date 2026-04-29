@@ -581,35 +581,51 @@
   },
   {
     "base_sha": "f9e5fbb3bdc0dc1a14d4460aba885f83b5d32457",
-    "candidate_reason": "automated initial selection: 3 files changed, 77 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 3 files changed, 61 lines, merge_status=merged; manually reviewed and pinned as Phase 6.1'e TRAIN case (clean capability_sufficient semantics; parametrized regression tests; non-trivial Python-only change; non-backport)",
     "case_id": "seed_062_simonw_sqlite_utils_690",
     "changed_files_list": [
       "docs/cli.rst",
       "sqlite_utils/utils.py",
       "tests/test_cli_convert.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.convert_callable_reference.capability_sufficient",
+    "claim_text": "After PR #690 (sqlite-utils), the convert helper in sqlite_utils/utils.py:_compile_code accepts callable references as code (e.g. `r.parsedate` or `json.loads`) in addition to the existing expression-and-function-body forms. The new path tries `eval(code, globals)` and returns the result if it is callable; falls back to the previous compilation path on failure. Imports are now applied BEFORE all approaches so the callable-reference path can resolve names like `json.loads` from `--import json`. New regression tests parametrize over four code forms: `r.parsedate`, `recipes.parsedate`, `r.parsedate(value)`, `recipes.parsedate(value)`.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:42:56Z",
-    "expected_grounding_outcome": "not_run",
+    "evidence_items": [
+      {
+        "confidence": 0.95,
+        "id": "[E.event.1]",
+        "kind": "event",
+        "source": "git",
+        "summary": "PR sqlite-utils#690 modifies sqlite_utils/utils.py:_compile_code: imports applied first; new try/eval path for direct callable references; fall-through to existing function-body compilation. 13 added / 2 removed lines in the production file."
+      },
+      {
+        "confidence": 0.9,
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "source": "ticket",
+        "summary": "Two new tests in tests/test_cli_convert.py: test_convert_callable_reference parametrized over four code forms (callable refs vs calls); test_convert_callable_reference_with_import exercises `json.loads` with --import json."
+      }
+    ],
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "29b07222f5fd8f6824b77c31f36bcc50bb8fc689",
-    "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "human_review_required": false,
+    "label_source": "yann_manual_review",
     "labels_observed": [
       "enhancement",
       "cli-tool"
     ],
     "llm_assist_used": false,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-29T07:30:00Z",
     "pr_number": 690,
     "public_only": true,
     "repo_url": "https://github.com/simonw/sqlite-utils",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
+    "test_scope": "tests/test_cli_convert.py::test_convert_callable_reference",
     "title": "Allow callable references in sqlite-utils convert, closes #686"
   },
   {
@@ -1244,32 +1260,48 @@
   },
   {
     "base_sha": "7401cc4d004a7bac2f5c70cfa938d4a6289f2d90",
-    "candidate_reason": "automated initial selection: 3 files changed, 34 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 3 files changed, 33 lines, merge_status=merged; manually reviewed and pinned as Phase 6.1'e TRAIN case (clean repair_needed semantics; the diff removes a misplaced warning + its test parametrization; non-backport)",
     "case_id": "seed_142_hynek_structlog_790",
     "changed_files_list": [
       "CHANGELOG.md",
       "src/structlog/dev.py",
       "tests/test_dev.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.exception_render_warning.repair_needed",
+    "claim_text": "After PR #790 (structlog), the dev.ConsoleRenderer no longer emits a `warnings.warn` advising the user to remove `format_exc_info` from their processor chain when a non-default `_exception_formatter` is in use. The warning was over-zealous: the renderer happily produces a correctly formatted exception block in that configuration; the warning created noise without diagnostic value. The PR removes the warning AND the test parametrization that asserted the warning was emitted.",
+    "claim_type": "repair_needed",
     "collected_at": "2026-04-29T05:43:41Z",
-    "expected_grounding_outcome": "not_run",
+    "evidence_items": [
+      {
+        "confidence": 0.95,
+        "id": "[E.event.1]",
+        "kind": "event",
+        "source": "git",
+        "summary": "PR structlog#790 removes a 7-line `warnings.warn(...)` block in src/structlog/dev.py that triggered when _exception_formatter is not the default. CHANGELOG.md notes this as a fix in the dev-renderer."
+      },
+      {
+        "confidence": 0.9,
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "source": "ticket",
+        "summary": "tests/test_dev.py::test_exception_rendered is simplified: the wrap=True/False parametrization is removed, the recwarn fixture and warning assertion are removed. Test now only asserts the exception block is rendered after a newline. Net: 1 added, 21 removed lines in the test file."
+      }
+    ],
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "ea3cf94b31bf3f6d1b4c7b461bcaa624f6679ae2",
-    "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "human_review_required": false,
+    "label_source": "yann_manual_review",
     "labels_observed": [],
     "llm_assist_used": false,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-29T07:30:00Z",
     "pr_number": 790,
     "public_only": true,
     "repo_url": "https://github.com/hynek/structlog",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
+    "test_scope": "tests/test_dev.py::test_exception_rendered",
     "title": "dev: don't raise warning on rendered exceptions"
   },
   {
