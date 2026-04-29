@@ -1,5 +1,5 @@
-"""Phase 6.1'e step 3 (per QA/A45) — manual-lane target-checkout
-helper for the calibration_seed lane.
+"""Phase 6.1'e step 3 + Phase 6.1'f (per QA/A45) — manual-lane
+target-checkout helper for the calibration_seed lane.
 
 Shallow-fetches a public GitHub repo at a specific commit SHA
 into a temp workspace, creates a venv, and installs the target
@@ -17,6 +17,24 @@ same SHA reuses the existing clone and venv. Outputs the path
 to the venv's Python interpreter on stdout (the operator pipes
 into the verify-grounded run).
 
+**Install order (Phase 6.1'f / ADR-60):** when
+``--install-oida-code`` is set, the local oida-code package is
+installed FIRST and the cloned target is installed editable
+LAST. The hypothesis (from Phase 6.1'e step 4
+``target_bootstrap_gap`` failures on sqlite-utils + structlog):
+pip's editable-install dependency resolution can remove the
+target's editable link if a later install re-resolves shared
+dependencies. Installing the target last makes its editable
+link the final state.
+
+**Post-install importability smoke (Phase 6.1'f / ADR-60):**
+``--import-smoke PACKAGE`` (repeatable) runs the venv's Python
+as ``python -c "import PACKAGE"`` after all installs and fails
+fast with a ``target_bootstrap_gap`` banner if any import
+fails. Use this for any target whose pytest tests load the
+package via a ``tests/conftest.py`` import (most non-pytest
+projects).
+
 Usage::
 
     export PAT_GITHUB=...   # public repos do not strictly need
@@ -25,9 +43,18 @@ Usage::
         --repo pytest-dev/pytest \\
         --head-sha 480809ae02a97344e68e52eb015e68b840f2e05c \\
         --manual-egress-ok \\
-        --install-oida-code
+        --install-oida-code \\
+        --import-smoke _pytest
 
-The ``--install-oida-code`` flag also pip-installs the local
+    # For non-pytest targets:
+    python scripts/clone_target_at_sha.py \\
+        --repo simonw/sqlite-utils \\
+        --head-sha e7ecb0ffdfcb15a879e0da202a00966623f1e79c \\
+        --manual-egress-ok \\
+        --install-oida-code \\
+        --import-smoke sqlite_utils
+
+The ``--install-oida-code`` flag pip-installs the local
 oida-code package into the venv so a subsequent
 ``<venv>/bin/oida-code verify-grounded ...`` call has both the
 target package AND the verifier available in one venv.
@@ -120,6 +147,49 @@ def _create_venv(target_dir: Path) -> Path:
     return venv
 
 
+def _import_smoke_check(
+    venv_python: Path, packages: list[str],
+) -> None:
+    """Phase 6.1'f (ADR-60) — post-install importability smoke.
+
+    Runs ``<venv>/python -c "import <pkg>"`` for each package
+    in ``packages``. Fails fast on the first failure with a
+    clear ``target_bootstrap_gap`` banner naming the failing
+    package. The check exists because ``pip install -e
+    <clone>`` reports success but does not guarantee the
+    package is on the venv's import path at runtime; the
+    Phase 6.1'e step 4 holdouts (sqlite-utils, structlog)
+    both passed pip but failed pytest's conftest import.
+    """
+    for pkg in packages:
+        print(
+            f"import-smoke: verifying `import {pkg}` in venv ...",
+            file=sys.stderr,
+        )
+        res = subprocess.run(
+            [str(venv_python), "-c", f"import {pkg}"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode != 0:
+            print(
+                f"target_bootstrap_gap: import-smoke for "
+                f"`import {pkg}` FAILED (rc={res.returncode}); "
+                "the package is not on the venv's import path "
+                "after install. The clone helper will not return "
+                "success in this state. stderr tail:",
+                file=sys.stderr,
+            )
+            for line in res.stderr.splitlines()[-10:]:
+                print(f"  {line}", file=sys.stderr)
+            raise SystemExit(2)
+        print(
+            f"import-smoke: `import {pkg}` OK",
+            file=sys.stderr,
+        )
+
+
 def _pip_install_editable(
     venv_python: Path,
     src_dir: Path,
@@ -195,6 +265,21 @@ def main() -> int:
             "--scm-pretend-version other=1.2.3"
         ),
     )
+    parser.add_argument(
+        "--import-smoke",
+        action="append", default=[],
+        metavar="PACKAGE",
+        help=(
+            "After all installs, run the venv's Python as "
+            '`python -c "import PACKAGE"` to verify the package is '
+            "importable. Fails fast with a clear "
+            "target_bootstrap_gap message if the import fails. "
+            "Repeatable: --import-smoke sqlite_utils "
+            "--import-smoke structlog. Phase 6.1'f (ADR-60) "
+            "introduced this flag in response to the holdout "
+            "bootstrap gap surfaced in Phase 6.1'e step 4."
+        ),
+    )
     args = parser.parse_args()
     scm_env: dict[str, str] = {}
     for entry in args.scm_pretend_version:
@@ -246,16 +331,28 @@ def main() -> int:
     venv = _create_venv(target_dir)
     venv_python = _venv_python(venv)
 
-    # Step 3: pip install target (with optional SCM pretend env)
+    # Phase 6.1'f (ADR-60): install order matters.
+    # When --install-oida-code is set, install oida-code FIRST so
+    # the LAST install is the target's editable. Pip's
+    # editable-install dependency resolution can otherwise
+    # remove the target's editable link if a later install
+    # re-resolves shared dependencies (the dominant failure shape
+    # observed on sqlite-utils + structlog in Phase 6.1'e step 4).
+
+    if args.install_oida_code:
+        # Step 3a: install oida-code FIRST.
+        _pip_install_editable(
+            venv_python, _REPO_ROOT, "oida-code (local)",
+        )
+
+    # Step 3b (or step 3 if no oida-code): install target editable LAST.
     _pip_install_editable(
         venv_python, target_dir, args.repo, extra_env=scm_env,
     )
 
-    # Step 4: optionally pip install oida-code
-    if args.install_oida_code:
-        _pip_install_editable(
-            venv_python, _REPO_ROOT, "oida-code (local)",
-        )
+    # Step 4: post-install importability smoke (Phase 6.1'f).
+    if args.import_smoke:
+        _import_smoke_check(venv_python, args.import_smoke)
 
     print()
     print(f"target: {args.repo}@{args.head_sha}")
