@@ -2931,3 +2931,51 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
 
 The 6.1' chain is now formally closed with the post-consolidation-v2 canonical reading. Future work (G-6a replay-content audit, G-6d corpus expansion, etc.) is documented but unscheduled. The empirical priority ordering (G-6a before G-6d) is recorded in BOTH `docs/project_status.md` §5 AND `BACKLOG.md` G-6a status note.
+
+[2026-04-29 20:50:00] - **ADR-68: Phase 6.a static replay-content audit for G-6a - offline consistency lane only; semantic validation remains open.**
+**Why:** BACKLOG G-6a was the next empirical priority after consolidation v2: the three claim-supporting round-trip outcomes (seed_008 train, seed_065 holdout, seed_018 holdout) rested on DeepSeek-authored replay files. Pydantic contract validation proved shape only. Per cgpro QA/A49 (`phase6a-replay-audit`, conversation `69f25185-5f94-8394-ad11-627a00d1741b`), the right first block was a cheap hermetic static audit, not an immediate second-provider panel. The central trap was laundering static consistency into semantic truth.
+
+**Decision:**
+
+* Add `scripts/audit_llm_replays.py` as an offline deterministic audit script. It has no provider call, no network call, no bundle mutation, and no runtime verifier-path integration.
+* Audit only archived replay output directories supplied on the CLI. Default seed index is `reports/calibration_seed/index.json`; default output dir is `reports/phase6_a_replay_audit/`.
+* Require and parse `packet.json`, `pass1_forward.json`, `pass1_backward.json`, `pass2_forward.json`, `pass2_backward.json`, and `grounded_report.json`.
+* Reuse the existing Pydantic contracts (`LLMEvidencePacket`, `ForwardVerificationResult`, `BackwardVerificationResult`) as shape gates, then add static content checks:
+  * case directory must map to a seed record;
+  * packet `event_id` must match `evt-<case_id>`;
+  * pass1 must request exactly one pytest tool call scoped to the seed `test_scope`;
+  * pass2 supported claim id/type/event must align to the seed record;
+  * pass2 supported claim text must overlap materially with seed `claim_text`;
+  * all claim evidence refs must be known after grounded-report enrichment;
+  * supported claims must cite pytest tool evidence (`[E.tool.*]`);
+  * pass2 backward must include the seed claim and require/satisfy `test_result` evidence;
+  * grounded-report accepted claims must be a subset of pass2 supported claims.
+* Emit both machine-readable and human-readable output:
+  `reports/phase6_a_replay_audit/audit.json` and
+  `reports/phase6_a_replay_audit/audit.md`.
+* Hard-code the epistemic boundary in the output:
+  `audit_scope=static_content_consistency` and
+  `semantic_truth_validated=false`.
+
+**Accepted:**
+
+* Static audit first: it gives a cheap, reviewable failure screen before spending provider/manual-review effort.
+* The audit targets exactly the load-bearing archives available now:
+  `reports/phase6_1_e/round_trip_outputs/seed_008_pytest_dev_pytest_14407`,
+  `reports/phase6_1_h/round_trip_outputs/seed_065_simonw_sqlite_utils_680`, and
+  `reports/phase6_1_corpus_quality_v1/round_trip_outputs/seed_018_python_attrs_attrs_1529`.
+* Test coverage is fixture-driven and includes pass plus targeted failures: unknown case id, claim mismatch, pytest scope mismatch, unknown evidence ref, missing pytest tool evidence, missing backward `test_result` requirement, and grounded report accepting a claim absent from pass2 support.
+* Documentation status is PARTIALLY ADDRESSED, not CLOSED: only G-6a static consistency is closed.
+
+**Rejected:**
+
+* Calling the result "semantic validation" or "replay truth". A pass means only no static inconsistency was detected.
+* Re-authoring immediately with a second provider before the static screen exists. That remains a stronger future lane, not the first implementation block.
+* Touching seed partitions, Tier-3 records, replay prompts, generator, verifier, clone helper, provider config, or runtime path code.
+* Counting the audit as product safety, upstream PR truth, or provider-independent replay validation.
+
+**Outcome:** Phase 6.a lands as one static-audit block. New code/report surfaces: `scripts/audit_llm_replays.py`, `tests/test_phase6_a_replay_audit.py`, `reports/phase6_a_replay_audit/audit.json`, `reports/phase6_a_replay_audit/audit.md`, `QA/A49.md`, plus canonical docs updates in `BACKLOG.md`, `docs/project_status.md`, `memory-bank/decisionLog.md`, and `memory-bank/progress.md`. Real audit result: 3 cases audited, 3 passed, 0 failed, 0 errors, 0 warnings. Test count 1131 -> 1139 (+8 focused tests).
+
+**G-6a state after ADR-68:** PARTIALLY ADDRESSED. Static replay-content consistency lane is closed. Remaining G-6a lane: provider-independent or manual semantic replay validation against upstream PR/test truth. G-6d (larger-N corpus expansion) remains lower priority than the remaining semantic replay validation.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

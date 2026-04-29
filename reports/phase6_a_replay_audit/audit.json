@@ -1,0 +1,40 @@
+{
+  "audit_scope": "static_content_consistency",
+  "cases": [
+    {
+      "case_id": "seed_008_pytest_dev_pytest_14407",
+      "error_count": 0,
+      "findings": [],
+      "path": "reports/phase6_1_e/round_trip_outputs/seed_008_pytest_dev_pytest_14407",
+      "status": "pass",
+      "warning_count": 0
+    },
+    {
+      "case_id": "seed_065_simonw_sqlite_utils_680",
+      "error_count": 0,
+      "findings": [],
+      "path": "reports/phase6_1_h/round_trip_outputs/seed_065_simonw_sqlite_utils_680",
+      "status": "pass",
+      "warning_count": 0
+    },
+    {
+      "case_id": "seed_018_python_attrs_attrs_1529",
+      "error_count": 0,
+      "findings": [],
+      "path": "reports/phase6_1_corpus_quality_v1/round_trip_outputs/seed_018_python_attrs_attrs_1529",
+      "status": "pass",
+      "warning_count": 0
+    }
+  ],
+  "generated_at": "2026-04-29T18:59:29.701566+00:00",
+  "index_path": "reports/calibration_seed/index.json",
+  "script_version": "phase6_a_replay_audit_v1",
+  "semantic_truth_validated": false,
+  "summary": {
+    "case_count": 3,
+    "error_count": 0,
+    "failed": 0,
+    "passed": 3,
+    "warning_count": 0
+  }
+}

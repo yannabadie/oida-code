@@ -129,18 +129,27 @@ convergent (3/3 providers) methodology critiques on the closed
 6.1' chain. None violate the strict-letter hard wall; each
 identifies discipline-spirit gaps the chain did not resolve:
 
-* **G-6a: LLM-replay-audit gap. STATUS: OPEN (next empirical
-  priority per cgpro QA/A48).** Both claim-supporting
-  round-trip outcomes (seed_008 train, seed_065 holdout) AND
-  the corpus-quality v1 outcome (seed_018 holdout) rest on
-  DeepSeek-authored verifier-pass replays. Pydantic validates
-  SHAPE; nothing validates CONTENT. Cgpro QA/A48 verdict:
-  "replay validity is more load-bearing than N growth" — this
-  should be the next empirical priority before corpus
-  expansion. Future work options: a `scripts/audit_llm_replays.py`
-  that (i) re-authors via a 2nd provider and diffs, OR
-  (ii) statically checks the LLM's `evidence_refs` against the
-  packet's evidence ids, OR (iii) hand-reviews replays against
+* **G-6a: LLM-replay-audit gap. STATUS: PARTIALLY ADDRESSED
+  by ADR-68 static audit; semantic validation still OPEN.**
+  Both claim-supporting round-trip outcomes (seed_008 train,
+  seed_065 holdout) AND the corpus-quality v1 outcome
+  (seed_018 holdout) rest on DeepSeek-authored verifier-pass
+  replays. Pydantic validates SHAPE; ADR-68 now adds a narrow
+  offline static-content audit over CONTENT alignment. New
+  script `scripts/audit_llm_replays.py` checks the three
+  load-bearing archives (seed_008, seed_065, seed_018) for
+  required file presence/parseability, seed/packet/pass/report
+  claim alignment, known evidence refs after enrichment, pytest
+  tool evidence refs, backward test-result evidence, and report
+  accepted-claim subset discipline. Result:
+  `reports/phase6_a_replay_audit/audit.md` reports 3/3 passing,
+  0 errors, 0 warnings. Scope is explicitly
+  `static_content_consistency` and `semantic_truth_validated=false`;
+  this does NOT prove provider-independent replay validity,
+  upstream PR truth, product safety, or semantic correctness.
+  Cgpro QA/A49 records why this static lane was the right first
+  G-6a block. Remaining stronger work options: (i) re-author via
+  a 2nd provider and diff, OR (ii) hand-review replays against
   upstream PR test outputs.
 * **G-6b: Freeze-rule carve-out scope. STATUS: CLOSED by
   ADR-66 (commit `97fe278`, 2026-04-29).** New structural
@@ -197,10 +206,12 @@ identifies discipline-spirit gaps the chain did not resolve:
   task, NOT a Phase 6.1' rewriting.
 
 **Status in the backlog (post-corpus-quality-v1 + G-6b
-structural pin + consolidation v2):** G-6b and G-6f CLOSED;
-G-6c and G-6e PARTIALLY addressed; G-6a and G-6d remain OPEN
-with no scheduled work. G-6a is the cgpro-recommended next
-empirical priority before any corpus expansion (G-6d).
+structural pin + consolidation v2 + ADR-68 static audit):** G-6b
+and G-6f CLOSED; G-6a, G-6c, and G-6e PARTIALLY addressed;
+G-6d remains OPEN with no scheduled work. G-6a's static
+consistency lane is done; its semantic/provider-independent lane
+remains the cgpro-recommended empirical priority before any
+corpus expansion (G-6d).
 
 ## What this file is NOT
 
