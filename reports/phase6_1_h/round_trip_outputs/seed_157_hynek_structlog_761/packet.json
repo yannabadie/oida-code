@@ -1,0 +1,26 @@
+{
+  "allowed_fields": [
+    "capability",
+    "tests_pass",
+    "operator_accept"
+  ],
+  "deterministic_estimates": [],
+  "event_id": "evt-seed_157_hynek_structlog_761",
+  "evidence_items": [
+    {
+      "confidence": 0.95,
+      "id": "[E.event.1]",
+      "kind": "event",
+      "source": "git",
+      "summary": "PR structlog#761 adds CallsiteParameter.QUAL_NAME enum value + _get_callsite_qual_name handler in src/structlog/processors.py. Handler reads frame.f_code.co_qualname (Python 3.11+ only). CHANGELOG.md notes the addition under 25.5.0."
+    },
+    {
+      "confidence": 0.9,
+      "id": "[E.test_result.1]",
+      "kind": "test_result",
+      "source": "ticket",
+      "summary": "Two new tests in tests/processors/test_processors.py: test_qual_name_structlog (asserts qual_name endswith ClassName.method, skipif Python <3.11) and test_qual_name_logging_origin_absent (asserts QUAL_NAME absent when event originates from stdlib LogRecord)."
+    }
+  ],
+  "intent_summary": "Phase 6.1'b auto-generated bundle for case_id seed_157_hynek_structlog_761 (https://github.com/hynek/structlog PR #761, head_sha f7e9f78d). Claim C.callsite_qual_name.capability_sufficient (type capability_sufficient); test_scope tests/processors/test_processors.py::TestCallsiteParameterAdder."
+}

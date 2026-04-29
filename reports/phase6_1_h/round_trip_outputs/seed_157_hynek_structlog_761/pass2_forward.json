@@ -1,0 +1,22 @@
+{
+  "contradictions": [],
+  "event_id": "evt-seed_157_hynek_structlog_761",
+  "missing_evidence_refs": [],
+  "rejected_claims": [],
+  "requested_tools": [],
+  "supported_claims": [
+    {
+      "claim_id": "C.callsite_qual_name.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "confidence": 0.55,
+      "event_id": "evt-seed_157_hynek_structlog_761",
+      "evidence_refs": [
+        "[E.event.1]",
+        "[E.tool.pytest.0]"
+      ],
+      "source": "forward",
+      "statement": "The bundle provides evidence that the QUAL_NAME capability is implemented and tested."
+    }
+  ],
+  "warnings": []
+}

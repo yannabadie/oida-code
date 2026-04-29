@@ -1,0 +1,70 @@
+{
+  "report": {
+    "status": "diagnostic_only",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [
+      {
+        "claim_id": "C.callsite_qual_name.capability_sufficient",
+        "event_id": "evt-seed_157_hynek_structlog_761",
+        "claim_type": "capability_sufficient",
+        "statement": "The bundle provides evidence that the QUAL_NAME capability is implemented and tested.",
+        "confidence": 0.55,
+        "evidence_refs": [
+          "[E.event.1]",
+          "[E.tool.pytest.0]"
+        ],
+        "source": "forward",
+        "is_authoritative": false
+      }
+    ],
+    "blockers": [
+      "requested tool produced only diagnostic evidence (adapter status in error/timeout/tool_missing); cannot promote pass-2 claims (Phase 5.8.1-B)"
+    ],
+    "warnings": [
+      "claim C.callsite_qual_name.capability_sufficient demoted: forward requested tool evidence but the loop produced no [E.tool_output.*] ref (Phase 5.2.1-B)"
+    ],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=1. some claims lack full corroboration; treat as diagnostic.",
+    "authoritative": false
+  },
+  "first_pass_report": {
+    "status": "blocked",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [],
+    "blockers": [
+      "no claim met all aggregation rules (forward + backward + evidence + tool non-contradiction)"
+    ],
+    "warnings": [],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=0. no claim was accepted; verifier output is blocked.",
+    "authoritative": false
+  },
+  "tool_results": [
+    {
+      "tool": "pytest",
+      "status": "error",
+      "evidence_items": [
+        {
+          "id": "[E.tool.pytest.0]",
+          "kind": "tool_finding",
+          "summary": "pytest exited rc=1 with no parseable findings; output excerpt: ......FF.........F................FF.........F................FF........ [ 48%]\n.F................FF.........F................FF.........F.............. [ 97%]\n...                                     ",
+          "source": "pytest",
+          "confidence": 0.5
+        }
+      ],
+      "findings": [],
+      "warnings": [],
+      "blockers": [],
+      "runtime_ms": 1455,
+      "output_truncated": true,
+      "output_sha256": "f2d0013fc0ca36059de3c202f6449b765feaf4362c853d482b630ecaa7d88379",
+      "pytest_summary_line": null
+    }
+  ],
+  "audit_log_paths": [
+    ".tmp\\round_trip_h\\seed_157_hynek_structlog_761_audit\\2026-04-29\\pytest.jsonl"
+  ],
+  "enriched_evidence_refs": [],
+  "warnings": [],
+  "blockers": []
+}

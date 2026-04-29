@@ -1,0 +1,18 @@
+{
+  "contradictions": [],
+  "event_id": "evt-seed_157_hynek_structlog_761",
+  "missing_evidence_refs": [],
+  "rejected_claims": [],
+  "requested_tools": [
+    {
+      "expected_evidence_kind": "test_result",
+      "purpose": "Run tests in tests/processors/test_processors.py::TestCallsiteParameterAdder to verify QUAL_NAME capability",
+      "scope": [
+        "tests/processors/test_processors.py::TestCallsiteParameterAdder"
+      ],
+      "tool": "pytest"
+    }
+  ],
+  "supported_claims": [],
+  "warnings": []
+}

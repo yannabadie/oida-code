@@ -1,0 +1,22 @@
+{
+  "contradictions": [],
+  "event_id": "evt-seed_065_simonw_sqlite_utils_680",
+  "missing_evidence_refs": [],
+  "rejected_claims": [],
+  "requested_tools": [],
+  "supported_claims": [
+    {
+      "claim_id": "C.column_type_mapping.repair_needed",
+      "claim_type": "repair_needed",
+      "confidence": 0.55,
+      "event_id": "evt-seed_065_simonw_sqlite_utils_680",
+      "evidence_refs": [
+        "[E.event.1]",
+        "[E.tool.pytest.0]"
+      ],
+      "source": "forward",
+      "statement": "Column type mapping in sqlite-utils needs repair to map float/decimal to REAL instead of FLOAT"
+    }
+  ],
+  "warnings": []
+}

@@ -1,0 +1,26 @@
+{
+  "allowed_fields": [
+    "capability",
+    "tests_pass",
+    "operator_accept"
+  ],
+  "deterministic_estimates": [],
+  "event_id": "evt-seed_065_simonw_sqlite_utils_680",
+  "evidence_items": [
+    {
+      "confidence": 0.95,
+      "id": "[E.event.1]",
+      "kind": "event",
+      "source": "git",
+      "summary": "PR sqlite-utils#680 modifies sqlite_utils/db.py COLUMN_TYPE_MAPPING: float and decimal.Decimal map to REAL (was FLOAT). numpy types (np.float16/32/64) also map to REAL. cli.py VALID_COLUMN_TYPES extends to (INTEGER, TEXT, FLOAT, REAL, BLOB) for backward compatibility."
+    },
+    {
+      "confidence": 0.9,
+      "id": "[E.test_result.1]",
+      "kind": "test_result",
+      "source": "ticket",
+      "summary": "New test test_csv_detect_types_creates_real_columns in tests/test_cli.py: imports a CSV with float column, runs --detect-types, asserts the produced schema string contains `\"weight\" REAL`. Six existing tests in test_create.py and test_cli.py updated to expect REAL instead of FLOAT."
+    }
+  ],
+  "intent_summary": "Phase 6.1'b auto-generated bundle for case_id seed_065_simonw_sqlite_utils_680 (https://github.com/simonw/sqlite-utils PR #680, head_sha e7ecb0ff). Claim C.column_type_mapping.repair_needed (type repair_needed); test_scope tests/test_cli.py::test_csv_detect_types_creates_real_columns."
+}
