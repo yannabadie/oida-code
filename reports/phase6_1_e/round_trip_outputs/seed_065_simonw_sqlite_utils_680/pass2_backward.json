@@ -1,0 +1,18 @@
+[
+  {
+    "claim_id": "C.column_type_mapping.repair_needed",
+    "event_id": "evt-seed_065_simonw_sqlite_utils_680",
+    "necessary_conditions_met": true,
+    "requirement": {
+      "claim_id": "C.column_type_mapping.repair_needed",
+      "missing_requirements": [],
+      "required_evidence_kinds": [
+        "test_result"
+      ],
+      "satisfied_evidence_refs": [
+        "[E.test_result.1]"
+      ]
+    },
+    "warnings": []
+  }
+]

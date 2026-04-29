@@ -1,0 +1,70 @@
+{
+  "report": {
+    "status": "diagnostic_only",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [
+      {
+        "claim_id": "C.column_type_mapping.repair_needed",
+        "event_id": "evt-seed_065_simonw_sqlite_utils_680",
+        "claim_type": "repair_needed",
+        "statement": "The COLUMN_TYPE_MAPPING change to REAL for float/decimal/numpy types requires test coverage to confirm correct schema generation.",
+        "confidence": 0.55,
+        "evidence_refs": [
+          "[E.event.1]",
+          "[E.tool.pytest.0]"
+        ],
+        "source": "forward",
+        "is_authoritative": false
+      }
+    ],
+    "blockers": [
+      "requested tool produced only diagnostic evidence (adapter status in error/timeout/tool_missing); cannot promote pass-2 claims (Phase 5.8.1-B)"
+    ],
+    "warnings": [
+      "claim C.column_type_mapping.repair_needed demoted: forward requested tool evidence but the loop produced no [E.tool_output.*] ref (Phase 5.2.1-B)"
+    ],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=1. some claims lack full corroboration; treat as diagnostic.",
+    "authoritative": false
+  },
+  "first_pass_report": {
+    "status": "blocked",
+    "accepted_claims": [],
+    "rejected_claims": [],
+    "unsupported_claims": [],
+    "blockers": [
+      "no claim met all aggregation rules (forward + backward + evidence + tool non-contradiction)"
+    ],
+    "warnings": [],
+    "recommendation": "verifier aggregation accepted=0 rejected=0 unsupported=0. no claim was accepted; verifier output is blocked.",
+    "authoritative": false
+  },
+  "tool_results": [
+    {
+      "tool": "pytest",
+      "status": "error",
+      "evidence_items": [
+        {
+          "id": "[E.tool.pytest.0]",
+          "kind": "tool_finding",
+          "summary": "pytest exited rc=4 with no parseable findings; output excerpt: ImportError while loading conftest 'C:\\Code\\Unslop.ai\\.tmp\\clones\\simonw_sqlite_utils_e7ecb0ff\\tests\\conftest.py'.\ntests\\conftest.py:1: in <module>\n    from sqlite_utils import Database\nsqlite_utils\\_",
+          "source": "pytest",
+          "confidence": 0.5
+        }
+      ],
+      "findings": [],
+      "warnings": [],
+      "blockers": [],
+      "runtime_ms": 536,
+      "output_truncated": false,
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "pytest_summary_line": null
+    }
+  ],
+  "audit_log_paths": [
+    ".tmp\\round_trip_e_step4\\seed_065_simonw_sqlite_utils_680_audit\\2026-04-29\\pytest.jsonl"
+  ],
+  "enriched_evidence_refs": [],
+  "warnings": [],
+  "blockers": []
+}

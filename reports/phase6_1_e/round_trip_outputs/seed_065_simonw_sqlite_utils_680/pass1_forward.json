@@ -1,0 +1,18 @@
+{
+  "contradictions": [],
+  "event_id": "evt-seed_065_simonw_sqlite_utils_680",
+  "missing_evidence_refs": [],
+  "rejected_claims": [],
+  "requested_tools": [
+    {
+      "expected_evidence_kind": "test_result",
+      "purpose": "Run test_csv_detect_types_creates_real_columns to verify REAL column type mapping",
+      "scope": [
+        "tests/test_cli.py::test_csv_detect_types_creates_real_columns"
+      ],
+      "tool": "pytest"
+    }
+  ],
+  "supported_claims": [],
+  "warnings": []
+}
