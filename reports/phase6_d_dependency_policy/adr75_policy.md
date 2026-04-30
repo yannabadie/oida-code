@@ -78,3 +78,7 @@ They must not be rescued after a tranche has been frozen.
 G-6d.4 may now start candidate selection from the existing
 `reports/calibration_seed/index.json` pool. The operator must apply this
 policy during candidate inspection before partition freeze.
+
+Postscript: ADR-76 records the actual G-6d.4 outcome. Screening stopped before
+freeze because only two clean candidates survived; no partial +2 tranche was
+allowed.

@@ -70,10 +70,12 @@ Everything else is research or backlog until this path is clear.
 3. Keep agent handoff files current so autonomous development does not
    restart closed work.
 4. Fix the Windows CLI help path.
-5. Apply ADR-75 during G-6d candidate selection: reject or defer
+5. Apply ADR-75 and ADR-76 during G-6d candidate selection: reject or defer
    `requirements/*.txt` / `tox.ini` test-dependency-only candidates
-   before freeze.
-6. Resume corpus pinning toward N>=20 without broad product claims.
+   before freeze, and stop before freeze unless an exact clean +4 tranche is
+   available.
+6. Resume corpus pinning toward N>=20 only through clean exact-four tranches
+   or a separately reviewed source-pool/dependency-policy block.
 
 ## Non-Goals
 
@@ -117,17 +119,18 @@ promise that the code is correct.
 G-6d remains scientifically important. The live corpus after ADR-73 is
 still N=14 (10 train, 4 holdout), and the target remains N>=20.
 
-However, G-6d is not the immediate product strategy. The next G-6d
-block must wait until the repo records a pre-freeze policy for targets
-that expose test dependencies through `requirements/*.txt` or `tox.ini`
-rather than PEP 735 dependency groups.
+However, G-6d is not the immediate product strategy. Any next G-6d
+pinning block must inherit the recorded ADR-75 dependency policy and ADR-76
+exact-four stop rule before freeze.
 
-ADR-75 records the current policy: reject or defer such candidates
-before freeze for G-6d.4. Do not add requirements-file install support
-as a post-freeze rescue for a failing case. Any future support for
-requirements-file / tox-only dependency patterns requires a separate ADR
-before candidate selection and a structural update to the predeclared
-clone-helper flag tests.
+ADR-75 records the dependency policy: reject or defer such candidates
+before freeze for G-6d.4. ADR-76 records the matching tranche policy:
+G-6d.4-style pinning requires an exact clean +4 split +3 train / +1 holdout;
+fewer clean candidates means stop before freeze, not partial freeze. Do not
+add requirements-file install support as a post-freeze rescue for a failing
+case. Any future support for requirements-file / tox-only dependency patterns
+requires a separate ADR before candidate selection and a structural update to
+the predeclared clone-helper flag tests.
 
 ## Authority
 

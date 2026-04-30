@@ -24,10 +24,12 @@ context, not as a replacement for checking the current repo state.
 - The recovered session spans 2026-04-23 to 2026-04-29 and ended at a
   documented natural pause point after commit `e0b7c33`. That is now
   historical context, not the current head state.
-- Current head before the ADR-75 policy block is `e5022d6`
-  (`docs(product): reset diagnostic-first product strategy`). ADR-73
-  stopped G-6d.3 honestly after a post-freeze dependency-boundary
-  failure; the live corpus remains N=14 (10 train, 4 holdout).
+- Current head before the G-6d.4 pre-freeze stop block is `9752f28`
+  (`docs(g6d): record ADR-75 dependency policy`). ADR-73 stopped G-6d.3
+  honestly after a post-freeze dependency-boundary failure; ADR-75
+  recorded the pre-freeze dependency policy; ADR-76 / G-6d.4 then
+  stopped before freeze because only two clean candidates were available.
+  The live corpus remains N=14 (10 train, 4 holdout).
 - G-6a is CLOSED for the current archived load-bearing replay set by
   ADR-68 static audit plus ADR-69 manual semantic review. Do not restart
   G-6a unless a future block creates new LLM-authored replay content
@@ -38,7 +40,10 @@ context, not as a replacement for checking the current repo state.
   ADR-75 then recorded that policy: for G-6d.4, candidates requiring
   `requirements/*.txt`, tox `deps = -r ...`, `pip install -r ...`, or
   a new requirements-file clone-helper flag are rejected or deferred
-  before partition freeze. G-6d remains OPEN toward N>=20.
+  before partition freeze. ADR-76 adds the exact-four rule: G-6d.4-style
+  pinning must freeze exactly four clean candidates split +3 train / +1
+  holdout; fewer clean candidates means stop before freeze, not partial
+  corpus advance. G-6d remains OPEN toward N>=20.
 
 ## cgpro Project Continuity
 
@@ -67,6 +72,12 @@ context, not as a replacement for checking the current repo state.
   `69f329be-0dd4-838f-8687-d68190f21e7d`. Use it for follow-up
   decisions about product vision, front-door docs, CLI UX, dependency
   policy, or whether to resume G-6d.
+- Autonomous protocol thread:
+  `autonomous-protocol-20260430`, ChatGPT conversation
+  `69f3ba6f-60f0-838b-8028-a8af734b2d72`. Use it for follow-up
+  decisions about the autonomous development protocol, provider/model
+  discipline, web/arXiv/context7 research loop, and G-6d.4 exact-four
+  stop semantics.
 - Use parseable, non-streaming calls for project decisions:
 
 ```powershell
@@ -130,6 +141,36 @@ cgpro ask --json --no-stream --timeout 600 --new-session --save <stable-thread-n
   locked down, provider/tool-calling stays opt-in and non-authoritative,
   and all claims must stay tied to evidence, tests, docs, or explicit
   downgraded AI-tier critique.
+
+## Evidence-Led Autonomous Block Protocol
+
+This repo uses the `Evidence-Led Autonomous Block Protocol
+(ELABP-2026-04-30)` from cgpro thread `autonomous-protocol-20260430`.
+
+- cgpro is the decision channel at every substantive inflection point:
+  candidate freeze, stop/continue decision, hard-wall boundary change,
+  provider-policy change, or protocol change that affects future cycles.
+- Codex is the local control plane: it reads the repo, verifies cgpro
+  claims locally, edits tracked files, runs focused tests and full gates,
+  commits, and pushes.
+- Context7 or official docs are required for current library/API/CLI
+  behavior when the block relies on that behavior.
+- web/arXiv research is required for methodology or current ecosystem
+  claims, especially agentic software engineering, repository-level
+  evaluation, provider/model selection, and benchmark validity.
+- Provider API keys may accelerate research or critique only after
+  same-day official docs/model-list refresh. Record provider, model id,
+  date, source, purpose, and redaction discipline whenever a provider
+  call matters.
+- Provider output, cgpro output, Codex CLI output, and Gemini output are
+  never semantic truth. They cannot replace public upstream diffs,
+  dependency inspection, scoped pytest, local tests, or explicit
+  downgraded AI-tier critique labels.
+- Each autonomous block should record a QA file, an ADR, a Markdown
+  report, structured JSON when the block has structured facts, status
+  updates, focused tests, full gates, and exact hard-wall preservation.
+- A bounded stop is a valid deliverable. If the clean evidence set is too
+  small, stop and record why instead of admitting weak candidates.
 
 ## Operating Rules
 

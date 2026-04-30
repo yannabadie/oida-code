@@ -126,6 +126,27 @@ post-freeze rescue for a selected case.
 Diversity across repos and claim types is useful, but evidence quality and
 runnable scoped tests are the first-order gates.
 
+## G-6d.4 exact-four pre-freeze stop rule
+
+ADR-76 records the G-6d.4 screening outcome and makes the tranche rule
+explicit for this style of pinning block: the operator must identify exactly
+four clean candidates before partition freeze, split as +3 train / +1 holdout.
+
+If fewer than four clean candidates survive the public-diff, dependency,
+claim-scope, test-scope, and overlap screens, the block must stop before
+freeze. No partial freeze is allowed: do not freeze the two best candidates,
+do not freeze a train-only or holdout-only subset, and do not admit a
+questionable candidate only to reach N. Accepted-but-unfrozen candidates
+remain possible future tranche members, but they must be re-screened before
+any later freeze.
+
+For ADR-76 / G-6d.4, `seed_074_simonw_sqlite_utils_658` and
+`seed_159_hynek_structlog_759` are accepted for possible future freeze, while
+`seed_071_simonw_sqlite_utils_689` needs more screening because it overlaps an
+already pinned `--functions` behavior case and comes from a broad PR. Since
+only two clean candidates were available, G-6d.4 stopped before freeze and the
+live index stayed at N=14.
+
 ## Replay review inheritance
 
 Any future LLM-authored replay set generated from newly pinned cases inherits:

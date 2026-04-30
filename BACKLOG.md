@@ -188,6 +188,12 @@ identifies discipline-spirit gaps the chain did not resolve:
   ADR-75 then selected the policy-only response for G-6d.4:
   requirements-file / tox-only test-dependency candidates are rejected
   or deferred before freeze rather than rescued post-freeze.
+  ADR-76 / G-6d.4 then screened the existing pool and stopped before
+  freeze because only two candidates were clean enough to preserve:
+  `seed_074_simonw_sqlite_utils_658` and
+  `seed_159_hynek_structlog_759`. The exact-four rule is now explicit:
+  G-6d.4-style pinning requires four clean candidates split +3 train /
+  +1 holdout; fewer clean candidates means stop, not partial freeze.
   This remains PARTIAL because those pins keep
   `human_review_required=true`; independent per-case human review
   has not yet happened and 32/46 records remain unpinned.
@@ -207,6 +213,9 @@ identifies discipline-spirit gaps the chain did not resolve:
   the ADR-72 live state, so N remains 14.
   ADR-75 does not add pins; it records the pre-freeze reject/defer
   policy needed before G-6d.4 selection resumes.
+  ADR-76 / G-6d.4 does not add pins either. It records a pre-freeze stop
+  after screening found only two clean candidates; the live index remains
+  N=14 and at least six more clean pins are still needed before N>=20.
   Full target remains N>=20, so at least 6 more pins are still
   needed before larger-N claims are even considered.
 * **G-6e: ADR-56 spirit-tension on seed_065. STATUS:
@@ -236,12 +245,14 @@ identifies discipline-spirit gaps the chain did not resolve:
 **Status in the backlog (post-corpus-quality-v1 + G-6b
 structural pin + consolidation v2 + ADR-68/ADR-69 replay
 review + ADR-70 G-6d.0 plan + ADR-71/G-6d.1 + ADR-72/G-6d.2
-pinning + ADR-73/G-6d.3 stop):** G-6a, G-6b, and G-6f CLOSED for their stated current
+pinning + ADR-73/G-6d.3 stop + ADR-76/G-6d.4 pre-freeze stop):** G-6a, G-6b, and G-6f CLOSED for their stated current
 scopes; G-6c and G-6e PARTIALLY addressed; G-6d remains OPEN.
 G-6d.0 is complete as a historical planning/instrumentation
 sub-block; G-6d.1 and G-6d.2 are complete as the first two +4
-pin tranches; G-6d.3 is a documented stop, not a live corpus advance;
-ADR-75 is a policy-only dependency boundary block, not a corpus advance.
+pin tranches; G-6d.3 is a documented post-freeze stop, not a live corpus
+advance; ADR-75 is a policy-only dependency boundary block, not a corpus
+advance; ADR-76 / G-6d.4 is a documented pre-freeze stop, not a live corpus
+advance.
 The next empirical priority is continuing corpus
 pinning toward N>=20 without relaxing provenance or
 freeze-before-outcome discipline.

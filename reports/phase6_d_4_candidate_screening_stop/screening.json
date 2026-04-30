@@ -1,0 +1,239 @@
+{
+  "report_id": "phase6_d_4_candidate_screening_stop",
+  "date": "2026-04-30",
+  "protocol_name": "Evidence-Led Autonomous Block Protocol (ELABP-2026-04-30)",
+  "status": "stopped_before_freeze",
+  "public_repo_url": "https://github.com/yannabadie/oida-code",
+  "current_commit": "9752f28261098b429bfba30740bd010559a456ec",
+  "source_index": "reports/calibration_seed/index.json",
+  "source_index_sha256": "54975387b06dfe9d46b1e19a9f69ac844d9275d8479c55360f14987dba8263ae",
+  "current_live_corpus": {
+    "total_records": 46,
+    "pinned": 14,
+    "train": 10,
+    "holdout": 4,
+    "unpinned": 32
+  },
+  "cgpro": {
+    "thread": "autonomous-protocol-20260430",
+    "conversation_id": "69f3ba6f-60f0-838b-8028-a8af734b2d72",
+    "status_before_consultation": "healthy",
+    "decision": "stop_before_freeze",
+    "confidence": "medium"
+  },
+  "decision_flags": {
+    "freeze_performed": false,
+    "live_index_changed": false,
+    "partial_freeze_allowed": false,
+    "exact_four_required": true,
+    "post_freeze_replacement_allowed": false,
+    "accepted_for_possible_freeze_count": 2
+  },
+  "partition_policy": {
+    "valid_tranche_size": 4,
+    "valid_train_delta": 3,
+    "valid_holdout_delta": 1,
+    "fewer_than_four_clean_candidates": "stop_before_freeze",
+    "partial_freeze": "forbidden"
+  },
+  "scope": {
+    "provider_api_calls": 0,
+    "pat_github_used": false,
+    "fresh_github_api_used": false,
+    "replay_outputs_created": 0,
+    "round_trip_outputs_created": 0,
+    "runtime_path_changed": false,
+    "clone_helper_flags_added": 0,
+    "requirements_file_support_added": false,
+    "github_action_changes_required": false
+  },
+  "screening_method": [
+    "Read current repo docs and calibration_seed index.",
+    "Inspected local public clones under .tmp/g6d4_meta with git diff metadata.",
+    "Applied ADR-75 dependency policy before any partition freeze.",
+    "Asked cgpro for the exact-four versus partial-freeze decision.",
+    "Did not run post-freeze scoped pytest because no freeze was performed."
+  ],
+  "candidate_actions": [
+    {
+      "case_id": "seed_074_simonw_sqlite_utils_658",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 658,
+      "base_sha": "d892d2ae49cd29b9639e73cd13017cfeef507ac7",
+      "head_sha": "9b2136b1f4dc40530dce71091b81cd35d08c2be5",
+      "action": "accept_for_possible_future_freeze",
+      "reason": "Clean dependency path via setup.py test extras, changed tests, and a narrow table/view API claim with scoped pytest node tests/test_create.py::test_bad_table_and_view_exceptions. Not frozen because the tranche has only two clean candidates.",
+      "dependency_screen": "setup.py extras_require includes test dependencies; no requirements-file rescue needed.",
+      "candidate_claim": "Database.table(name) rejects views and Database.view(name) rejects non-view names while __getitem__ still dispatches view names.",
+      "candidate_test_scope": "tests/test_create.py::test_bad_table_and_view_exceptions"
+    },
+    {
+      "case_id": "seed_159_hynek_structlog_759",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 759,
+      "base_sha": "bf51b4a2a5f98d1c9a7289b5ceb55b6c01fcdb7a",
+      "head_sha": "a0d568387e63e894aac0cabc12978f37f4e172e1",
+      "action": "accept_for_possible_future_freeze",
+      "reason": "Clean dependency path via PEP 735 tests group, changed test, and a narrow ConsoleRenderer.force_colors property claim with scoped pytest node tests/test_dev.py::TestConsoleRendererForceColorsProperty::test_toggle_force_colors_updates_styles_and_levels. Not frozen because the tranche has only two clean candidates.",
+      "dependency_screen": "pyproject.toml dependency-groups tests includes pytest; no requirements-file rescue needed.",
+      "candidate_claim": "ConsoleRenderer.force_colors is mutable and updates _force_colors, styles, level styles, and columns.",
+      "candidate_test_scope": "tests/test_dev.py::TestConsoleRendererForceColorsProperty::test_toggle_force_colors_updates_styles_and_levels"
+    },
+    {
+      "case_id": "seed_071_simonw_sqlite_utils_689",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 689,
+      "action": "needs_more_screening",
+      "reason": "Dependency path is likely clean, but the candidate overlaps an already pinned --functions behavior case and comes from a broad PR/diff. It cannot be used merely to fill an exact-four tranche."
+    },
+    {
+      "case_id": "seed_041_pallets_itsdangerous_405",
+      "action": "defer",
+      "reason": "Dependency path is modern, but the diff is broad release/version/typing maintenance rather than a narrow behavioral claim."
+    },
+    {
+      "case_id": "seed_058_pallets_itsdangerous_378",
+      "action": "defer",
+      "reason": "ADR-73/ADR-75 requirements-file/tox-only dependency boundary; not eligible for G-6d.4 without a separate pre-selection ADR."
+    },
+    {
+      "case_id": "seed_060_simonw_sqlite_utils_693",
+      "action": "reject",
+      "reason": "Broad pytest-warning/resource cleanup surface over many files, not a narrow claim/test-scope candidate."
+    },
+    {
+      "case_id": "seed_076_simonw_sqlite_utils_654",
+      "action": "reject",
+      "reason": "Mostly test infrastructure and SQLite support metadata; weaker user-visible claim fit than the accepted possible future candidates."
+    },
+    {
+      "case_id": "seed_136_hynek_structlog_802",
+      "action": "defer",
+      "reason": "Relevant tests depend on optional better-exceptions availability outside the standard tests group."
+    },
+    {
+      "case_id": "seed_153_hynek_structlog_767",
+      "action": "reject",
+      "reason": "Test ordering/infrastructure change rather than a narrow target behavior claim."
+    },
+    {
+      "case_id": "seed_154_hynek_structlog_766",
+      "action": "reject",
+      "reason": "Test helper migration / pretend dependency cleanup, not a narrow behavior claim."
+    },
+    {
+      "case_id": "seed_138_hynek_structlog_800",
+      "action": "reject",
+      "reason": "Broad version-support/typing modernization surface."
+    },
+    {
+      "case_id": "seed_152_hynek_structlog_768",
+      "action": "reject",
+      "reason": "Broad modernization/cleanup surface across many runtime and test files."
+    },
+    {
+      "case_id": "seed_160_hynek_structlog_758",
+      "action": "reject",
+      "reason": "Refactor-only terminal initialization change with no changed runnable test scope."
+    },
+    {
+      "case_id": "seed_130_pytest_dev_pluggy_640",
+      "action": "reject",
+      "reason": "Cleanup/refactor with no changed runnable test file."
+    },
+    {
+      "case_id": "seed_109_encode_httpx_3690",
+      "action": "reject",
+      "reason": "Public base/head boundary was not verifiable against the indexed metadata during local screening."
+    },
+    {
+      "case_id": "pydantic_watchfiles_non_python_rust_surface",
+      "action": "reject",
+      "reason": "Non-Python or Rust-adapter surface conflicts with the current Python-first scope."
+    }
+  ],
+  "sources": [
+    {
+      "title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?",
+      "url": "https://arxiv.org/abs/2310.06770",
+      "why_it_matters": "Repo-level SWE requires multi-file context and execution-grounded evaluation."
+    },
+    {
+      "title": "Agentless: Demystifying LLM-based Software Engineering Agents",
+      "url": "https://arxiv.org/abs/2407.01489",
+      "why_it_matters": "Structured localization, repair, and validation can outperform over-complex agents."
+    },
+    {
+      "title": "Why SWE-bench Verified no longer measures frontier coding capabilities",
+      "url": "https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/",
+      "why_it_matters": "Flawed tests and contamination reinforce conservative evaluation discipline."
+    },
+    {
+      "title": "SWE-Adept: An LLM-Based Agentic Framework for Deep Codebase Analysis and Structured Issue Resolution",
+      "url": "https://arxiv.org/abs/2603.01327",
+      "why_it_matters": "Recent agent methodology emphasizes codebase navigation, context management, checkpoints, and test-driven iteration."
+    },
+    {
+      "title": "RepoAudit: An Autonomous LLM-Agent for Repository-Level Code Auditing",
+      "url": "https://arxiv.org/abs/2501.18160",
+      "why_it_matters": "Repository audit agents need memory and validation to reduce hallucinations and false positives."
+    },
+    {
+      "title": "pytest node ID documentation via Context7 / pytest docs",
+      "url": "https://docs.pytest.org/",
+      "why_it_matters": "Focused node IDs are the documented way to run small reproducible checks."
+    },
+    {
+      "title": "Typer testing documentation via Context7 / Typer docs",
+      "url": "https://typer.tiangolo.com/tutorial/testing/",
+      "why_it_matters": "CliRunner tests should assert exit codes and stable output fragments."
+    }
+  ],
+  "verification": [
+    {
+      "command": "python -m json.tool reports\\phase6_d_4_candidate_screening_stop\\screening.json > $null",
+      "outcome": "passed"
+    },
+    {
+      "command": "python -m pytest tests/test_phase6_d_4_candidate_screening_stop.py -q",
+      "outcome": "passed"
+    },
+    {
+      "command": "python -m pytest tests/test_phase6_d_4_candidate_screening_stop.py tests/test_phase6_d_dependency_policy.py tests/test_phase6_d_3_stop.py -q",
+      "outcome": "passed"
+    },
+    {
+      "command": "python -m pytest tests/test_phase6_1_c_partition_discipline.py tests/test_phase6_1_i_predeclared_bootstrap.py tests/test_phase6_1_g_extras_and_groups.py tests/test_reports.py tests/test_self_audit_guard.py -q",
+      "outcome": "passed"
+    },
+    {
+      "command": "git diff --exit-code -- reports\\calibration_seed\\index.json scripts\\clone_target_at_sha.py action.yml src\\oida_code",
+      "outcome": "passed_no_diff"
+    },
+    {
+      "command": "python -m ruff check src/ tests/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+      "outcome": "passed"
+    },
+    {
+      "command": "python -m mypy src/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+      "outcome": "passed"
+    },
+    {
+      "command": "python -m pytest -q",
+      "outcome": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "outcome": "passed"
+    }
+  ],
+  "hard_wall_check": {
+    "mcp_runtime_added": false,
+    "provider_tool_calling_added": false,
+    "default_gateway_changed": false,
+    "official_fusion_fields_unlocked": false,
+    "product_verdict_added": false,
+    "non_python_scope_added": false,
+    "public_benchmark_claim_added": false
+  }
+}

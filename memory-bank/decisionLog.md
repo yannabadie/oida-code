@@ -3233,3 +3233,28 @@ existing pool, rejecting/defering requirements-file / tox-only
 dependency candidates before freeze.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-30 17:30:00] - **ADR-76: G-6d.4 pre-freeze screening stop and evidence-led autonomous protocol.**
+**Why:** The user launched autonomous development with an explicit requirement to consult cgpro, include web/arXiv/Context7 research, and use provider/API-key possibilities without weakening repo trust boundaries. After ADR-75, Codex screened the existing G-6d pool under the new dependency policy. Only two candidates were clean enough to preserve for possible future freeze: `seed_074_simonw_sqlite_utils_658` and `seed_159_hynek_structlog_759`. `seed_071_simonw_sqlite_utils_689` remained questionable because it overlaps an already pinned `--functions` behavior case and comes from a broad PR. Other candidates were rejected or deferred for requirements-file/tox dependency boundaries, optional dependency gaps, broad maintenance/refactor surfaces, test-infrastructure-only changes, unverifiable SHA boundaries, or non-Python/Rust surfaces.
+
+**Decision:** Accept cgpro's `autonomous-protocol-20260430` decision (conversation `69f3ba6f-60f0-838b-8028-a8af734b2d72`): G-6d.4 stops before partition freeze. A G-6d.4-style tranche may freeze only exactly four clean candidates split +3 train / +1 holdout. Fewer clean candidates means stop before freeze, not a partial +2 freeze, not train-only or holdout-only salvage, and not admitting a questionable candidate merely to hit N.
+
+**Accepted:**
+
+* Record the `Evidence-Led Autonomous Block Protocol (ELABP-2026-04-30)` in `AGENTS.md`.
+* Add `QA/A57.md` and `reports/phase6_d_4_candidate_screening_stop/screening.{json,md}`.
+* Add `tests/test_phase6_d_4_candidate_screening_stop.py` to pin stop semantics, exact-four rule, candidate actions, and no-index-change behavior.
+* Update project status, backlog, README, Codex context, progress, and the calibration seed expansion protocol.
+* Preserve `seed_074` and `seed_159` only as accepted-for-possible-future-freeze candidates that must be re-screened before any later tranche.
+
+**Rejected:**
+
+* Freezing only two candidates.
+* Updating `reports/calibration_seed/index.json`.
+* Creating G-6d.4 pinning artifacts, feasibility artifacts, replay bundles, or `round_trip_outputs`.
+* Adding requirements-file/tox dependency rescue or a clone-helper flag.
+* Adding runtime/provider/MCP/default-gateway behavior, GitHub Action default changes, official OIDA fusion fields, non-Python scope, public benchmark claims, or product-verdict language.
+
+**Outcome:** ADR-76 is a stop-and-protocol block. The live corpus remains N=14 (10 train, 4 holdout). G-6d remains OPEN toward N>=20, with at least six more clean pins still needed. A future G-6d attempt must either identify an exact clean +4 under the existing policy or open a separate cgpro-reviewed block for a new source pool or dependency-policy expansion.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

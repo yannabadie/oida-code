@@ -10,13 +10,14 @@ This file began as a 2026-04-29 Claude/Codex handoff. Its original
 "current" sections below are historical where they conflict with the
 repo after ADR-75.
 
-Current head before the ADR-75 policy block is `e5022d6`
-(`docs(product): reset diagnostic-first product strategy`). ADR-73
-stopped G-6d.3 without advancing the live corpus; ADR-74 reset the
-diagnostic-first product strategy; ADR-75 records the dependency
-policy for the next G-6d.4 candidate-selection block. The live
-`reports/calibration_seed/index.json` remains at the ADR-72 state:
-46 records, 14 pinned, 10 train, 4 holdout.
+Current head before the G-6d.4 pre-freeze stop block is `9752f28`
+(`docs(g6d): record ADR-75 dependency policy`). ADR-73 stopped G-6d.3
+without advancing the live corpus; ADR-74 reset the diagnostic-first product
+strategy; ADR-75 recorded the dependency policy for the next G-6d.4
+candidate-selection block; ADR-76 / G-6d.4 stopped before freeze because only
+two clean candidates survived screening. The live
+`reports/calibration_seed/index.json` remains at the ADR-72 state: 46 records,
+14 pinned, 10 train, 4 holdout.
 
 G-6a is closed for the current archived load-bearing replay set by
 ADR-68 plus ADR-69. G-6d remains open toward N>=20, but cgpro review
@@ -26,8 +27,10 @@ agent handoff, CLI UX, and the dependency-install policy were reset.
 ADR-75 chooses a policy-only response: for G-6d.4, candidates that
 need `requirements/*.txt`, tox `deps = -r ...`, manual `pip install -r
 ...`, or a new requirements-file clone-helper flag are rejected or
-deferred before partition freeze. Do not add a clone-helper flag,
-corpus record, runtime path, or claim-surface unlock for that case.
+deferred before partition freeze. ADR-76 adds the exact-four rule for
+G-6d.4-style pinning: freeze exactly four clean candidates split +3 train /
++1 holdout or stop before freeze. Do not add a clone-helper flag, corpus
+record, runtime path, claim-surface unlock, or partial +2 freeze for that case.
 
 Use `docs/product_strategy.md`, `docs/project_status.md`, and
 `AGENTS.md` as the live orientation surfaces before relying on the
