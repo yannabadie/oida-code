@@ -3129,3 +3129,58 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 **Outcome:** `reports/calibration_seed/index.json` was reverted to the ADR-72 live corpus state: 46 records, 14 pinned, 10 train, 4 holdout. Stop artifacts were added under `reports/phase6_d_3_pinning/selection.{json,md}` and `reports/phase6_d_3_pinning/stop.{json,md}`, plus `QA/A54.md` and `tests/test_phase6_d_3_stop.py`. G-6d remains OPEN toward N>=20; at least 6 more successful pins are still needed. G-6c remains PARTIAL; ADR-73 did not add AI-authored pins. No runtime path code, provider config, MCP path, GitHub Action, clone-helper flag, replay output, or product-verdict surface changed.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-30 11:30:00] - **ADR-74: Product strategy reset - diagnostic-first compass before more G-6d pinning.**
+**Why:** After ADR-73, the repo had a valid empirical next step
+(G-6d remains open toward N>=20) but the product direction was becoming
+hard to read. `PLAN.md` still carried historical verdict / fusion /
+repair / GitHub App / SaaS language, while `docs/project_status.md`
+correctly blocked official fields and framed the current product as
+diagnostic-only. The user explicitly asked cgpro for a full repo review
+and clearer product vision because the project felt like it was
+navigating blindly.
+
+**Decision:** Accept cgpro's `repo-product-vision-review` judgement
+(conversation `69f329be-0dd4-838f-8687-d68190f21e7d`): for the next
+30 days, `oida-code` is a diagnostic second opinion for Python
+reviewers, not a merge gate, production-readiness check, autonomous
+repair planner, GitHub App, SaaS, MCP runtime, provider tool-calling
+runtime, default gateway, non-Python adapter, public benchmark, or
+official OIDA fusion-field emitter.
+
+**Accepted:**
+
+* Add `docs/product_strategy.md` as the active product compass.
+* Make README point to product strategy before the phase ledger.
+* Mark `PLAN.md` as historical/aspirational when it conflicts with
+  current diagnostic-only status.
+* Update `AGENTS.md` and `memory-bank/codexContext.md` so future agents
+  see the post-ADR-73 head state (`b8bc2ad`), G-6a closed for the
+  current archived replay set, and G-6d open but paused until product
+  reset plus dependency policy.
+* Fix the local Windows CLI help failure by removing the Unicode arrow
+  from Typer/Rich help text and adding a cp1252 subprocess guard.
+* Record that G-6d can resume only after a pre-freeze policy exists for
+  historical `requirements/*.txt` / `tox.ini` test-dependency patterns.
+
+**Rejected:**
+
+* Continuing G-6d immediately before the product/docs/UX reset.
+* Turning ADR-73 into a successful pinning block.
+* Manually rescuing `seed_058` with `pip install -r requirements/tests.txt`.
+* Replacing a candidate after freeze.
+* Unblocking `total_v_net`, `debt_final`, `corrupt_success`,
+  `corrupt_success_ratio`, or `verdict`.
+* Building GitHub App, SaaS, MCP runtime, provider tool-calling runtime,
+  default gateway, or non-Python support in this block.
+
+**Outcome:** ADR-74 ships `docs/product_strategy.md`,
+`reports/product_strategy_reset.md`, `QA/A55.md`, README / PLAN /
+project-status / AGENTS / Codex-context updates, and tests for the
+product strategy reset plus Windows help encoding. No live corpus index,
+runtime verifier, provider, MCP, GitHub Action behavior, clone-helper
+flag, replay output, or product-verdict surface changed. G-6d remains
+OPEN at N=14 and must be replanned with a dependency-install policy
+before the next pinning tranche.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

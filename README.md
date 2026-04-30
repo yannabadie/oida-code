@@ -4,6 +4,30 @@
 
 Built on the OIDA v4.2 formal model of operational debt and corrupt success (Abadie, 2026).
 
+## Current product strategy
+
+`oida-code` is currently a **diagnostic second opinion for Python
+reviewers**. It helps a reviewer inspect whether claims about an
+AI-authored diff are supported, contradicted, or unsupported by
+executable evidence.
+
+It is **not** a merge gate, production-readiness check, autonomous
+repair system, GitHub App, SaaS, MCP runtime, or non-Python benchmark.
+The gateway path remains opt-in and default-false.
+
+Read these first:
+
+- [`docs/product_strategy.md`](docs/product_strategy.md) - active
+  product direction and 30-day priorities.
+- [`docs/project_status.md`](docs/project_status.md) - verified current
+  repo state and open caveats.
+- [`docs/concepts/oida_code_plain_language.md`](docs/concepts/oida_code_plain_language.md)
+  - plain-language explanation.
+
+The phase ledger below is retained as evidence history. It is not the
+active product roadmap when it conflicts with `docs/product_strategy.md`
+or `docs/project_status.md`.
+
 ## Status
 
 **Phase 3.5 + E1 + E2 + E3 + Phase 4.0 + Phase 4.1 + Phase 4.2 + Phase 4.3 + Phase 4.4 + Phase 4.4.1 + Phase 4.5 + Phase 4.6 + Phase 4.7 + Phase 4.8 + Phase 4.9 + Phase 5.0 (design only) + Phase 5.1 (local tool gateway) + Phase 5.2 (gateway-grounded verifier loop) + Phase 5.3 (gateway verifier calibration scaffolding) + Phase 5.4 (real gateway calibration on runnable holdout) + Phase 5.5 (runnable holdout expansion) + Phase 5.6 (opt-in gateway-grounded action path) + Phase 5.7 (operator soak protocol scaffolded) + Phase 5.8 (Tier 5 operator soak gate cleared — 5 cgpro-labelled useful_true_positive cases across 4 distinct VerifierClaimType values, recommendation=document_opt_in_path with enable-tool-gateway still default false) + Phase 5.8.x (pytest_summary_line schema field on VerifierToolResult + ANSI-strip parser fix; ADR-47, ADR-48) + Phase 5.9 (documentation opt-in path — `examples/gateway_opt_in/` self-audit reproducible bundle, `docs/gateway_opt_in_usage.md` + `docs/interpreting_gateway_reports.md` + `docs/operator_soak_runbook.md` + `docs/security/no_product_verdict_policy.md`, 5 case READMEs aligned with aggregate, adapter argv `-o addopts=` hardening, 32 doc-guard tests; ADR-49) + Phase 6.0 (controlled-beta protocol established — `docs/beta/` operator pack (README + known limits + quickstart + case template + feedback form), `docs/concepts/oida_code_plain_language.md`, `docs/project_status.md` four-section status, `BACKLOG.md` Grok-flagged long-term gaps recorded as backlog NOT phase scope, `scripts/run_beta_feedback_eval.py` zero-feedback-clean aggregator with 17 metrics, `reports/beta/` cases registry + zero-feedback initial aggregate, 53 doc-guard tests; ADR-50; per QA/A41 partial-completion authorization, runs pending external operator recruitment) complete — structural pipeline

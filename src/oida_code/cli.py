@@ -4,7 +4,7 @@ Subcommand status after Phase 1:
 
 * ``inspect``   — Phase 0 (shipped).
 * ``verify``    — Phase 1 deterministic path.
-* ``audit``     — Phase 1 deterministic path (inspect → verify → report).
+* ``audit``     — Phase 1 deterministic path (inspect -> verify -> report).
 * ``normalize`` — Phase 2 (NotImplementedError — needs obligation graph).
 * ``repair``    — Phase 3+ (NotImplementedError).
 """
@@ -69,7 +69,7 @@ class FailOn(StrEnum):
 
 app = typer.Typer(
     name="oida-code",
-    help="AI code verifier — measure the gap between apparent and guaranteed behavior.",
+    help="AI code verifier - measure the gap between apparent and guaranteed behavior.",
     no_args_is_help=True,
     add_completion=False,
 )
@@ -362,7 +362,7 @@ def audit_cmd(
         ),
     ] = False,
 ) -> None:
-    """End-to-end deterministic audit: inspect → verify → report (Phase 1 path)."""
+    """End-to-end deterministic audit: inspect -> verify -> report (Phase 1 path)."""
     request = _build_request(repo_path, base, intent)
     evidence = _run_deterministic_pipeline(
         request,
@@ -514,7 +514,7 @@ def score_trace_cmd(
         ),
     ] = False,
 ) -> None:
-    """Score a Claude Code transcript — emit :class:`TrajectoryMetrics` JSON.
+    """Score a Claude Code transcript - emit :class:`TrajectoryMetrics` JSON.
 
     With ``--repo``, appends a ``session_outcome`` block (git-derived
     non-circular validation signal, ADR-18).
@@ -618,7 +618,7 @@ def repair_cmd(
     """Emit a double-loop repair plan with targeted prompts (Phase 5)."""
     del report_path, out
     raise NotImplementedError(
-        "repair: Phase 5 — wires double-loop dominance + LLM repair prompts."
+        "repair: Phase 5 - wires double-loop dominance + LLM repair prompts."
     )
 
 
@@ -1375,7 +1375,7 @@ def verify_grounded_cmd(
         typer.Option(
             "--gateway-definitions",
             help=(
-                "JSON object mapping ToolName → "
+                "JSON object mapping ToolName -> "
                 "GatewayToolDefinition. Phase 5.2 ships builtins "
                 "but accepts an external map for parity."
             ),
@@ -1476,7 +1476,7 @@ def verify_grounded_cmd(
     if not isinstance(raw_definitions, dict):
         _fail(
             "--gateway-definitions JSON MUST be an object mapping "
-            "tool name → GatewayToolDefinition",
+            "tool name -> GatewayToolDefinition",
         )
     definitions = {
         name: GatewayToolDefinition.model_validate(payload)
@@ -1680,7 +1680,7 @@ def validate_gateway_bundle_cmd(
         ),
     ] = None,
 ) -> None:
-    """Phase 5.6 (ADR-41) §5.6-B: validate a gateway bundle.
+    """Phase 5.6 (ADR-41) 5.6-B: validate a gateway bundle.
 
     Exits 0 on success, 2 on validation failure. Stderr
     receives one line per finding; stdout receives a
@@ -1779,7 +1779,7 @@ def render_gateway_summary_cmd(
         ),
     ] = False,
 ) -> None:
-    """Phase 5.6 §5.6-D — render the Markdown step-summary
+    """Phase 5.6 5.6-D - render the Markdown step-summary
     section for the gateway-grounded action path.
 
     The renderer scans for forbidden product-verdict tokens
@@ -1874,7 +1874,7 @@ def emit_gateway_status_cmd(
             "--report-json",
             help=(
                 "Path string to record as gateway-report-json "
-                "(no I/O — purely a label for the action "
+                "(no I/O - purely a label for the action "
                 "output)."
             ),
         ),
@@ -1898,7 +1898,7 @@ def emit_gateway_status_cmd(
         ),
     ] = "",
 ) -> None:
-    """Phase 5.6 §5.6-E — emit the action outputs in
+    """Phase 5.6 5.6-E - emit the action outputs in
     GITHUB_OUTPUT key=value format.
 
     The ``gateway-status`` enum is statically constrained to

@@ -1,20 +1,41 @@
-# OIDA Code Audit — Active Plan (merged)
+# OIDA Code Audit — Historical Plan (merged)
 
 **Version 1.0 · 2026-04-24 · Supersedes `oida-code-mvp-blueprint.md` §11 and subsumes `docs/legacy/roadmap.md`.**
 
-This document is the single source of truth going forward. It merges the blueprint (architectural truths + schemas + formulas) with the roadmap (realistic schedule + observation model + obligation graph + research-source compatibility matrix). Where they conflict, this file wins.
+This document preserves the merged blueprint and roadmap context from
+2026-04-24. It is no longer the active source of truth for product
+direction where it conflicts with the current diagnostic-only project
+state.
+
+As of ADR-74 / 2026-04-30, active product direction lives in
+`docs/product_strategy.md`, and verified current repo state lives in
+`docs/project_status.md`. This file remains useful for historical
+architecture context and long-horizon research ideas only.
 
 ---
 
-## 0. Authority hierarchy (updated)
+## 0. Authority hierarchy (updated 2026-04-30)
 
 ```
-PLAN.md                                          ← this file (wins on conflicts)
-  ├─ oida-code-mvp-blueprint.md §1-10, §12-13    (architectural truths)
-  ├─ docs/legacy/roadmap.md                      (subsumed: kept for change-log traceability)
-  ├─ docs/legacy/last.md                         (historical)
-  └─ docs/legacy/infos.md                        (historical: storage prerequisite + name-collision rationale)
+docs/product_strategy.md                         active product direction
+docs/project_status.md                           verified current repo state
+AGENTS.md                                        autonomous-agent continuity rules
+BACKLOG.md                                       acknowledged gaps, not commitments
+PLAN.md                                          historical architecture / research plan
 ```
+
+Active authority update:
+
+- `docs/product_strategy.md` defines current product direction.
+- `docs/project_status.md` defines verified current repo state.
+- `AGENTS.md` defines autonomous-agent continuity rules.
+- `BACKLOG.md` records acknowledged gaps, not commitments.
+- `PLAN.md` is historical/aspirational unless a later ADR explicitly
+  reactivates a section.
+
+Older statements in this file about GitHub App, SaaS, active verdict
+surfaces, repair planner, or official fusion-field output are not
+current roadmap commitments.
 
 Pre-merge scratch (`brainstorm2.md`, `brainstorm2_improved.md`)
 removed from the working tree in `chore(repo): tidy root` — the
@@ -33,7 +54,10 @@ Blueprint §11 (the "First 10 implementation days" aspirational plan) is **super
 
 > Measure the gap between what AI-written code *appears* to do (`Q_obs`) and what it *actually* guarantees (grounding + reversibility + observability + verified preconditions). Expose *corrupt success* — high `Q_obs`, negative `V_net` — that outcome-only metrics miss.
 
-**Shape evolution:** CLI first → GitHub Action → GitHub App (+ optional SaaS). Same pipeline, different surfaces.
+**Current shape:** CLI and composite GitHub Action first, both
+diagnostic-only. GitHub App, SaaS, default gateway, autonomous repair
+planner, and official fusion-field output are deferred research or
+backlog concepts, not current product scope.
 
 ---
 

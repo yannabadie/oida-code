@@ -95,10 +95,11 @@ extends the addressing to project status overall through
 `docs/project_status.md` and `docs/concepts/oida_code_plain_language.md`.
 
 **Status in the backlog:** partially addressed in Phase 6.0
-(plain-language explainer + status doc) but the broader cleanup of
-the ADR log and the phase-report style remains future work. Earliest
-re-evaluation is after Phase 6.0 beta feedback says whether the new
-explainer is sufficient.
+(plain-language explainer + status doc) and tightened again by ADR-74
+(`docs/product_strategy.md` + README / PLAN / AGENTS alignment). The
+broader cleanup of the ADR log and the phase-report style remains
+future work. Earliest re-evaluation is after actual reader feedback
+says whether the new front door is sufficient.
 
 ### G-5 — Simple conceptual explanation is needed
 
@@ -114,10 +115,10 @@ the project from `docs/concepts/oida_code_plain_language.md` plus
 `docs/project_status.md` plus the operator quickstart, the gap is
 real and a Phase 6.1 docs round will be required.
 
-**Status in the backlog:** partially addressed in Phase 6.0 (this
-plain-language explainer + status doc are part of the Phase 6.0
-deliverables). Earliest re-evaluation is after Phase 6.0 beta
-feedback returns.
+**Status in the backlog:** partially addressed in Phase 6.0 (the
+plain-language explainer + status doc) and reinforced by ADR-74's
+diagnostic-first `docs/product_strategy.md`. Earliest re-evaluation is
+after actual external-reader feedback returns.
 
 ## Long-term gaps (Phase 6.2 audit, integrated 2026-04-29)
 

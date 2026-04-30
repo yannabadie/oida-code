@@ -1,9 +1,15 @@
-# `oida-code` — project status (2026-04-30, post-ADR-73 G-6d.3 stop)
+# `oida-code` — project status (2026-04-30, post-ADR-74 product strategy reset)
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when
 you want to know what the project does today, what it does not,
 what is out of scope, and what the next named phase is.
+
+For active product direction, read
+[`docs/product_strategy.md`](product_strategy.md) first. As of
+ADR-74 / 2026-04-30, the product path is diagnostic-only for Python
+reviewers; `PLAN.md` is historical/aspirational when it conflicts with
+this status page or the product strategy.
 
 > **Phase 6.0 closed as protocol-only** (per QA/A43, ADR-52). The
 > external-human beta attempt is documented as `not_run` because
@@ -358,6 +364,14 @@ commitment to dates.
   outcome was reached. cgpro ruled that manually rescuing the case
   would widen the dependency-install boundary for this block. No
   replacement was allowed after freeze. The live corpus remains N=14.
+* **Product strategy reset** (ACTIVE DIRECTION SET, ADR-74). cgpro
+  reviewed the repo after ADR-73 and recommended pausing further G-6d
+  pinning long enough to clarify the product compass and repair the
+  front door. `docs/product_strategy.md` now defines the current active
+  direction: diagnostic second opinion for Python reviewers, not a
+  merge gate or production-readiness claim. G-6d remains open, but the
+  next pinning tranche must first record a pre-freeze dependency policy
+  for `requirements/*.txt` / `tox.ini` test-dependency patterns.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 

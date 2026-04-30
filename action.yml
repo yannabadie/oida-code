@@ -49,8 +49,10 @@ inputs:
   fail-on:
     description: |
       `none` (default) | `any_critical` | `corrupt`. Mirrors the
-      `--fail-on` flag on `oida-code audit`. The action exits non-
-      zero when the chosen condition holds.
+      `--fail-on` flag on `oida-code audit`. This is a legacy
+      deterministic-audit control, not an official OIDA
+      `corrupt_success` field and not a merge-readiness verdict. The
+      action exits non-zero when the chosen condition holds.
     required: false
     default: "none"
   surface:

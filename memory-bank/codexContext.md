@@ -4,6 +4,29 @@ Date captured: 2026-04-29.
 Working tree at capture: `main...origin/main`, with pre-existing
 untracked `.tmp/`.
 
+## Current override (2026-04-30)
+
+This file began as a 2026-04-29 Claude/Codex handoff. Its original
+"current" sections below are historical where they conflict with the
+repo after ADR-73.
+
+Current head after the latest pushed block is `b8bc2ad`
+(`chore(phase6.d): record g6d3 stop`). ADR-73 stopped G-6d.3 without
+advancing the live corpus; `reports/calibration_seed/index.json`
+remains at the ADR-72 state: 46 records, 14 pinned, 10 train, 4
+holdout.
+
+G-6a is closed for the current archived load-bearing replay set by
+ADR-68 plus ADR-69. G-6d remains open toward N>=20, but cgpro review
+`repo-product-vision-review` (`69f329be-0dd4-838f-8687-d68190f21e7d`)
+recommended pausing new corpus pinning until product strategy, docs,
+agent handoff, and CLI UX are reset and a dependency-install policy is
+recorded for `requirements/*.txt` / `tox.ini` test-dependency patterns.
+
+Use `docs/product_strategy.md`, `docs/project_status.md`, and
+`AGENTS.md` as the live orientation surfaces before relying on the
+historical capture below.
+
 ## Why this file exists
 
 The user asked Codex to recover the project memory and Claude Code
@@ -210,4 +233,3 @@ Before changing code:
 4. Keep changes scoped. The current project state is mostly a
    research/protocol discipline surface; do not convert unresolved
    caveats into product claims.
-

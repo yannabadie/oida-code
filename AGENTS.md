@@ -10,23 +10,34 @@ context, not as a replacement for checking the current repo state.
    project transcripts and auto-memory.
 2. `CLAUDE.md` - project commands, quality gates, and Claude Code
    operational rules.
-3. `docs/project_status.md` - canonical current project status.
-4. `BACKLOG.md` - acknowledged gaps and current G-6 status.
-5. `reports/phase6_1_close_out_v2.md` - current Phase 6.1' close-out.
+3. `docs/product_strategy.md` - active product direction and
+   diagnostic-only scope.
+4. `docs/project_status.md` - canonical current project status.
+5. `BACKLOG.md` - acknowledged gaps and current G-6 status.
+6. `reports/phase6_1_close_out_v2.md` - historical Phase 6.1'
+   close-out.
 
 ## Current Handoff State
 
 - Claude Code project transcript recovered from
   `C:\Users\yann.abadie\.claude\projects\C--Code-Unslop-ai\5cc25491-da19-440d-b737-d5cd118a09c5.jsonl`.
 - The recovered session spans 2026-04-23 to 2026-04-29 and ended at a
-  documented natural pause point after commit `e0b7c33`.
-- Do not start G-6a just because the prior transcript ended with
-  "Continue from where you left off." The recovered Claude summary says
-  the correct behavior was to wait for explicit user direction after the
-  natural pause point.
-- If the user explicitly resumes implementation, the cgpro-recommended
-  next empirical priority is G-6a: replay-content audit before corpus
-  expansion G-6d.
+  documented natural pause point after commit `e0b7c33`. That is now
+  historical context, not the current head state.
+- Current head after the latest pushed block is `b8bc2ad`
+  (`chore(phase6.d): record g6d3 stop`). ADR-73 stopped G-6d.3
+  honestly after a post-freeze dependency-boundary failure; the live
+  corpus remains N=14 (10 train, 4 holdout).
+- G-6a is CLOSED for the current archived load-bearing replay set by
+  ADR-68 static audit plus ADR-69 manual semantic review. Do not restart
+  G-6a unless a future block creates new LLM-authored replay content
+  that needs the same audit discipline.
+- Per cgpro review `repo-product-vision-review`
+  (`69f329be-0dd4-838f-8687-d68190f21e7d`), the immediate priority is
+  product-strategy / docs / CLI UX reset before any new G-6d pinning.
+  G-6d remains OPEN toward N>=20, but the next G-6d block must first
+  record a pre-freeze dependency-install policy for historical
+  `requirements/*.txt` / `tox.ini` test-dependency patterns.
 
 ## cgpro Project Continuity
 
@@ -46,10 +57,15 @@ context, not as a replacement for checking the current repo state.
   `69f1bde2-70c0-8387-9c89-743f8780cb14`
   (`Phase 6.1 Chain Review`). Resume it for follow-up decisions about
   the already-closed Phase 6.1' / 6.2 / consolidation-v2 chain.
-- For a new G-6a implementation block, create a separate saved thread
-  such as `phase6a-replay-audit` with `--new-session --save` on the
-  first prompt, then use `--resume phase6a-replay-audit` for all
-  follow-up decisions in that block.
+- Existing G-6d / replay-audit thread:
+  `phase6a-replay-audit`, ChatGPT conversation
+  `69f25185-5f94-8394-ad11-627a00d1741b` (`Replay Audit Strategy`).
+  It currently includes ADR-68 through ADR-73 decisions.
+- Product reset thread:
+  `repo-product-vision-review`, ChatGPT conversation
+  `69f329be-0dd4-838f-8687-d68190f21e7d`. Use it for follow-up
+  decisions about product vision, front-door docs, CLI UX, or whether to
+  resume G-6d.
 - Use parseable, non-streaming calls for project decisions:
 
 ```powershell
@@ -61,7 +77,7 @@ cgpro ask --json --no-stream --timeout 600 --resume phase61-review @'
 For a new block:
 
 ```powershell
-cgpro ask --json --no-stream --timeout 600 --new-session --save phase6a-replay-audit @'
+cgpro ask --json --no-stream --timeout 600 --new-session --save <stable-thread-name> @'
 <prompt>
 '@
 ```
