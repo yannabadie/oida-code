@@ -1,0 +1,91 @@
+{
+  "report_id": "phase6_d_3_pinning_stop",
+  "date": "2026-04-30",
+  "cgpro_decision": "QA/A54",
+  "selection_report": "reports/phase6_d_3_pinning/selection.json",
+  "success": false,
+  "continue_current_block": false,
+  "failure_stage": "post_freeze_bootstrap_before_pytest",
+  "partition_freeze_at": "2026-04-30T09:18:00Z",
+  "post_freeze_started_at": "2026-04-30T09:19:00Z",
+  "failure_observed_at": "2026-04-30T09:20:00Z",
+  "cgpro_stop_decision_at": "2026-04-30T09:27:25Z",
+  "live_corpus_after_stop": {
+    "source": "reports/calibration_seed/index.json",
+    "total_records": 46,
+    "pinned": 14,
+    "train": 10,
+    "holdout": 4,
+    "note": "ADR-73 did not commit a live index advance. These are the ADR-72 live counts."
+  },
+  "frozen_attempted_selection": [
+    {
+      "case_id": "seed_058_pallets_itsdangerous_378",
+      "repo_url": "https://github.com/pallets/itsdangerous",
+      "pr_number": 378,
+      "base_sha": "93ae366874bbd4f69d90495c45b2cd336387496c",
+      "head_sha": "7f4dcf83a07bb3d53f4e0e65ef1b43327b4cca90",
+      "intended_partition": "train"
+    },
+    {
+      "case_id": "seed_071_simonw_sqlite_utils_689",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 689,
+      "base_sha": "9d7da0606e98713896bbc9fc885a5b0cd54ac2fd",
+      "head_sha": "7d7e17371f0c8b954c079e696adbc466e8b85bdc",
+      "intended_partition": "train"
+    },
+    {
+      "case_id": "seed_074_simonw_sqlite_utils_658",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 658,
+      "base_sha": "d892d2ae49cd29b9639e73cd13017cfeef507ac7",
+      "head_sha": "9b2136b1f4dc40530dce71091b81cd35d08c2be5",
+      "intended_partition": "train"
+    },
+    {
+      "case_id": "seed_159_hynek_structlog_759",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 759,
+      "base_sha": "bf51b4a2a5f98d1c9a7289b5ceb55b6c01fcdb7a",
+      "head_sha": "a0d568387e63e894aac0cabc12978f37f4e172e1",
+      "intended_partition": "holdout"
+    }
+  ],
+  "failure": {
+    "case_id": "seed_058_pallets_itsdangerous_378",
+    "clone_command": "python scripts/clone_target_at_sha.py --repo pallets/itsdangerous --head-sha 7f4dcf83a07bb3d53f4e0e65ef1b43327b4cca90 --manual-egress-ok --clones-dir .tmp/g6d3_clones --install-oida-code --install-group tests --import-smoke itsdangerous",
+    "clone_exit_code": 1,
+    "clone_failure_summary": "pip install --group tests failed because pyproject.toml has no [dependency-groups] table.",
+    "scoped_pytest_outcome_reached": false,
+    "diagnostic_pytest_attempt": {
+      "command": "C:/Code/Unslop.ai/.tmp/g6d3_clones/pallets_itsdangerous_7f4dcf83/.venv/Scripts/python.exe -m pytest tests/test_itsdangerous/test_serializer.py::TestSerializer::test_iter_unsigners -q",
+      "exit_code": 1,
+      "summary": "No module named pytest; not counted as scoped pytest outcome."
+    },
+    "target_dependency_evidence": {
+      "tox_ini": "deps = -r requirements/tests.txt; commands = pytest -v --tb=short --basetemp={envtmpdir} {posargs}",
+      "requirements_tests_contains": [
+        "pytest==8.1.1"
+      ],
+      "interpretation": "The target has a legitimate older tox/requirements-file test dependency pattern, but using it here would require a new dependency-install path for this project block."
+    }
+  },
+  "cgpro_stop_decision": {
+    "manual_requirements_install_allowed": false,
+    "replacement_allowed_after_freeze": false,
+    "successful_g6d3_commit_allowed": false,
+    "reason": "seed_058 had already been documented as the older requirements-pattern risk; rescuing it post-freeze would widen the dependency-install boundary inside ADR-73."
+  },
+  "scope": {
+    "provider_calls_as_evidence": 0,
+    "pat_github_used": false,
+    "fresh_github_api_used": false,
+    "replay_outputs_created": 0,
+    "round_trip_outputs_created": 0,
+    "runtime_path_changed": false,
+    "clone_helper_flags_added": 0,
+    "src_changes_required": false,
+    "github_action_changes_required": false
+  }
+}

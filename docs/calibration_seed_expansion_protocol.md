@@ -2,8 +2,8 @@
 
 This protocol governs G-6d corpus expansion after ADR-69. It was authored
 as ADR-70 before G-6d.1. The baseline counts below are therefore historical
-pre-G-6d.1 counts; the live corpus after ADR-72 is N=14 (10 train + 4
-holdout). The protocol still governs future pinning tranches so larger-N
+pre-G-6d.1 counts; the live corpus after ADR-73 stop is still the ADR-72
+state: N=14 (10 train + 4 holdout). The protocol still governs future pinning tranches so larger-N
 work does not dilute the lane separation, holdout discipline, or
 replay-review hard walls already established.
 
@@ -14,8 +14,8 @@ were pinned: four train cases and two holdout cases. The holdout ratio was
 0.33.
 
 G-6d remains open because N=14 is still too thin for any broad cross-target
-claim. The target for the next larger-N milestone is at least 20 pinned cases while
-keeping holdout ratio inside the existing 0.20 to 0.40 band.
+claim. The target for the next larger-N milestone is at least 20 pinned cases
+while keeping holdout ratio inside the existing 0.20 to 0.40 band.
 
 ## G-6d.0 scope
 
@@ -57,9 +57,9 @@ The full G-6d target from the ADR-70 baseline was +14 new pinned cases:
 - resulting holdout=6;
 - resulting holdout ratio 0.30.
 
-After ADR-72, the live corpus is N=14 and at least 6 more pins are still
-needed to reach N=20. Fresh GitHub harvesting is not part of G-6d.0,
-G-6d.1, or G-6d.2. If the remaining existing unpinned records cannot
+After ADR-73 stop, the live corpus is still N=14 and at least 6 more pins
+are still needed to reach N=20. Fresh GitHub harvesting is not part of G-6d.0,
+G-6d.1, G-6d.2, or the stopped G-6d.3 attempt. If the remaining existing unpinned records cannot
 supply enough high-quality cases, harvesting becomes a separate later block
 with its own consultation and report.
 
@@ -84,6 +84,13 @@ Reject or defer a candidate when it is release-prep-only, dependency-only,
 formatting-only, generated-heavy, non-Python-adapter-dependent, over-broad in
 test scope, dependent on PR comments for the claim, or likely to require a
 clone-helper carve-out.
+
+If a candidate's test dependencies are only exposed through an older tox
+requirements-file pattern such as `deps = -r requirements/tests.txt`, do not
+rescue it post-freeze by manually installing that file. Either reject or defer
+it before freeze, or run a separate cgpro-directed policy block that explicitly
+decides whether requirements-file installs become a predeclared manual-lane
+capability.
 
 Diversity across repos and claim types is useful, but evidence quality and
 runnable scoped tests are the first-order gates.

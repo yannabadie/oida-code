@@ -1,4 +1,4 @@
-# `oida-code` — project status (2026-04-30, post-ADR-72 G-6d.2 pinning)
+# `oida-code` — project status (2026-04-30, post-ADR-73 G-6d.3 stop)
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when
@@ -37,8 +37,12 @@ what is out of scope, and what the next named phase is.
 > harvesting. ADR-71 / G-6d.1 then exercised that protocol on four
 > existing public records, and ADR-72 / G-6d.2 repeated the same
 > pinning-only pattern on four more. The calibration_seed corpus is
-> now N_pinned=14 (10 train + 4 holdout). G-6d remains open because
-> the documented target is still N>=20.
+> now N_pinned=14 (10 train + 4 holdout). ADR-73 / G-6d.3 then
+> froze a third +4 candidate set but stopped on the first post-freeze
+> bootstrap check because the target used an older requirements-file
+> test-dependency pattern that would require a new dependency-install
+> path. The live index was reverted to the ADR-72 state. G-6d remains
+> open because the documented target is still N>=20.
 >
 > **The project is not production-ready and does not claim to be.**
 > The empirical signal from the calibration_seed corpus is still thin
@@ -107,7 +111,8 @@ These capabilities are usable today by an external operator:
   46 inclusions across 13 public Python repos; 14 pinned cases
   (10 train + 4 holdout). Eight G-6d.1/G-6d.2 pins are
   `ai_authored_public_diff_review` with `human_review_required=true`;
-  they are not yet independent human-reviewed pins.
+  they are not yet independent human-reviewed pins. ADR-73 attempted
+  but did not add pins.
 * **Manual-lane scripts** (3):
   * `build_calibration_seed_index.py` (Phase 6.1'a-pre, ADR-53)
     — collects PR metadata.
@@ -346,6 +351,13 @@ commitment to dates.
   (10 train + 4 holdout, ratio 0.29). These pins also use
   `label_source=ai_authored_public_diff_review` and keep
   `human_review_required=true`.
+* **G-6d.3 corpus pinning stop** (STOPPED, ADR-73). A third +4
+  candidate set was frozen, but the first post-freeze feasibility
+  command hit `pallets/itsdangerous`' older
+  `requirements/tests.txt` dependency pattern before scoped pytest
+  outcome was reached. cgpro ruled that manually rescuing the case
+  would widen the dependency-install boundary for this block. No
+  replacement was allowed after freeze. The live corpus remains N=14.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 
@@ -356,14 +368,16 @@ order per cgpro QA/A48/QA/A49/QA/A50/QA/A51):**
    N≥20). Currently N_pinned=14 with 4 holdouts, but only the
    earlier archived replay set has been semantically reviewed.
    G-6d.1 and G-6d.2 completed the first two +4 pin tranches;
-   the N>=20 target remains open.
+   G-6d.3 stopped before any live index advance. The N>=20 target
+   remains open.
 2. **G-6e — Partial** (seed_018's success is causally
    independent of the bootstrap fixes; seed_065's success
    remains entangled with 6.1'f/g motivations).
 3. **G-6c — Partial** (seed_018 demonstrates audit-informed
    Tier-3 authoring; ADR-70 codifies the broader authoring
    checklist; ADR-71 and ADR-72 exercise it on eight AI-authored
-   public-diff pins that still require independent human review).
+   public-diff pins that still require independent human review.
+   ADR-73 did not add more pins).
 
 Older BACKLOG items (Grok review, 2026-04-28): G-1 official
 OIDA fusion fields blocked, G-2 Python-first, G-3 large-scale
@@ -371,12 +385,12 @@ validation missing, G-4 docs/roadmap confusion (partially
 addressed by §4/§8 here + close-out reports), G-5
 plain-language explanation (partially addressed).
 
-After ADR-72: the next empirical G-6d step is another labelled
-corpus-quality tranche toward N>=20, still preserving public-diff
-evidence, freeze-before-outcome discipline, and human-review
-provenance. Phase 7 research moat work or official fusion-field
-revisit remain off the critical path until a larger, cleaner
-validation dataset exists.
+After ADR-73 stop: the next empirical G-6d step must be replanned
+with cgpro. The likely split is either an explicit requirements-file
+test-dependency policy block or a fresh pinning tranche that excludes
+the stopped older-dependency pattern before freeze. Phase 7 research
+moat work or official fusion-field revisit remain off the critical
+path until a larger, cleaner validation dataset exists.
 
 ## 6. Architecture honesty
 
@@ -475,9 +489,9 @@ WITH these caveats.
   claim (G-6d).** At N_pinned=14 with 4 holdouts, ratio
   4/14=0.29, the signal is still consistent with overfitting
   to pytest-runnable targets. The audit's recommended threshold
-  is N>=20. ADR-71 and ADR-72 completed two +4 pin tranches but
-  did not create replay outputs or larger-N validation; G-6d
-  remains open.
+  is N>=20. ADR-71 and ADR-72 completed two +4 pin tranches; ADR-73
+  stopped on a bootstrap boundary and did not create replay outputs,
+  new pins, or larger-N validation. G-6d remains open.
 * **ADR-56 spirit-tension on seed_065 — PARTIALLY ADDRESSED
   (G-6e).** seed_065's `verification_candidate` outcome is
   causally entangled with the 6.1'f/g bootstrap fixes that

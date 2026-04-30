@@ -180,7 +180,10 @@ identifies discipline-spirit gaps the chain did not resolve:
   `docs/calibration_seed_authoring_checklist.md` and folds
   checklist completion into future G-6d pinning. ADR-71 / G-6d.1
   and ADR-72 / G-6d.2 exercise that checklist on eight
-  AI-authored public-diff pins.
+  AI-authored public-diff pins. ADR-73 / G-6d.3 froze a third
+  candidate set but stopped before successful pinning because the
+  first selected case hit an older requirements-file test-dependency
+  pattern that would require a new dependency-install path.
   This remains PARTIAL because those pins keep
   `human_review_required=true`; independent per-case human review
   has not yet happened and 32/46 records remain unpinned.
@@ -195,6 +198,9 @@ identifies discipline-spirit gaps the chain did not resolve:
   3 train / 1 holdout, moving to N=10 with holdout ratio 0.30.
   ADR-72 / G-6d.2 pinned 4 more existing records, again split
   3 train / 1 holdout, moving to N=14 with holdout ratio 0.29.
+  ADR-73 / G-6d.3 attempted another +4 tranche but stopped after
+  freeze and before scoped pytest outcome; the index was reverted to
+  the ADR-72 live state, so N remains 14.
   Full target remains N>=20, so at least 6 more pins are still
   needed before larger-N claims are even considered.
 * **G-6e: ADR-56 spirit-tension on seed_065. STATUS:
@@ -224,11 +230,12 @@ identifies discipline-spirit gaps the chain did not resolve:
 **Status in the backlog (post-corpus-quality-v1 + G-6b
 structural pin + consolidation v2 + ADR-68/ADR-69 replay
 review + ADR-70 G-6d.0 plan + ADR-71/G-6d.1 + ADR-72/G-6d.2
-pinning):** G-6a, G-6b, and G-6f CLOSED for their stated current
+pinning + ADR-73/G-6d.3 stop):** G-6a, G-6b, and G-6f CLOSED for their stated current
 scopes; G-6c and G-6e PARTIALLY addressed; G-6d remains OPEN.
 G-6d.0 is complete as a historical planning/instrumentation
 sub-block; G-6d.1 and G-6d.2 are complete as the first two +4
-pin tranches; the next empirical priority is continuing corpus
+pin tranches; G-6d.3 is a documented stop, not a live corpus advance.
+The next empirical priority is continuing corpus
 pinning toward N>=20 without relaxing provenance or
 freeze-before-outcome discipline.
 
