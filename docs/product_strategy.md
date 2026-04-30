@@ -70,11 +70,13 @@ Everything else is research or backlog until this path is clear.
 3. Keep agent handoff files current so autonomous development does not
    restart closed work.
 4. Keep the front-door diagnostic CLI UX aligned with this document.
-5. Apply ADR-75 and ADR-76 during G-6d candidate selection: reject or defer
+5. Keep the reusable GitHub Action metadata aligned with the same
+   diagnostic-only front door.
+6. Apply ADR-75 and ADR-76 during G-6d candidate selection: reject or defer
    `requirements/*.txt` / `tox.ini` test-dependency-only candidates
    before freeze, and stop before freeze unless an exact clean +4 tranche is
    available.
-6. Resume corpus pinning toward N>=20 only through clean exact-four tranches
+7. Resume corpus pinning toward N>=20 only through clean exact-four tranches
    or a separately reviewed source-pool/dependency-policy block.
 
 ## Non-Goals
@@ -138,6 +140,14 @@ Phase 6.e aligns the existing `audit --format markdown` path with this product
 strategy. The human Markdown report is now a diagnostic reviewer surface: it
 does not present internal legacy JSON verdict labels as product claims, does
 not add a new alias, and does not change JSON/SARIF compatibility.
+
+## Phase 6.f GitHub Action Metadata
+
+Phase 6.f aligns the reusable `action.yml` public metadata with the same
+diagnostic-only product strategy. The action description now presents the
+Action as a diagnostic artifact producer for AI-authored Python diffs, not an
+AI code verifier, merge gate, production-readiness decision, or guarantee of
+behavior. Action defaults and runtime behavior are unchanged.
 
 ## Authority
 

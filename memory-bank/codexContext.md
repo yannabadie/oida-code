@@ -180,6 +180,8 @@ Use `docs/project_status.md` as canonical, but the high-level state is:
 - No public benchmark claim.
 - No PyPI stable release.
 - No public beta reopened by Phase 6.1' / Phase 6.2.
+- Public CLI and GitHub Action front doors are diagnostic-only after ADR-77
+  and ADR-78.
 - Official fields stay blocked/null:
   `total_v_net`, `debt_final`, `corrupt_success`,
   `corrupt_success_ratio`, `verdict`,

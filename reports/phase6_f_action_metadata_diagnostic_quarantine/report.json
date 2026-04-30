@@ -1,0 +1,73 @@
+{
+  "report_id": "phase6_f_action_metadata_diagnostic_quarantine",
+  "date": "2026-04-30",
+  "source_commit": "c930244910696fc406fde4ee96570ab1d224b157",
+  "cgpro": {
+    "thread": "autonomous-protocol-20260430",
+    "conversation_id": "69f3ba6f-60f0-838b-8028-a8af734b2d72",
+    "next_block_id": "Phase 6.f - GitHub Action Metadata Diagnostic Quarantine"
+  },
+  "action_metadata_changed": true,
+  "action_runs_changed": false,
+  "action_defaults_changed": false,
+  "workflow_changed": false,
+  "source_code_changed": false,
+  "provider_call_used": false,
+  "direct_provider_call": false,
+  "corpus_index_changed": false,
+  "clone_helper_changed": false,
+  "runtime_gateway_default_changed": false,
+  "mcp_runtime_changed": false,
+  "json_schema_changed": false,
+  "sarif_schema_changed": false,
+  "forbidden_public_phrases_removed": [
+    "AI code verifier",
+    "actually guarantees",
+    "guaranteed behavior",
+    "merge-safe",
+    "production-safe",
+    "bug-free",
+    "security-verified"
+  ],
+  "safe_defaults_pinned": {
+    "enable-tool-gateway": "false",
+    "upload-sarif": "false",
+    "fail-on": "none",
+    "llm-provider": "replay",
+    "gateway-fail-on-contract": "false"
+  },
+  "changed_surfaces": [
+    "action.yml",
+    "QA/A59.md",
+    "reports/phase6_f_action_metadata_diagnostic_quarantine/report.json",
+    "reports/phase6_f_action_metadata_diagnostic_quarantine/report.md",
+    "tests/test_phase6_f_action_metadata_diagnostic_quarantine.py",
+    "README.md",
+    "docs/diagnostic_cli_quickstart.md",
+    "docs/product_strategy.md",
+    "docs/project_status.md",
+    "BACKLOG.md",
+    "memory-bank/codexContext.md",
+    "memory-bank/decisionLog.md",
+    "memory-bank/progress.md"
+  ],
+  "hard_wall_check": {
+    "official_fusion_fields_unlocked": false,
+    "merge_decision_claim_added": false,
+    "production_readiness_claim_added": false,
+    "bug_free_claim_added": false,
+    "security_verification_claim_added": false,
+    "public_benchmark_claim_added": false,
+    "autonomous_repair_claim_added": false
+  },
+  "verification": [
+    "python -m json.tool reports\\phase6_f_action_metadata_diagnostic_quarantine\\report.json > $null",
+    "python -m pytest tests/test_phase6_f_action_metadata_diagnostic_quarantine.py -q",
+    "python -m pytest tests/test_phase6_f_action_metadata_diagnostic_quarantine.py tests/test_phase6_e_front_door_diagnostic_cli.py tests/test_product_strategy_reset.py tests/test_reports.py tests/test_self_audit_guard.py -q",
+    "git diff --exit-code -- reports\\calibration_seed\\index.json scripts\\clone_target_at_sha.py src\\oida_code .github\\workflows",
+    "python -m ruff check src/ tests/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m mypy src/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m pytest -q",
+    "git diff --check"
+  ]
+}

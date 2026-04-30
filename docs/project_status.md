@@ -1,9 +1,14 @@
-# `oida-code` — project status (2026-04-30, post-G-6d.4 pre-freeze stop)
+# `oida-code` — project status (2026-04-30, post-Phase 6.f action metadata quarantine)
 
 ADR-76 update: G-6d.4 screened the existing pool under ADR-75 and stopped
 before freeze because only two clean candidates survived. No partial +2
 freeze is allowed; a G-6d.4-style tranche requires exactly four clean
 candidates split +3 train / +1 holdout. The live index remains N=14.
+
+ADR-77 / ADR-78 update: the active front doors now use diagnostic-only
+language. `audit --format markdown` no longer presents legacy JSON verdict
+labels as product claims, and `action.yml` no longer describes the reusable
+Action as an AI code verifier or as measuring guaranteed behavior.
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when

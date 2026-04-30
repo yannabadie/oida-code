@@ -37,6 +37,11 @@ python -m oida_code.cli audit <target-repo> --base HEAD --format markdown --out 
 The Markdown output is diagnostic-only. JSON keeps the legacy internal schema
 for compatibility.
 
+The reusable GitHub Action is also a diagnostic artifact producer, not a merge
+gate. Keep caller workflows least-privilege; `upload-sarif` stays default
+`false`, `enable-tool-gateway` stays default `false`, and `fail-on` stays
+default `none`.
+
 The phase ledger below is retained as evidence history. It is not the
 active product roadmap when it conflicts with `docs/product_strategy.md`
 or `docs/project_status.md`.

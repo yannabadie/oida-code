@@ -1,12 +1,13 @@
 name: oida-code
 description: |
-  AI code verifier — measures the gap between what AI-written code
-  appears to do and what it actually guarantees. Phase 4.5 (ADR-30):
-  reusable composite action that produces JSON / Markdown / SARIF
-  artifacts. NO GitHub App, NO custom Checks API annotations, NO
-  external LLM provider by default. Reports stay diagnostic only;
-  ADR-22 keeps `total_v_net` / `debt_final` / `corrupt_success` null
-  in production.
+  Diagnostic evidence for AI-authored Python diffs. Produces JSON /
+  Markdown / SARIF artifacts to help reviewers inspect whether claims
+  are supported, contradicted, or still missing evidence. Not a merge
+  or production-readiness decision. Phase 4.5 (ADR-30): reusable
+  composite action only. NO GitHub App, NO custom Checks API
+  annotations, NO external LLM provider by default. Reports stay
+  diagnostic only; ADR-22 keeps `total_v_net` / `debt_final` /
+  `corrupt_success` null in production.
 
 author: yannabadie
 

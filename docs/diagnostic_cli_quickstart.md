@@ -51,3 +51,11 @@ ready, free of bugs, free of security defects, or valid across a benchmark.
 The official OIDA fusion fields remain blocked in this product path. JSON keeps
 legacy internal fields for compatibility, but the human Markdown is the
 diagnostic reviewer surface.
+
+## GitHub Action note
+
+The reusable GitHub Action is the same diagnostic-only path packaged for CI.
+Caller workflows should keep `permissions: contents: read` by default and grant
+`security-events: write` only to the job that sets `upload-sarif: "true"`.
+The action defaults remain conservative: `upload-sarif: "false"`,
+`enable-tool-gateway: "false"`, and `fail-on: "none"`.

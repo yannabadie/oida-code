@@ -3282,3 +3282,39 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 **Outcome:** Phase 6.e is a front-door UX alignment block. It does not advance G-6d, does not change runtime trust boundaries, and does not alter JSON compatibility. The reviewer-facing Markdown now quarantines legacy internal labels behind diagnostic-only language.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-30 21:00:00] - **ADR-78: Phase 6.f GitHub Action metadata diagnostic quarantine.**
+**Why:** After ADR-77 quarantined the local CLI/Markdown front door, cgpro
+selected the reusable `action.yml` metadata as the next highest-visibility
+stale public surface. The action description still opened with "AI code
+verifier" and "actually guarantees", which conflicted with ADR-74 and ADR-77.
+
+**Decision:** Update `action.yml` public metadata text only. Preserve every
+behavior-bearing action surface: input names, defaults, outputs, `runs`,
+commands, SARIF behavior, provider behavior, gateway behavior, workflows, and
+source code.
+
+**Accepted:**
+
+* `action.yml` now describes the reusable Action as diagnostic evidence for
+  AI-authored Python diffs, not a merge or production-readiness decision.
+* Added `QA/A59.md`,
+  `reports/phase6_f_action_metadata_diagnostic_quarantine/report.{json,md}`,
+  and `tests/test_phase6_f_action_metadata_diagnostic_quarantine.py`.
+* Added short README / quickstart / product-status notes so the GitHub Action
+  front door matches the CLI front door.
+
+**Rejected:**
+
+* Any change to `action.yml` `runs`, defaults, input names, output names, shell
+  commands, SARIF upload behavior, gateway behavior, fail-on behavior, or
+  provider behavior.
+* Any `.github/workflows/**` or `src/oida_code/**` change.
+* Corpus/index, clone-helper, provider runtime, MCP runtime, gateway default,
+  JSON/SARIF schema, public benchmark, official fusion-field, or product
+  verdict changes.
+
+**Outcome:** Phase 6.f is a metadata quarantine block. It reduces public
+mispositioning risk without changing runtime behavior or trust boundaries.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX + ADR-78 action metadata diagnostic quarantine anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
