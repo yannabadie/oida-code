@@ -1,0 +1,106 @@
+{
+  "report_id": "phase6_d_1_pinning_feasibility",
+  "date": "2026-04-30",
+  "selection_report": "reports/phase6_d_1_pinning/selection.json",
+  "partition_freeze_at": "2026-04-30T04:10:00Z",
+  "post_freeze_started_at": "2026-04-30T04:11:00Z",
+  "scope": {
+    "phase": "G-6d.1",
+    "provider_calls": 0,
+    "pat_github_used": false,
+    "fresh_github_api_used": false,
+    "replay_outputs_created": 0,
+    "round_trip_outputs_created": 0,
+    "runtime_path_changed": false,
+    "clone_helper_flags_added": 0
+  },
+  "aggregate": {
+    "cases": 4,
+    "passed": 4,
+    "failed": 0,
+    "flaky": 0
+  },
+  "results": [
+    {
+      "case_id": "seed_003_pytest_dev_pytest_14420",
+      "partition": "train",
+      "repo_url": "https://github.com/pytest-dev/pytest",
+      "pr_number": 14420,
+      "base_sha": "68a341f49596fa43c89e052d437723860b98a443",
+      "head_sha": "093184048e36453c5b8c1bb770f22e956a9f310d",
+      "clone_started_at": "2026-04-30T04:11:00Z",
+      "pytest_completed_at": "2026-04-30T04:12:00Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/clones/pytest_dev_pytest_09318404",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo pytest-dev/pytest --head-sha 093184048e36453c5b8c1bb770f22e956a9f310d --manual-egress-ok --install-oida-code --scm-pretend-version pytest=9.0.0 --import-smoke pytest",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/clones/pytest_dev_pytest_09318404/.venv/Scripts/python.exe -m pytest testing/python/raises.py::TestRaises::test_raises_match_failure_suppresses_exception_context -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e pytest-dev/pytest"
+      ],
+      "import_smoke": "import pytest OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "1 passed in 0.12s"
+    },
+    {
+      "case_id": "seed_064_simonw_sqlite_utils_683",
+      "partition": "train",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 683,
+      "base_sha": "0bbc68089ca3da9c7de89fcc549c89a2939ea65c",
+      "head_sha": "2a958bc86f5079b8b96e621a6c92730a4570dae5",
+      "clone_started_at": "2026-04-30T04:12:00Z",
+      "pytest_completed_at": "2026-04-30T04:14:00Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/clones/simonw_sqlite_utils_2a958bc8",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo simonw/sqlite-utils --head-sha 2a958bc86f5079b8b96e621a6c92730a4570dae5 --manual-egress-ok --install-oida-code --install-extras test --import-smoke sqlite_utils",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/clones/simonw_sqlite_utils_2a958bc8/.venv/Scripts/python.exe -m pytest tests/test_cli.py::test_insert_detect_types -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e simonw/sqlite-utils[test]"
+      ],
+      "import_smoke": "import sqlite_utils OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "3 selected pytest invocations passed; pytest stdout rendered three progress dots and exit_code=0"
+    },
+    {
+      "case_id": "seed_066_simonw_sqlite_utils_681",
+      "partition": "holdout",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 681,
+      "base_sha": "fb93452ea8e677f0a2fb002f9c2483072432a6cd",
+      "head_sha": "4147ed07041d05370c5ed6b136f5f9e02d5e5b6e",
+      "clone_started_at": "2026-04-30T04:14:00Z",
+      "pytest_completed_at": "2026-04-30T04:16:00Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/clones/simonw_sqlite_utils_4147ed07",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo simonw/sqlite-utils --head-sha 4147ed07041d05370c5ed6b136f5f9e02d5e5b6e --manual-egress-ok --install-oida-code --install-extras test --import-smoke sqlite_utils",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/clones/simonw_sqlite_utils_4147ed07/.venv/Scripts/python.exe -m pytest tests/test_cli.py::test_query_functions_multiple_invocations -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e simonw/sqlite-utils[test]"
+      ],
+      "import_smoke": "import sqlite_utils OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "1 selected pytest invocation passed; pytest stdout rendered one progress dot and exit_code=0"
+    },
+    {
+      "case_id": "seed_155_hynek_structlog_763",
+      "partition": "train",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 763,
+      "base_sha": "7f7a221aed6bbff3c13cefd7effe14cc4f0cfc24",
+      "head_sha": "635c5cf1a631e89553d53578f2a8d2cbcfb4ad9f",
+      "clone_started_at": "2026-04-30T04:16:00Z",
+      "pytest_completed_at": "2026-04-30T04:17:00Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/clones/hynek_structlog_635c5cf1",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo hynek/structlog --head-sha 635c5cf1a631e89553d53578f2a8d2cbcfb4ad9f --manual-egress-ok --install-oida-code --scm-pretend-version structlog=25.5.0.dev0 --install-group tests --import-smoke structlog",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/clones/hynek_structlog_635c5cf1/.venv/Scripts/python.exe -m pytest tests/test_frames.py::TestFindFirstAppFrameAndName::test_stacklevel -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e hynek/structlog",
+        "pip install --group tests"
+      ],
+      "import_smoke": "import structlog OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "1 passed in 0.02s"
+    }
+  ]
+}

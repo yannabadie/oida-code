@@ -1,7 +1,7 @@
 [
   {
     "base_sha": "68a341f49596fa43c89e052d437723860b98a443",
-    "candidate_reason": "automated initial selection: 4 files changed, 31 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 4 files changed, 31 lines, merge_status=merged; G-6d.1 AI-authored public-diff review pin at 2026-04-30T04:10:00Z. Reason: small code/test diff; one production-line behavioral fix in src/_pytest/raises.py; one narrow new pytester regression test; backport provenance is explicit; selected as TRAIN before any scoped pytest feasibility run.",
     "case_id": "seed_003_pytest_dev_pytest_14420",
     "changed_files_list": [
       "AUTHORS",
@@ -9,26 +9,42 @@
       "src/_pytest/raises.py",
       "testing/python/raises.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.raises_match_context_suppression.repair_needed",
+    "claim_text": "After PR #14420 (pytest 9.0.x backport), `pytest.raises(..., match=...)` suppresses the original exception context when the raised exception type matches but the regex match fails. The implementation raises `AssertionError(self._fail_reason) from None`, so short traceback output reports the regex mismatch without surfacing `ValueError: actual` or chained-exception boilerplate.",
+    "claim_type": "repair_needed",
     "collected_at": "2026-04-28T20:53:14Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "093184048e36453c5b8c1bb770f22e956a9f310d",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-30T04:10:00Z",
     "pr_number": 14420,
     "public_only": true,
     "repo_url": "https://github.com/pytest-dev/pytest",
     "script_version": "phase6_1_a_pre_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "[PR #14391/cd7592c4 backport][9.0.x] Use direct cause for raises match failures"
+    "test_scope": "testing/python/raises.py::TestRaises::test_raises_match_failure_suppresses_exception_context",
+    "title": "[PR #14391/cd7592c4 backport][9.0.x] Use direct cause for raises match failures",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR pytest-dev/pytest#14420 changes src/_pytest/raises.py:RaisesExc.__exit__ so match-failure AssertionError is raised `from None`, suppressing chained context from the originally raised exception.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "New test testing/python/raises.py::TestRaises::test_raises_match_failure_suppresses_exception_context creates a ValueError('actual') under pytest.raises(..., match='expected'), runs pytest with --tb=short, asserts a regex mismatch AssertionError, and asserts the original ValueError plus chained-context messages are absent.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "base_sha": "4afcd4906b9cf4468dc9ca8cf7c53126e190d008",
@@ -676,7 +692,7 @@
   },
   {
     "base_sha": "0bbc68089ca3da9c7de89fcc549c89a2939ea65c",
-    "candidate_reason": "automated initial selection: 7 files changed, 186 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 7 files changed, 186 lines, merge_status=merged; G-6d.1 AI-authored public-diff review pin at 2026-04-30T04:10:00Z. Reason: clear CLI behavior change; production diff adds --no-detect-types and makes TypeTracker default for CSV/TSV; specific parametrized regression test covers default behavior; selected as TRAIN before any scoped pytest feasibility run.",
     "case_id": "seed_064_simonw_sqlite_utils_683",
     "changed_files_list": [
       "docs/changelog.rst",
@@ -687,28 +703,44 @@
       "tests/test_cli_insert.py",
       "tests/test_sniff.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.csv_default_detect_types.capability_sufficient",
+    "claim_text": "After PR #683 (sqlite-utils), CSV/TSV insert and upsert detect column types by default instead of requiring `--detect-types`. The CLI adds `--no-detect-types` as the opt-out path, and `insert_upsert_implementation()` wraps CSV/TSV docs in `TypeTracker` unless that opt-out flag is present.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:42:56Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "2a958bc86f5079b8b96e621a6c92730a4570dae5",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [
       "enhancement"
     ],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-30T04:10:00Z",
     "pr_number": 683,
     "public_only": true,
     "repo_url": "https://github.com/simonw/sqlite-utils",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "Detect CSV/TSV column types by default"
+    "test_scope": "tests/test_cli.py::test_insert_detect_types",
+    "title": "Detect CSV/TSV column types by default",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR sqlite-utils#683 changes sqlite_utils/cli.py: the CSV/TSV insert/upsert options keep --detect-types but add --no-detect-types, and the implementation now runs TypeTracker when no_detect_types is false, making detection the default.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "tests/test_cli.py::test_insert_detect_types is rewritten to parametrize option in [None, -d, --detect-types] and assert inserted CSV rows produce integer age and float weight even when no detect-types flag is supplied.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "base_sha": "fb93452ea8e677f0a2fb002f9c2483072432a6cd",
@@ -766,7 +798,7 @@
   },
   {
     "base_sha": "fb93452ea8e677f0a2fb002f9c2483072432a6cd",
-    "candidate_reason": "automated initial selection: 6 files changed, 167 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 6 files changed, 167 lines, merge_status=merged; G-6d.1 AI-authored public-diff review pin at 2026-04-30T04:10:00Z. Reason: clear CLI capability extension; one narrow query test proves repeated --functions registers two callables; deterministic holdout hash selected this case as the single G-6d.1 HOLDOUT before any scoped pytest feasibility run.",
     "case_id": "seed_066_simonw_sqlite_utils_681",
     "changed_files_list": [
       "docs/cli-reference.rst",
@@ -776,29 +808,45 @@
       "tests/test_cli_bulk.py",
       "tests/test_cli_memory.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.cli_functions_multiple_invocations.capability_sufficient",
+    "claim_text": "After PR #681 (sqlite-utils), CLI commands that accept `--functions` can receive the option multiple times, and each supplied inline function definition is registered before SQL execution. The implementation makes the Click option `multiple=True` and iterates over every supplied definition in `_maybe_register_functions()`.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:42:57Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "4147ed07041d05370c5ed6b136f5f9e02d5e5b6e",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [
       "enhancement",
       "cli-tool"
     ],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "holdout",
+    "partition_pinned_at": "2026-04-30T04:10:00Z",
     "pr_number": 681,
     "public_only": true,
     "repo_url": "https://github.com/simonw/sqlite-utils",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "--functions can take filenames, can be used multiple times"
+    "test_scope": "tests/test_cli.py::test_query_functions_multiple_invocations",
+    "title": "--functions can take filenames, can be used multiple times",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR sqlite-utils#681 changes sqlite_utils/cli.py so --functions uses multiple=True on query/bulk/memory-style command surfaces and _maybe_register_functions(functions_list) loops over each supplied functions string before registration.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "New test tests/test_cli.py::test_query_functions_multiple_invocations invokes query with two --functions values defining triple() and quadruple(), then asserts the SQL result contains both computed values.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "base_sha": "cf1b407207ebaabda7fa61bdc413d28f27c7a57b",
@@ -1435,7 +1483,7 @@
   },
   {
     "base_sha": "7f7a221aed6bbff3c13cefd7effe14cc4f0cfc24",
-    "candidate_reason": "automated initial selection: 4 files changed, 70 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 4 files changed, 70 lines, merge_status=merged; G-6d.1 AI-authored public-diff review pin at 2026-04-30T04:10:00Z. Reason: pure-Python callsite behavior change; narrow helper test constructs an explicit frame chain and asserts stacklevel skips the intended application frame; selected as TRAIN before any scoped pytest feasibility run.",
     "case_id": "seed_155_hynek_structlog_763",
     "changed_files_list": [
       "CHANGELOG.md",
@@ -1443,26 +1491,42 @@
       "src/structlog/stdlib.py",
       "tests/test_frames.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.stdlib_stacklevel_callsite.capability_sufficient",
+    "claim_text": "After PR #763 (structlog), the stdlib caller-frame helper supports a `stacklevel` offset after structlog/logging frames have been skipped. `_find_first_app_frame_and_name()` accepts `stacklevel`, and stdlib `findCaller()` paths forward an adjusted stacklevel so caller reporting can skip additional application frames.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:43:48Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "635c5cf1a631e89553d53578f2a8d2cbcfb4ad9f",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-30T04:10:00Z",
     "pr_number": 763,
     "public_only": true,
     "repo_url": "https://github.com/hynek/structlog",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "stdlib: add support for stacklevel"
+    "test_scope": "tests/test_frames.py::TestFindFirstAppFrameAndName::test_stacklevel",
+    "title": "stdlib: add support for stacklevel",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR structlog#763 changes src/structlog/_frames.py to add stacklevel handling to _find_first_app_frame_and_name(), then changes src/structlog/stdlib.py findCaller paths to pass adjusted stacklevel values through the helper.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "New test tests/test_frames.py::TestFindFirstAppFrameAndName::test_stacklevel builds a fake frame chain and asserts stacklevel=1 returns the expected caller frame after ignored structlog/additional frames are skipped.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "base_sha": "f002806241bbb5e6cae4d69681738afda4cac0d4",

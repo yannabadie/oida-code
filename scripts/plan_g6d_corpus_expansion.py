@@ -6,6 +6,11 @@ state, and emits a deterministic plan for the next empirical G-6d tranche.
 
 It does not add seed records, change partitions, call providers, call GitHub,
 create replay bundles, or touch runtime code.
+
+After G-6d.1 advances the live corpus, this script remains an ADR-70
+historical snapshot generator. It should only reproduce the pre-G-6d.1
+baseline from an explicit historical fixture; do not use the live advanced
+index to rewrite the checked-in ADR-70 plan.
 """
 
 from __future__ import annotations
@@ -16,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 SCRIPT_VERSION = "phase6_d_0_corpus_expansion_plan_v1"
+HISTORICAL_BASELINE = "ADR-70 pre-G-6d.1 corpus baseline"
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _DEFAULT_INDEX = _REPO_ROOT / "reports" / "calibration_seed" / "index.json"
@@ -85,8 +91,12 @@ def build_plan(records: list[dict[str, Any]], *, index_path: Path) -> dict[str, 
 
     if pinned_count != _EXPECTED_CURRENT_PINNED or holdout_count != _EXPECTED_CURRENT_HOLDOUT:
         raise SystemExit(
-            "G-6d.0 plan is stale: expected current pinned=6 and holdout=2, "
-            f"got pinned={pinned_count} holdout={holdout_count}",
+            "G-6d.0 plan is stale for the supplied index: expected "
+            f"{HISTORICAL_BASELINE} pinned=6 and holdout=2, got "
+            f"pinned={pinned_count} holdout={holdout_count}. If the live "
+            "calibration_seed index has advanced, do not regenerate ADR-70 "
+            "from it; use the checked-in plan or an explicit historical "
+            "fixture.",
         )
 
     additions_required = _TARGET_MIN_PINNED - pinned_count

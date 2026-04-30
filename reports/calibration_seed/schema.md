@@ -113,6 +113,12 @@ Strict allowlist per QA/A44 §"Calibration dataset boundaries":
 * `ai_candidate_human_confirmed` — an LLM proposed the label
   and Yann confirmed it after independent review (NOT just
   reading the LLM's reasoning — actually re-checking).
+* `ai_authored_public_diff_review` — Codex/agent-authored
+  Tier-3 fields based on public base→head diff inspection and
+  concrete file/test evidence, without independent Yann/manual
+  per-case review yet. Records with this label MUST set
+  `llm_assist_used: true` and keep `human_review_required: true`
+  until a later explicit human review event changes provenance.
 * `unknown_not_for_metrics` — label is not yet ready and the
   case is excluded from any aggregation until reviewed.
 

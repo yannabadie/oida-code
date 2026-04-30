@@ -14,9 +14,13 @@ discipline structurally:
 4. Pinned (non-null partition) cases must be Tier-3-complete
    (claim_id, claim_type, claim_text, evidence_items,
    test_scope all set).
-5. Pinned cases must have ``human_review_required=false``,
-   ``expected_grounding_outcome`` ≠ ``"not_run"``,
-   ``label_source`` ≠ ``"unknown_not_for_metrics"``.
+5. Pinned cases must pass provenance hygiene. Human-reviewed pins
+   require ``human_review_required=false``. Explicit AI-authored
+   public-diff pins keep ``human_review_required=true`` and
+   ``llm_assist_used=true`` until later independent human review.
+   All pinned records require ``expected_grounding_outcome`` ≠
+   ``"not_run"`` and ``label_source`` ≠
+   ``"unknown_not_for_metrics"``.
 6. Holdout fraction of (train + holdout) pool ∈ [0.20, 0.40]
    when ``N_pinned ≥ 5`` (warning-only at smaller N — the
    guard is documented but not asserted at very small N).
@@ -40,6 +44,7 @@ _ISO8601_UTC_RE = re.compile(
 )
 
 _ALLOWED_PARTITIONS = (None, "train", "holdout")
+_HUMAN_REVIEW_OPEN_LABEL_SOURCE = "ai_authored_public_diff_review"
 
 _TIER_3_FIELDS: tuple[str, ...] = (
     "claim_id",
@@ -148,15 +153,31 @@ def test_pinned_records_are_tier3_complete() -> None:
 
 
 def test_pinned_records_pass_hygiene_invariants() -> None:
-    """Pinned cases must pass the hygiene invariants:
-    human_review_required=false, expected_grounding_outcome
-    ≠ 'not_run', label_source ≠ 'unknown_not_for_metrics'."""
+    """Pinned cases must pass the hygiene invariants.
+
+    ADR-71 adds explicit AI-authored public-diff provenance for G-6d.1.
+    Those pins keep ``human_review_required=true`` until independent
+    per-case human review exists. Older human-reviewed pins still require
+    ``human_review_required=false``.
+    """
     bad: list[str] = []
     for r in _load_index():
         if r.get("partition") is None:
             continue
         cid = r["case_id"]
-        if r.get("human_review_required") is True:
+        label_source = r.get("label_source")
+        human_review_required = r.get("human_review_required")
+        if label_source == _HUMAN_REVIEW_OPEN_LABEL_SOURCE:
+            if human_review_required is not True:
+                bad.append(
+                    f"{cid}: AI-authored pin must keep "
+                    "human_review_required=true",
+                )
+            if r.get("llm_assist_used") is not True:
+                bad.append(
+                    f"{cid}: AI-authored pin must set llm_assist_used=true",
+                )
+        elif human_review_required is True:
             bad.append(
                 f"{cid}: pinned but human_review_required=true",
             )

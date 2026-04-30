@@ -9,6 +9,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+import pytest
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 _SCRIPT_PATH = _REPO_ROOT / "scripts" / "plan_g6d_corpus_expansion.py"
 _INDEX_PATH = _REPO_ROOT / "reports" / "calibration_seed" / "index.json"
@@ -50,9 +52,22 @@ def _plan() -> dict[str, Any]:
     return json.loads(_PLAN_JSON_PATH.read_text(encoding="utf-8"))
 
 
-def test_script_computes_current_index_counts() -> None:
+def _historical_g6d0_records() -> list[dict[str, Any]]:
+    """Reconstruct the ADR-70 pre-G-6d.1 fixture from the live index."""
+    historical_pinned_ids = set(_plan()["current_corpus"]["pinned_case_ids"])
+    records: list[dict[str, Any]] = []
+    for record in _index():
+        copied = dict(record)
+        if copied["case_id"] not in historical_pinned_ids:
+            copied["partition"] = None
+            copied["partition_pinned_at"] = None
+        records.append(copied)
+    return records
+
+
+def test_script_computes_historical_snapshot_counts() -> None:
     mod = _load_script()
-    plan = mod.build_plan(_index(), index_path=_INDEX_PATH)
+    plan = mod.build_plan(_historical_g6d0_records(), index_path=_INDEX_PATH)
 
     assert plan["current_corpus"]["candidate_pool_count"] == 46
     assert plan["current_corpus"]["pinned_count"] == 6
@@ -62,10 +77,22 @@ def test_script_computes_current_index_counts() -> None:
     assert plan["current_corpus"]["holdout_ratio"] == 0.33
 
 
-def test_checked_in_plan_matches_script_output() -> None:
+def test_checked_in_plan_matches_script_output_from_historical_fixture() -> None:
     mod = _load_script()
-    expected = mod.build_plan(_index(), index_path=_INDEX_PATH)
+    expected = mod.build_plan(_historical_g6d0_records(), index_path=_INDEX_PATH)
     assert _plan() == expected
+
+
+def test_live_index_has_advanced_beyond_adr70_snapshot() -> None:
+    records = _index()
+    live_pinned = [
+        r for r in records if r.get("partition") in {"train", "holdout"}
+    ]
+    assert len(live_pinned) > _plan()["current_corpus"]["pinned_count"]
+
+    mod = _load_script()
+    with pytest.raises(SystemExit, match=r"G-6d\.0 plan is stale"):
+        mod.build_plan(records, index_path=_INDEX_PATH)
 
 
 def test_plan_is_planning_only_and_requires_no_external_calls() -> None:
@@ -159,14 +186,11 @@ def test_docs_and_report_preserve_hard_wall_wording() -> None:
         assert phrase not in combined
 
 
-def test_index_state_remains_current_planning_baseline() -> None:
-    records = _index()
-    pinned = [r for r in records if r.get("partition") in {"train", "holdout"}]
-    holdout = [r for r in pinned if r.get("partition") == "holdout"]
-    train = [r for r in pinned if r.get("partition") == "train"]
-
-    assert len(records) == 46
-    assert len(pinned) == 6
-    assert len(train) == 4
-    assert len(holdout) == 2
+def test_adr70_artifact_remains_historical_baseline() -> None:
+    current = _plan()["current_corpus"]
+    assert current["candidate_pool_count"] == 46
+    assert current["pinned_count"] == 6
+    assert current["train_count"] == 4
+    assert current["holdout_count"] == 2
+    assert current["unpinned_count"] == 40
     assert not (_REPORT_DIR / "round_trip_outputs").exists()

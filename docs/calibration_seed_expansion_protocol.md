@@ -1,17 +1,20 @@
 # Calibration seed expansion protocol
 
-This protocol governs G-6d corpus expansion after ADR-69. It is not a
-pinning pass by itself. It turns the next empirical work into a bounded
-sequence so larger-N work does not dilute the lane separation, holdout
-discipline, or replay-review hard walls already established.
+This protocol governs G-6d corpus expansion after ADR-69. It was authored
+as ADR-70 before G-6d.1. The baseline counts below are therefore historical
+pre-G-6d.1 counts; the live corpus after ADR-71 is N=10 (7 train + 3
+holdout). The protocol still governs future pinning tranches so larger-N
+work does not dilute the lane separation, holdout discipline, or
+replay-review hard walls already established.
 
-## Current state
+## ADR-70 baseline state
 
-The current calibration seed index has 46 inclusion records. Six are pinned:
-four train cases and two holdout cases. The holdout ratio is 0.33.
+At ADR-70 time, the calibration seed index had 46 inclusion records. Six
+were pinned: four train cases and two holdout cases. The holdout ratio was
+0.33.
 
-G-6d remains open because N=6 is too thin for any broad cross-target claim.
-The target for the next larger-N milestone is at least 20 pinned cases while
+G-6d remains open because N=10 is still too thin for any broad cross-target
+claim. The target for the next larger-N milestone is at least 20 pinned cases while
 keeping holdout ratio inside the existing 0.20 to 0.40 band.
 
 ## G-6d.0 scope
@@ -46,7 +49,7 @@ The next empirical block is G-6d.1:
 - move from holdout=2 to holdout=3;
 - keep the holdout ratio at 0.30.
 
-The full G-6d target is +14 new pinned cases from the current state:
+The full G-6d target from the ADR-70 baseline was +14 new pinned cases:
 
 - +10 train;
 - +4 holdout;
@@ -54,9 +57,11 @@ The full G-6d target is +14 new pinned cases from the current state:
 - resulting holdout=6;
 - resulting holdout ratio 0.30.
 
-Fresh GitHub harvesting is not part of G-6d.0. If the current 40 unpinned
-records cannot supply enough high-quality cases, harvesting becomes a separate
-later block with its own consultation and report.
+After ADR-71, the live corpus is N=10 and at least 10 more pins are still
+needed to reach N=20. Fresh GitHub harvesting is not part of G-6d.0 or
+G-6d.1. If the remaining existing unpinned records cannot supply enough
+high-quality cases, harvesting becomes a separate later block with its own
+consultation and report.
 
 ## Candidate policy
 

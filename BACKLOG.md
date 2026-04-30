@@ -178,20 +178,22 @@ identifies discipline-spirit gaps the chain did not resolve:
   authoring lesson reduces the seed-record defect class.
   ADR-70 / G-6d.0 now codifies the missing review mechanism in
   `docs/calibration_seed_authoring_checklist.md` and folds
-  checklist completion into future G-6d pinning. This remains
-  PARTIAL until the checklist is exercised on new pins; 40/46
-  records remain unpinned.
-* **G-6d: N=5/N=6 is statistically thin. STATUS: OPEN.**
-  Currently N_pinned=6 (4 train + 2 holdout); ratio 2/6=0.33.
+  checklist completion into future G-6d pinning. ADR-71 / G-6d.1
+  exercises that checklist on four AI-authored public-diff pins.
+  This remains PARTIAL because those pins keep
+  `human_review_required=true`; independent per-case human review
+  has not yet happened and 36/46 records remain unpinned.
+* **G-6d: N=5/N=6/N=10 is statistically thin. STATUS: OPEN.**
+  Currently N_pinned=10 (7 train + 3 holdout); ratio 3/10=0.30.
   Holdout ratio [0.20, 0.40] guards against overfitting only
   with N≥20-50. ADR-70 / G-6d.0 adds a deterministic planning
   script (`scripts/plan_g6d_corpus_expansion.py`), report
   (`reports/phase6_d_corpus_expansion_plan/plan.{json,md}`),
-  and protocol docs. No cases are pinned and no partitions are
-  changed. Next empirical block: G-6d.1 should pin 4 new cases
-  from the existing 46-case index, split 3 train / 1 holdout,
-  moving to N=10 with holdout ratio 0.30. Full target remains
-  +14 pins to reach N=20 (recommended +10 train / +4 holdout).
+  and protocol docs. ADR-71 / G-6d.1 then pinned 4 existing
+  public-diff-reviewed records from the 46-case index, split
+  3 train / 1 holdout, moving to N=10 with holdout ratio 0.30.
+  Full target remains N>=20, so at least 10 more pins are still
+  needed before larger-N claims are even considered.
 * **G-6e: ADR-56 spirit-tension on seed_065. STATUS:
   PARTIALLY ADDRESSED.** seed_065's bootstrap fixes (6.1'f +
   6.1'g) were causally motivated by the holdout's own
@@ -218,11 +220,13 @@ identifies discipline-spirit gaps the chain did not resolve:
 
 **Status in the backlog (post-corpus-quality-v1 + G-6b
 structural pin + consolidation v2 + ADR-68/ADR-69 replay
-review + ADR-70 G-6d.0 plan):** G-6a, G-6b, and G-6f CLOSED for
-their stated current scopes; G-6c and G-6e PARTIALLY addressed;
-G-6d remains OPEN. G-6d.0 is complete as a planning/instrumentation
-sub-block only; the next empirical priority is G-6d.1 pinning 4
-new cases from the existing index.
+review + ADR-70 G-6d.0 plan + ADR-71 G-6d.1 pinning):** G-6a,
+G-6b, and G-6f CLOSED for their stated current scopes; G-6c and
+G-6e PARTIALLY addressed; G-6d remains OPEN. G-6d.0 is complete
+as a historical planning/instrumentation sub-block; G-6d.1 is
+complete as the first +4 pin tranche; the next empirical priority
+is continuing corpus pinning toward N>=20 without relaxing
+provenance or freeze-before-outcome discipline.
 
 ## What this file is NOT
 

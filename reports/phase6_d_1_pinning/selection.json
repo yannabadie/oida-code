@@ -1,0 +1,199 @@
+{
+  "report_id": "phase6_d_1_pinning_selection",
+  "date": "2026-04-30",
+  "cgpro_decision": "QA/A52",
+  "pre_outcome_screened_at": "2026-04-30T04:09:00Z",
+  "partition_freeze_at": "2026-04-30T04:10:00Z",
+  "source_index": "reports/calibration_seed/index.json",
+  "scope": {
+    "phase": "G-6d.1",
+    "new_pins": 4,
+    "train": 3,
+    "holdout": 1,
+    "provider_calls": 0,
+    "pat_github_used": false,
+    "fresh_github_api_used": false,
+    "replay_outputs_created": 0,
+    "pytest_outcome_inspected_before_freeze": false
+  },
+  "authoring_provenance": {
+    "label_source": "ai_authored_public_diff_review",
+    "human_review_required": true,
+    "llm_assist_used": true,
+    "provenance_notes": [
+      "Codex inspected public base-to-head diffs and authored claim_id, claim_type, claim_text, test_scope, and evidence_items.",
+      "cgpro provided decision guidance only; cgpro/provider output is not non-LLM evidence.",
+      "Yann has not independently reviewed each selected case after diff inspection, so these records keep human_review_required=true."
+    ]
+  },
+  "deterministic_partition_rule": {
+    "rule": "sort selected case_ids lexicographically; compute sha256('g6d1-holdout:' + case_id); lowest hash becomes holdout, others train",
+    "hashes": {
+      "seed_003_pytest_dev_pytest_14420": "5174a12c9c6632ece651e13a605e2f10486b6b4dc50eb4582140008d42252e7b",
+      "seed_064_simonw_sqlite_utils_683": "81ab07a8d566908068697ee5b468a16d811672bb4c73cda97663bf899b70deea",
+      "seed_066_simonw_sqlite_utils_681": "0224245d18e0fcc74a13d995456cc5daf470ee4a567029e2832a96e952593055",
+      "seed_155_hynek_structlog_763": "81356b137b62a22834ea8f2d5870ef45e8ccd3d45398a5aa12d56aee49973c96"
+    },
+    "holdout_case_id": "seed_066_simonw_sqlite_utils_681"
+  },
+  "selected_cases": [
+    {
+      "case_id": "seed_003_pytest_dev_pytest_14420",
+      "repo_url": "https://github.com/pytest-dev/pytest",
+      "pr_number": 14420,
+      "base_sha": "68a341f49596fa43c89e052d437723860b98a443",
+      "head_sha": "093184048e36453c5b8c1bb770f22e956a9f310d",
+      "partition": "train",
+      "partition_pinned_at": "2026-04-30T04:10:00Z",
+      "holdout_hash": "5174a12c9c6632ece651e13a605e2f10486b6b4dc50eb4582140008d42252e7b",
+      "claim_id": "C.raises_match_context_suppression.repair_needed",
+      "claim_type": "repair_needed",
+      "claim_text": "After PR #14420 (pytest 9.0.x backport), `pytest.raises(..., match=...)` suppresses the original exception context when the raised exception type matches but the regex match fails. The implementation raises `AssertionError(self._fail_reason) from None`, so short traceback output reports the regex mismatch without surfacing `ValueError: actual` or chained-exception boilerplate.",
+      "test_scope": "testing/python/raises.py::TestRaises::test_raises_match_failure_suppresses_exception_context",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR pytest-dev/pytest#14420 changes src/_pytest/raises.py:RaisesExc.__exit__ so match-failure AssertionError is raised `from None`, suppressing chained context from the originally raised exception.",
+        "New test testing/python/raises.py::TestRaises::test_raises_match_failure_suppresses_exception_context creates a ValueError('actual') under pytest.raises(..., match='expected'), runs pytest with --tb=short, asserts a regex mismatch AssertionError, and asserts the original ValueError plus chained-context messages are absent."
+      ]
+    },
+    {
+      "case_id": "seed_064_simonw_sqlite_utils_683",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 683,
+      "base_sha": "0bbc68089ca3da9c7de89fcc549c89a2939ea65c",
+      "head_sha": "2a958bc86f5079b8b96e621a6c92730a4570dae5",
+      "partition": "train",
+      "partition_pinned_at": "2026-04-30T04:10:00Z",
+      "holdout_hash": "81ab07a8d566908068697ee5b468a16d811672bb4c73cda97663bf899b70deea",
+      "claim_id": "C.csv_default_detect_types.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "claim_text": "After PR #683 (sqlite-utils), CSV/TSV insert and upsert detect column types by default instead of requiring `--detect-types`. The CLI adds `--no-detect-types` as the opt-out path, and `insert_upsert_implementation()` wraps CSV/TSV docs in `TypeTracker` unless that opt-out flag is present.",
+      "test_scope": "tests/test_cli.py::test_insert_detect_types",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR sqlite-utils#683 changes sqlite_utils/cli.py: the CSV/TSV insert/upsert options keep --detect-types but add --no-detect-types, and the implementation now runs TypeTracker when no_detect_types is false, making detection the default.",
+        "tests/test_cli.py::test_insert_detect_types is rewritten to parametrize option in [None, -d, --detect-types] and assert inserted CSV rows produce integer age and float weight even when no detect-types flag is supplied."
+      ]
+    },
+    {
+      "case_id": "seed_066_simonw_sqlite_utils_681",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 681,
+      "base_sha": "fb93452ea8e677f0a2fb002f9c2483072432a6cd",
+      "head_sha": "4147ed07041d05370c5ed6b136f5f9e02d5e5b6e",
+      "partition": "holdout",
+      "partition_pinned_at": "2026-04-30T04:10:00Z",
+      "holdout_hash": "0224245d18e0fcc74a13d995456cc5daf470ee4a567029e2832a96e952593055",
+      "claim_id": "C.cli_functions_multiple_invocations.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "claim_text": "After PR #681 (sqlite-utils), CLI commands that accept `--functions` can receive the option multiple times, and each supplied inline function definition is registered before SQL execution. The implementation makes the Click option `multiple=True` and iterates over every supplied definition in `_maybe_register_functions()`.",
+      "test_scope": "tests/test_cli.py::test_query_functions_multiple_invocations",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR sqlite-utils#681 changes sqlite_utils/cli.py so --functions uses multiple=True on query/bulk/memory-style command surfaces and _maybe_register_functions(functions_list) loops over each supplied functions string before registration.",
+        "New test tests/test_cli.py::test_query_functions_multiple_invocations invokes query with two --functions values defining triple() and quadruple(), then asserts the SQL result contains both computed values."
+      ]
+    },
+    {
+      "case_id": "seed_155_hynek_structlog_763",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 763,
+      "base_sha": "7f7a221aed6bbff3c13cefd7effe14cc4f0cfc24",
+      "head_sha": "635c5cf1a631e89553d53578f2a8d2cbcfb4ad9f",
+      "partition": "train",
+      "partition_pinned_at": "2026-04-30T04:10:00Z",
+      "holdout_hash": "81356b137b62a22834ea8f2d5870ef45e8ccd3d45398a5aa12d56aee49973c96",
+      "claim_id": "C.stdlib_stacklevel_callsite.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "claim_text": "After PR #763 (structlog), the stdlib caller-frame helper supports a `stacklevel` offset after structlog/logging frames have been skipped. `_find_first_app_frame_and_name()` accepts `stacklevel`, and stdlib `findCaller()` paths forward an adjusted stacklevel so caller reporting can skip additional application frames.",
+      "test_scope": "tests/test_frames.py::TestFindFirstAppFrameAndName::test_stacklevel",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR structlog#763 changes src/structlog/_frames.py to add stacklevel handling to _find_first_app_frame_and_name(), then changes src/structlog/stdlib.py findCaller paths to pass adjusted stacklevel values through the helper.",
+        "New test tests/test_frames.py::TestFindFirstAppFrameAndName::test_stacklevel builds a fake frame chain and asserts stacklevel=1 returns the expected caller frame after ignored structlog/additional frames are skipped."
+      ]
+    }
+  ],
+  "deferred_diff_inspected_candidates": [
+    {
+      "case_id": "seed_074_simonw_sqlite_utils_658",
+      "reason": "Diff stat showed broad docs/python-api churn plus db/table/view behavior; deferred to keep G-6d.1 tranche narrow and simpler than the selected CLI/helper cases."
+    },
+    {
+      "case_id": "seed_161_hynek_structlog_757",
+      "reason": "Diff is a valid future candidate (ConsoleRenderer columns can be got/set) but was deferred to avoid over-selecting structlog dev-renderer property cases in this four-case tranche."
+    }
+  ],
+  "metadata_reject_groups": [
+    {
+      "reason": "release/dependency/pre-commit only",
+      "examples": [
+        "seed_013_python_attrs_attrs_1538",
+        "seed_021_psf_black_4960",
+        "seed_028_pydantic_pydantic_13098",
+        "seed_114_pytest_dev_pluggy_662",
+        "seed_134_pytest_dev_pluggy_635"
+      ]
+    },
+    {
+      "reason": "non-Python-adapter-dependent or packaging/runtime surface too broad for this tranche",
+      "examples": [
+        "seed_029_pydantic_pydantic_13096",
+        "seed_030_pydantic_pydantic_13084",
+        "seed_031_pydantic_pydantic_13079",
+        "seed_034_pydantic_pydantic_13068",
+        "seed_103_samuelcolvin_watchfiles_301"
+      ]
+    },
+    {
+      "reason": "requires known clone-helper carve-out or older requirements pattern",
+      "examples": [
+        "seed_058_pallets_itsdangerous_378"
+      ]
+    }
+  ]
+}
