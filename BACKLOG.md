@@ -185,6 +185,9 @@ identifies discipline-spirit gaps the chain did not resolve:
   candidate set but stopped before successful pinning because the
   first selected case hit an older requirements-file test-dependency
   pattern that would require a new dependency-install path.
+  ADR-75 then selected the policy-only response for G-6d.4:
+  requirements-file / tox-only test-dependency candidates are rejected
+  or deferred before freeze rather than rescued post-freeze.
   This remains PARTIAL because those pins keep
   `human_review_required=true`; independent per-case human review
   has not yet happened and 32/46 records remain unpinned.
@@ -202,6 +205,8 @@ identifies discipline-spirit gaps the chain did not resolve:
   ADR-73 / G-6d.3 attempted another +4 tranche but stopped after
   freeze and before scoped pytest outcome; the index was reverted to
   the ADR-72 live state, so N remains 14.
+  ADR-75 does not add pins; it records the pre-freeze reject/defer
+  policy needed before G-6d.4 selection resumes.
   Full target remains N>=20, so at least 6 more pins are still
   needed before larger-N claims are even considered.
 * **G-6e: ADR-56 spirit-tension on seed_065. STATUS:
@@ -235,7 +240,8 @@ pinning + ADR-73/G-6d.3 stop):** G-6a, G-6b, and G-6f CLOSED for their stated cu
 scopes; G-6c and G-6e PARTIALLY addressed; G-6d remains OPEN.
 G-6d.0 is complete as a historical planning/instrumentation
 sub-block; G-6d.1 and G-6d.2 are complete as the first two +4
-pin tranches; G-6d.3 is a documented stop, not a live corpus advance.
+pin tranches; G-6d.3 is a documented stop, not a live corpus advance;
+ADR-75 is a policy-only dependency boundary block, not a corpus advance.
 The next empirical priority is continuing corpus
 pinning toward N>=20 without relaxing provenance or
 freeze-before-outcome discipline.

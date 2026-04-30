@@ -24,10 +24,10 @@ context, not as a replacement for checking the current repo state.
 - The recovered session spans 2026-04-23 to 2026-04-29 and ended at a
   documented natural pause point after commit `e0b7c33`. That is now
   historical context, not the current head state.
-- Current head after the latest pushed block is `b8bc2ad`
-  (`chore(phase6.d): record g6d3 stop`). ADR-73 stopped G-6d.3
-  honestly after a post-freeze dependency-boundary failure; the live
-  corpus remains N=14 (10 train, 4 holdout).
+- Current head before the ADR-75 policy block is `e5022d6`
+  (`docs(product): reset diagnostic-first product strategy`). ADR-73
+  stopped G-6d.3 honestly after a post-freeze dependency-boundary
+  failure; the live corpus remains N=14 (10 train, 4 holdout).
 - G-6a is CLOSED for the current archived load-bearing replay set by
   ADR-68 static audit plus ADR-69 manual semantic review. Do not restart
   G-6a unless a future block creates new LLM-authored replay content
@@ -35,9 +35,10 @@ context, not as a replacement for checking the current repo state.
 - Per cgpro review `repo-product-vision-review`
   (`69f329be-0dd4-838f-8687-d68190f21e7d`), the immediate priority is
   product-strategy / docs / CLI UX reset before any new G-6d pinning.
-  G-6d remains OPEN toward N>=20, but the next G-6d block must first
-  record a pre-freeze dependency-install policy for historical
-  `requirements/*.txt` / `tox.ini` test-dependency patterns.
+  ADR-75 then recorded that policy: for G-6d.4, candidates requiring
+  `requirements/*.txt`, tox `deps = -r ...`, `pip install -r ...`, or
+  a new requirements-file clone-helper flag are rejected or deferred
+  before partition freeze. G-6d remains OPEN toward N>=20.
 
 ## cgpro Project Continuity
 
@@ -64,8 +65,8 @@ context, not as a replacement for checking the current repo state.
 - Product reset thread:
   `repo-product-vision-review`, ChatGPT conversation
   `69f329be-0dd4-838f-8687-d68190f21e7d`. Use it for follow-up
-  decisions about product vision, front-door docs, CLI UX, or whether to
-  resume G-6d.
+  decisions about product vision, front-door docs, CLI UX, dependency
+  policy, or whether to resume G-6d.
 - Use parseable, non-streaming calls for project decisions:
 
 ```powershell

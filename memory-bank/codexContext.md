@@ -8,20 +8,26 @@ untracked `.tmp/`.
 
 This file began as a 2026-04-29 Claude/Codex handoff. Its original
 "current" sections below are historical where they conflict with the
-repo after ADR-73.
+repo after ADR-75.
 
-Current head after the latest pushed block is `b8bc2ad`
-(`chore(phase6.d): record g6d3 stop`). ADR-73 stopped G-6d.3 without
-advancing the live corpus; `reports/calibration_seed/index.json`
-remains at the ADR-72 state: 46 records, 14 pinned, 10 train, 4
-holdout.
+Current head before the ADR-75 policy block is `e5022d6`
+(`docs(product): reset diagnostic-first product strategy`). ADR-73
+stopped G-6d.3 without advancing the live corpus; ADR-74 reset the
+diagnostic-first product strategy; ADR-75 records the dependency
+policy for the next G-6d.4 candidate-selection block. The live
+`reports/calibration_seed/index.json` remains at the ADR-72 state:
+46 records, 14 pinned, 10 train, 4 holdout.
 
 G-6a is closed for the current archived load-bearing replay set by
 ADR-68 plus ADR-69. G-6d remains open toward N>=20, but cgpro review
 `repo-product-vision-review` (`69f329be-0dd4-838f-8687-d68190f21e7d`)
 recommended pausing new corpus pinning until product strategy, docs,
-agent handoff, and CLI UX are reset and a dependency-install policy is
-recorded for `requirements/*.txt` / `tox.ini` test-dependency patterns.
+agent handoff, CLI UX, and the dependency-install policy were reset.
+ADR-75 chooses a policy-only response: for G-6d.4, candidates that
+need `requirements/*.txt`, tox `deps = -r ...`, manual `pip install -r
+...`, or a new requirements-file clone-helper flag are rejected or
+deferred before partition freeze. Do not add a clone-helper flag,
+corpus record, runtime path, or claim-surface unlock for that case.
 
 Use `docs/product_strategy.md`, `docs/project_status.md`, and
 `AGENTS.md` as the live orientation surfaces before relying on the

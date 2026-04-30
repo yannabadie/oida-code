@@ -3184,3 +3184,52 @@ OPEN at N=14 and must be replanned with a dependency-install policy
 before the next pinning tranche.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-30 12:45:00] - **ADR-75: Requirements-file/tox dependency policy - reject/defer before freeze for G-6d.4.**
+**Why:** ADR-73 stopped because the first frozen G-6d.3 candidate
+required an older tox requirements-file dependency path before scoped
+pytest could run. ADR-74 made a pre-freeze dependency policy mandatory
+before any G-6d continuation. Codex consulted cgpro in
+`repo-product-vision-review` (conversation
+`69f329be-0dd4-838f-8687-d68190f21e7d`); cgpro selected the
+policy-only path rather than widening the clone helper.
+
+**Decision:** For G-6d.4, reject or defer candidates before partition
+freeze when scoped pytest would require `requirements/*.txt`,
+`requirements-*.txt`, tox `deps = -r ...`, manual `pip install -r ...`,
+or a new requirements-file clone-helper flag. Continue using only the
+existing predeclared bootstrap surface: editable install, optional
+`--install-oida-code`, optional `--scm-pretend-version`, optional
+`--import-smoke`, optional `--install-extras`, and optional
+`--install-group`.
+
+**Accepted:**
+
+* Record the policy in `docs/calibration_seed_expansion_protocol.md`
+  and `reports/phase6_d_dependency_policy/adr75_policy.md`.
+* Update `docs/product_strategy.md`, `docs/project_status.md`,
+  `AGENTS.md`, and `BACKLOG.md` so future agents apply the policy.
+* Add `tests/test_phase6_d_dependency_policy.py` to guard the policy
+  wording, the unchanged live index, the absence of
+  `--install-requirements-file`, and the unchanged runtime/product
+  boundaries.
+
+**Rejected:**
+
+* Editing `scripts/clone_target_at_sha.py`.
+* Adding `--install-requirements-file` or any equivalent requirements
+  install capability.
+* Updating `tests/test_phase6_1_i_predeclared_bootstrap.py` to allow a
+  10th flag.
+* Editing `reports/calibration_seed/index.json`.
+* Creating G-6d.4 pinning artifacts, replay bundles,
+  `round_trip_outputs`, runtime verifier/provider/gateway/MCP changes,
+  GitHub Action default changes, or official OIDA fusion-field output.
+
+**Outcome:** ADR-75 is a policy-only boundary block. The live corpus
+remains N=14 (10 train, 4 holdout). G-6d remains OPEN toward N>=20.
+The next empirical block may start G-6d.4 candidate selection from the
+existing pool, rejecting/defering requirements-file / tox-only
+dependency candidates before freeze.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

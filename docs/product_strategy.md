@@ -70,8 +70,9 @@ Everything else is research or backlog until this path is clear.
 3. Keep agent handoff files current so autonomous development does not
    restart closed work.
 4. Fix the Windows CLI help path.
-5. Replan G-6d only after a dependency-install policy exists for
-   historical `requirements/*.txt` / `tox.ini` test-dependency patterns.
+5. Apply ADR-75 during G-6d candidate selection: reject or defer
+   `requirements/*.txt` / `tox.ini` test-dependency-only candidates
+   before freeze.
 6. Resume corpus pinning toward N>=20 without broad product claims.
 
 ## Non-Goals
@@ -121,8 +122,12 @@ block must wait until the repo records a pre-freeze policy for targets
 that expose test dependencies through `requirements/*.txt` or `tox.ini`
 rather than PEP 735 dependency groups.
 
-The policy must be decided before candidate selection. It must not be
-added as a post-freeze rescue for a failing case.
+ADR-75 records the current policy: reject or defer such candidates
+before freeze for G-6d.4. Do not add requirements-file install support
+as a post-freeze rescue for a failing case. Any future support for
+requirements-file / tox-only dependency patterns requires a separate ADR
+before candidate selection and a structural update to the predeclared
+clone-helper flag tests.
 
 ## Authority
 

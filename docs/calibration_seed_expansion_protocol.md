@@ -92,6 +92,37 @@ it before freeze, or run a separate cgpro-directed policy block that explicitly
 decides whether requirements-file installs become a predeclared manual-lane
 capability.
 
+## ADR-75 dependency-install policy for G-6d.4
+
+ADR-75 chooses the policy-only path after the ADR-73 stop: for G-6d.4,
+requirements-file / tox-only test-dependency candidates are rejected or
+deferred before partition freeze.
+
+This covers targets where the scoped test dependencies cannot be installed
+through the currently predeclared bootstrap surface:
+
+- editable install of the target;
+- optional `--install-extras` for PEP 621 extras;
+- optional `--install-group` for PEP 735 dependency groups;
+- existing import-smoke / SCM pretend-version flags.
+
+Reject or defer before freeze when a candidate requires any of these
+dependency paths to reach the scoped pytest outcome:
+
+- `tox.ini` or `pyproject.toml` tox `deps = -r ...`;
+- `requirements/*.txt`, `requirements-*.txt`, or similar test requirements
+  file;
+- `pip install -r <file>` as a manual rescue step;
+- a new clone-helper flag such as `--install-requirements-file`;
+- any non-PEP-621 / non-PEP-735 bootstrap path not already covered by the
+  predeclared flag list.
+
+The operator may still document such a candidate as deferred, but it must not
+enter a frozen G-6d.4 tranche. Supporting those projects later requires a
+separate ADR before candidate selection, a structural update to the helper and
+its predeclared-flag tests, and a new cgpro review. It must not happen as
+post-freeze rescue for a selected case.
+
 Diversity across repos and claim types is useful, but evidence quality and
 runnable scoped tests are the first-order gates.
 

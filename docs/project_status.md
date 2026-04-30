@@ -1,4 +1,4 @@
-# `oida-code` — project status (2026-04-30, post-ADR-74 product strategy reset)
+# `oida-code` — project status (2026-04-30, post-ADR-75 dependency policy)
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when
@@ -372,6 +372,13 @@ commitment to dates.
   merge gate or production-readiness claim. G-6d remains open, but the
   next pinning tranche must first record a pre-freeze dependency policy
   for `requirements/*.txt` / `tox.ini` test-dependency patterns.
+* **G-6d dependency policy** (POLICY SUB-BLOCK CLOSED, ADR-75). cgpro
+  selected policy-only exclusion/defer for G-6d.4. Candidates whose
+  scoped test dependencies require `requirements/*.txt`, `tox.ini`
+  `deps = -r ...`, `pip install -r ...`, or a new clone-helper
+  requirements-file flag must be rejected or deferred before partition
+  freeze. No clone-helper flag was added, no corpus record changed, and
+  no runtime path changed.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 
@@ -399,12 +406,12 @@ validation missing, G-4 docs/roadmap confusion (partially
 addressed by §4/§8 here + close-out reports), G-5
 plain-language explanation (partially addressed).
 
-After ADR-73 stop: the next empirical G-6d step must be replanned
-with cgpro. The likely split is either an explicit requirements-file
-test-dependency policy block or a fresh pinning tranche that excludes
-the stopped older-dependency pattern before freeze. Phase 7 research
-moat work or official fusion-field revisit remain off the critical
-path until a larger, cleaner validation dataset exists.
+After ADR-75: the next empirical G-6d step is G-6d.4 candidate
+selection from the existing pool, applying the new pre-freeze
+reject/defer rule for requirements-file / tox-only test-dependency
+patterns. Phase 7 research moat work or official fusion-field revisit
+remain off the critical path until a larger, cleaner validation dataset
+exists.
 
 ## 6. Architecture honesty
 
