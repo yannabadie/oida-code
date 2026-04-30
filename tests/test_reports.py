@@ -76,12 +76,17 @@ def test_write_json_report_creates_file(tmp_path: Path) -> None:
     assert out.read_text(encoding="utf-8").strip().startswith("{")
 
 
-def test_render_markdown_contains_verdict_and_table() -> None:
+def test_render_markdown_is_diagnostic_only_and_contains_table() -> None:
     md = render_markdown(_sample_report())
-    assert "**counterexample_found**" in md
+    assert md.startswith("# OIDA Code Diagnostic Report")
+    assert "Diagnostic only - not a merge decision" in md
+    assert "**Verdict:**" not in md
+    assert "Contradicted by deterministic evidence" in md
     assert "| Tool | Status |" in md
     assert "`ruff`" in md
     assert "Incompatible types in bar.py" in md
+    assert "## Human follow-up checklist" in md
+    assert "## Repair plan" not in md
 
 
 def test_write_markdown_report_creates_file(tmp_path: Path) -> None:
@@ -89,7 +94,7 @@ def test_write_markdown_report_creates_file(tmp_path: Path) -> None:
     result = write_markdown_report(_sample_report(), out)
     assert result == out
     text = out.read_text(encoding="utf-8")
-    assert text.startswith("# OIDA Code Audit")
+    assert text.startswith("# OIDA Code Diagnostic Report")
     assert text.endswith("\n")
 
 

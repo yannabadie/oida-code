@@ -3258,3 +3258,27 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 **Outcome:** ADR-76 is a stop-and-protocol block. The live corpus remains N=14 (10 train, 4 holdout). G-6d remains OPEN toward N>=20, with at least six more clean pins still needed. A future G-6d attempt must either identify an exact clean +4 under the existing policy or open a separate cgpro-reviewed block for a new source pool or dependency-policy expansion.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-30 19:30:00] - **ADR-77: Phase 6.e front-door diagnostic CLI UX quarantines legacy Markdown verdict language.**
+**Why:** ADR-74 made the active product a diagnostic second opinion for Python reviewers, but the existing `audit --format markdown` renderer still displayed a top-level `Verdict:` row with internal legacy labels and a `Repair plan` section. cgpro accepted ADR-76 and selected Phase 6.e as the next high-leverage block because the first-run reviewer path should match the diagnostic-only product compass before more corpus or provider work.
+
+**Decision:** Modify the existing Markdown renderer in place and update CLI help wording. Do not add a new `review` or `diagnose` alias. Keep JSON/SARIF compatibility and internal `AuditReport.summary.verdict` values unchanged; only the human Markdown output maps those legacy values to diagnostic reviewer text.
+
+**Accepted:**
+
+* `audit --format markdown` now renders `# OIDA Code Diagnostic Report`, a diagnostic-only banner, mapped diagnostic status text, blocked official fusion-field wording, and `## Human follow-up checklist`.
+* CLI top-level help and `audit --help` now describe deterministic diagnostic review, not a merge or production-readiness decision.
+* `repair --help` remains visible but is explicitly a compatibility stub, not a front-door path and not a code-modification tool.
+* Add `docs/diagnostic_cli_quickstart.md`, `QA/A58.md`, `reports/phase6_e_front_door_diagnostic_cli/report.{json,md}`, and Phase 6.e tests.
+
+**Rejected:**
+
+* Adding a new CLI alias while leaving the old Markdown renderer unsafe.
+* JSON/SARIF schema migration.
+* Changing `resolve_verdict`, `fail-on`, or deterministic tool execution behavior.
+* Hiding the `repair` command in this block.
+* Provider calls, corpus/index changes, clone-helper changes, GitHub Action default changes, MCP/runtime/provider/gateway-default changes, official fusion-field unlock, or product-verdict claims.
+
+**Outcome:** Phase 6.e is a front-door UX alignment block. It does not advance G-6d, does not change runtime trust boundaries, and does not alter JSON compatibility. The reviewer-facing Markdown now quarantines legacy internal labels behind diagnostic-only language.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

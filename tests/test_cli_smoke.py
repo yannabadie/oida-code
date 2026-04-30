@@ -47,7 +47,11 @@ def test_inspect_help_shows() -> None:
 def test_top_level_help_shows() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0, result.output
-    assert "inspect" in _plain(result.output)
+    plain = _plain(result.output)
+    assert "inspect" in plain
+    assert "Diagnostic evidence for Python code reviewers" in plain
+    assert "AI code verifier" not in plain
+    assert "guaranteed behavior" not in plain
 
 
 def test_version_flag() -> None:
@@ -87,6 +91,8 @@ def test_unimplemented_phase5_subcommand_raises() -> None:
     """``repair`` remains Phase 5 work; only it should still error out."""
     result = runner.invoke(app, ["repair", "."])
     assert result.exit_code != 0
+    assert result.exception is not None
+    assert "compatibility stub only" in str(result.exception)
 
 
 def test_normalize_emits_valid_scenario(tmp_path, tmp_path_factory: object) -> None:

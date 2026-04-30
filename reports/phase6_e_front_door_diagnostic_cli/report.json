@@ -1,0 +1,62 @@
+{
+  "report_id": "phase6_e_front_door_diagnostic_cli",
+  "date": "2026-04-30",
+  "source_commit": "fd34302c4644da55e2e2c1d7ced2318ed6139b0e",
+  "cgpro": {
+    "thread": "autonomous-protocol-20260430",
+    "conversation_id": "69f3ba6f-60f0-838b-8028-a8af734b2d72",
+    "implementation_option": "modify_existing_renderer"
+  },
+  "front_door_renderer_changed": true,
+  "json_schema_changed": false,
+  "sarif_schema_changed": false,
+  "alias_added": false,
+  "provider_call_used": false,
+  "direct_provider_call": false,
+  "corpus_index_changed": false,
+  "runtime_gateway_default_changed": false,
+  "mcp_runtime_changed": false,
+  "clone_helper_changed": false,
+  "github_action_changed": false,
+  "markdown_mapping": {
+    "verified": "No contradiction observed by configured deterministic checks (diagnostic only; not proof of correctness)",
+    "counterexample_found": "Contradicted by deterministic evidence (human review required)",
+    "insufficient_evidence": "Evidence gap remains (human review required)",
+    "corrupt_success": "Success evidence conflicts with critical findings (human review required)"
+  },
+  "changed_surfaces": [
+    "src/oida_code/report/markdown_report.py",
+    "src/oida_code/cli.py",
+    "docs/diagnostic_cli_quickstart.md",
+    "README.md",
+    "docs/product_strategy.md",
+    "docs/project_status.md",
+    "BACKLOG.md",
+    "QA/A58.md",
+    "reports/phase6_e_front_door_diagnostic_cli/report.md",
+    "reports/phase6_e_front_door_diagnostic_cli/report.json",
+    "tests/test_phase6_e_front_door_diagnostic_cli.py",
+    "tests/test_reports.py",
+    "tests/test_cli_audit.py",
+    "tests/test_cli_smoke.py"
+  ],
+  "hard_wall_check": {
+    "official_fusion_fields_unlocked": false,
+    "merge_decision_claim_added": false,
+    "production_readiness_claim_added": false,
+    "bug_free_claim_added": false,
+    "security_verification_claim_added": false,
+    "public_benchmark_claim_added": false,
+    "autonomous_repair_claim_added": false
+  },
+  "verification": [
+    "python -m json.tool reports\\phase6_e_front_door_diagnostic_cli\\report.json > $null",
+    "python -m pytest tests/test_phase6_e_front_door_diagnostic_cli.py tests/test_reports.py tests/test_cli_audit.py tests/test_cli_smoke.py tests/test_cli_help_windows_encoding.py -q",
+    "python -m pytest tests/test_phase4_9_diagnostic_report.py tests/test_product_strategy_reset.py tests/test_reports.py tests/test_self_audit_guard.py -q",
+    "git diff --exit-code -- reports\\calibration_seed\\index.json scripts\\clone_target_at_sha.py action.yml src\\oida_code\\verifier src\\oida_code\\provider src\\oida_code\\tool_gateway",
+    "python -m ruff check src/ tests/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m mypy src/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m pytest -q",
+    "git diff --check"
+  ]
+}

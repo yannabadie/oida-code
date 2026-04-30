@@ -19,6 +19,12 @@ two clean candidates survived screening. The live
 `reports/calibration_seed/index.json` remains at the ADR-72 state: 46 records,
 14 pinned, 10 train, 4 holdout.
 
+Current head before the Phase 6.e front-door CLI UX block is `fd34302`
+(`docs(g6d): record g6d4 pre-freeze stop`). ADR-77 / Phase 6.e aligns the
+existing `audit --format markdown` human output with the diagnostic-only
+product compass: no new alias, no JSON/SARIF schema migration, no corpus/index
+change, no provider call, no runtime/provider/MCP/default-gateway change.
+
 G-6a is closed for the current archived load-bearing replay set by
 ADR-68 plus ADR-69. G-6d remains open toward N>=20, but cgpro review
 `repo-product-vision-review` (`69f329be-0dd4-838f-8687-d68190f21e7d`)

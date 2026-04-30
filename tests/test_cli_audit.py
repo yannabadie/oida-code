@@ -90,7 +90,9 @@ def test_audit_command_markdown_format(tmp_path: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     text = out.read_text(encoding="utf-8")
-    assert "# OIDA Code Audit" in text
+    assert "# OIDA Code Diagnostic Report" in text
+    assert "Diagnostic only - not a merge decision" in text
+    assert "**Verdict:**" not in text
 
 
 def test_audit_command_sarif_format(tmp_path: Path) -> None:

@@ -69,7 +69,10 @@ class FailOn(StrEnum):
 
 app = typer.Typer(
     name="oida-code",
-    help="AI code verifier - measure the gap between apparent and guaranteed behavior.",
+    help=(
+        "Diagnostic evidence for Python code reviewers - not a merge "
+        "decision or production-readiness assessment."
+    ),
     no_args_is_help=True,
     add_completion=False,
 )
@@ -292,7 +295,10 @@ def verify_cmd(
     ] = OutputFormat.json,
     fail_on: Annotated[
         FailOn,
-        typer.Option("--fail-on", help="Non-zero exit trigger."),
+        typer.Option(
+            "--fail-on",
+            help="Exit-code policy for deterministic findings; not a merge decision.",
+        ),
     ] = FailOn.none,
     enable_property: Annotated[
         bool,
@@ -309,7 +315,7 @@ def verify_cmd(
         ),
     ] = False,
 ) -> None:
-    """Run the deterministic verifiers against an existing ``AuditRequest``."""
+    """Run deterministic diagnostic checks against an existing ``AuditRequest``."""
     request = _load_request(request_path)
     evidence = _run_deterministic_pipeline(
         request,
@@ -341,11 +347,17 @@ def audit_cmd(
     out: Annotated[Path | None, typer.Option("--out")] = None,
     format_: Annotated[
         OutputFormat,
-        typer.Option("--format", help="Output format."),
+        typer.Option(
+            "--format",
+            help="Output format; markdown is diagnostic-only, JSON preserves the legacy schema.",
+        ),
     ] = OutputFormat.json,
     fail_on: Annotated[
         FailOn,
-        typer.Option("--fail-on", help="Non-zero exit trigger."),
+        typer.Option(
+            "--fail-on",
+            help="Exit-code policy for deterministic findings; not a merge decision.",
+        ),
     ] = FailOn.none,
     enable_property: Annotated[
         bool,
@@ -362,7 +374,10 @@ def audit_cmd(
         ),
     ] = False,
 ) -> None:
-    """End-to-end deterministic audit: inspect -> verify -> report (Phase 1 path)."""
+    """Run the deterministic diagnostic review: inspect -> verify tools -> report.
+
+    Diagnostic only; does not make a merge or production-readiness decision.
+    """
     request = _build_request(repo_path, base, intent)
     evidence = _run_deterministic_pipeline(
         request,
@@ -615,10 +630,13 @@ def repair_cmd(
     report_path: Annotated[Path, typer.Argument(help="AuditReport JSON to repair.")],
     out: Annotated[Path | None, typer.Option("--out")] = None,
 ) -> None:
-    """Emit a double-loop repair plan with targeted prompts (Phase 5)."""
+    """Compatibility stub for legacy follow-up records.
+
+    Not a front-door path and does not modify code.
+    """
     del report_path, out
     raise NotImplementedError(
-        "repair: Phase 5 - wires double-loop dominance + LLM repair prompts."
+        "repair: compatibility stub only; no code modification path is implemented."
     )
 
 

@@ -1,4 +1,4 @@
-"""Render an :class:`AuditReport` as a PR-comment-ready Markdown summary."""
+"""Render an :class:`AuditReport` as diagnostic-only Markdown."""
 
 from __future__ import annotations
 
@@ -6,11 +6,19 @@ from pathlib import Path
 
 from oida_code.models.audit_report import AuditReport, VerdictLabel
 
-_VERDICT_BADGE: dict[VerdictLabel, str] = {
-    "verified": "🟢 **verified**",
-    "counterexample_found": "🔴 **counterexample_found**",
-    "insufficient_evidence": "🟡 **insufficient_evidence**",
-    "corrupt_success": "⚠️ **corrupt_success**",
+_DIAGNOSTIC_STATUS: dict[VerdictLabel, str] = {
+    "verified": (
+        "No contradiction observed by configured deterministic checks "
+        "(diagnostic only; not proof of correctness)"
+    ),
+    "counterexample_found": (
+        "Contradicted by deterministic evidence (human review required)"
+    ),
+    "insufficient_evidence": "Evidence gap remains (human review required)",
+    "corrupt_success": (
+        "Success evidence conflicts with critical findings "
+        "(human review required)"
+    ),
 }
 
 
@@ -21,22 +29,37 @@ def _format_optional_float(value: float | None, digits: int = 3) -> str:
 
 
 def render_markdown(report: AuditReport) -> str:
-    """Return a Markdown block summarizing the report."""
+    """Return a diagnostic-only Markdown block summarizing the report."""
     summary = report.summary
-    badge = _VERDICT_BADGE.get(summary.verdict, summary.verdict)
+    diagnostic_status = _DIAGNOSTIC_STATUS.get(
+        summary.verdict,
+        "Diagnostic status unavailable (human review required)",
+    )
 
     lines: list[str] = [
-        "# OIDA Code Audit",
+        "# OIDA Code Diagnostic Report",
         "",
-        f"**Verdict:** {badge}",
+        "> Diagnostic only - not a merge decision or production-readiness assessment.",
+        "",
+        "## Diagnostic status",
+        "",
+        f"- Result: **{diagnostic_status}**",
+        "- Mode: `diagnostic_only`",
+        (
+            "- Compatibility note: JSON and SARIF keep the legacy internal "
+            "schema values; this Markdown is the human-facing diagnostic view."
+        ),
         "",
         "## Summary",
         "",
         f"- mean `Q_obs`: {_format_optional_float(summary.mean_q_obs)}",
         f"- mean `grounding`: {_format_optional_float(summary.mean_grounding)}",
-        f"- total `V_net`: {_format_optional_float(summary.total_v_net)}",
-        f"- final `debt`: {_format_optional_float(summary.debt_final)}",
-        f"- `corrupt_success_ratio`: {_format_optional_float(summary.corrupt_success_ratio)}",
+        "- Official net-value field: **blocked** (not emitted by this renderer)",
+        "- Official final-debt field: **blocked** (not emitted by this renderer)",
+        (
+            "- Official corrupt-success ratio field: **blocked** "
+            "(not emitted by this renderer)"
+        ),
         "",
     ]
 
@@ -46,7 +69,7 @@ def render_markdown(report: AuditReport) -> str:
         lines.append("| Tool | Status | Duration (ms) | Findings | Counts |")
         lines.append("|---|---|---:|---:|---|")
         for ev in report.tool_evidence:
-            counts = ", ".join(f"{k}={v}" for k, v in sorted(ev.counts.items())) or "—"
+            counts = ", ".join(f"{k}={v}" for k, v in sorted(ev.counts.items())) or "-"
             lines.append(
                 f"| `{ev.tool}` | `{ev.status}` | {ev.duration_ms} | "
                 f"{len(ev.findings)} | {counts} |"
@@ -58,18 +81,22 @@ def render_markdown(report: AuditReport) -> str:
         lines.append("")
         for f in report.critical_findings:
             loc = f"`{f.path}`" + (f":{f.line}" if f.line else "")
-            lines.append(f"- **{f.id}** · {loc} · `{f.kind}` — {f.title}")
+            lines.append(f"- **{f.id}** | {loc} | `{f.kind}` - {f.title}")
         lines.append("")
 
     if report.repair.reopen or report.repair.audit or report.repair.next_prompts:
-        lines.append("## Repair plan")
+        lines.append("## Human follow-up checklist")
         lines.append("")
         if report.repair.reopen:
-            lines.append(f"- **reopen:** {', '.join(f'`{e}`' for e in report.repair.reopen)}")
+            lines.append(
+                f"- **review again:** {', '.join(f'`{e}`' for e in report.repair.reopen)}"
+            )
         if report.repair.audit:
-            lines.append(f"- **audit:** {', '.join(f'`{e}`' for e in report.repair.audit)}")
+            lines.append(
+                f"- **inspect evidence:** {', '.join(f'`{e}`' for e in report.repair.audit)}"
+            )
         if report.repair.next_prompts:
-            lines.append("- **next prompts:**")
+            lines.append("- **reviewer prompts:**")
             for p in report.repair.next_prompts:
                 lines.append(f"  - {p}")
         lines.append("")

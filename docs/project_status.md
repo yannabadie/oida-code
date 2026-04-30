@@ -394,6 +394,11 @@ commitment to dates.
   behavior case and comes from a broad PR. The block stopped before freeze:
   no index edit, no replay output, no feasibility report, no clone-helper
   flag, no runtime/provider/MCP/default-gateway change.
+* **Phase 6.e front-door diagnostic CLI UX** (CURRENT FRONT-DOOR ALIGNMENT,
+  ADR-77). `audit --format markdown` now renders a diagnostic-only human report
+  rather than a legacy verdict surface. JSON/SARIF compatibility remains
+  unchanged; no alias, provider call, corpus/index change, runtime/provider/MCP
+  change, gateway default change, or GitHub Action default change was added.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 

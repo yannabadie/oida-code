@@ -69,7 +69,7 @@ Everything else is research or backlog until this path is clear.
    with diagnostic-only status.
 3. Keep agent handoff files current so autonomous development does not
    restart closed work.
-4. Fix the Windows CLI help path.
+4. Keep the front-door diagnostic CLI UX aligned with this document.
 5. Apply ADR-75 and ADR-76 during G-6d candidate selection: reject or defer
    `requirements/*.txt` / `tox.ini` test-dependency-only candidates
    before freeze, and stop before freeze unless an exact clean +4 tranche is
@@ -131,6 +131,13 @@ add requirements-file install support as a post-freeze rescue for a failing
 case. Any future support for requirements-file / tox-only dependency patterns
 requires a separate ADR before candidate selection and a structural update to
 the predeclared clone-helper flag tests.
+
+## Phase 6.e Front Door
+
+Phase 6.e aligns the existing `audit --format markdown` path with this product
+strategy. The human Markdown report is now a diagnostic reviewer surface: it
+does not present internal legacy JSON verdict labels as product claims, does
+not add a new alias, and does not change JSON/SARIF compatibility.
 
 ## Authority
 

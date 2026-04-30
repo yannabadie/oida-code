@@ -1,6 +1,8 @@
 # oida-code
 
-**AI code verifier.** Measures the gap between what AI-written code appears to do and what it actually guarantees.
+**Diagnostic evidence for AI-authored Python diffs.** Helps reviewers inspect
+whether claims about a change are supported, contradicted, or still missing
+evidence.
 
 Built on the OIDA v4.2 formal model of operational debt and corrupt success (Abadie, 2026).
 
@@ -21,8 +23,19 @@ Read these first:
   product direction and 30-day priorities.
 - [`docs/project_status.md`](docs/project_status.md) - verified current
   repo state and open caveats.
+- [`docs/diagnostic_cli_quickstart.md`](docs/diagnostic_cli_quickstart.md)
+  - 10-minute deterministic diagnostic CLI path.
 - [`docs/concepts/oida_code_plain_language.md`](docs/concepts/oida_code_plain_language.md)
   - plain-language explanation.
+
+Primary local command:
+
+```powershell
+python -m oida_code.cli audit <target-repo> --base HEAD --format markdown --out .oida\oida-diagnostic.md
+```
+
+The Markdown output is diagnostic-only. JSON keeps the legacy internal schema
+for compatibility.
 
 The phase ledger below is retained as evidence history. It is not the
 active product roadmap when it conflicts with `docs/product_strategy.md`
