@@ -1,10 +1,4 @@
-"""Phase 6.d.1 corpus pinning guards.
-
-ADR-71 / G-6d.1 advanced the calibration seed corpus from the
-historical ADR-70 baseline (6 pinned cases) to 10 pinned cases.
-Later G-6d tranches may advance the live corpus again, so this file
-guards the historical G-6d.1 transition rather than the live count.
-"""
+"""Phase 6.d.2 corpus pinning guards."""
 
 from __future__ import annotations
 
@@ -18,17 +12,20 @@ _INDEX_PATH = _REPO_ROOT / "reports" / "calibration_seed" / "index.json"
 _ADR70_PLAN_PATH = (
     _REPO_ROOT / "reports" / "phase6_d_corpus_expansion_plan" / "plan.json"
 )
-_REPORT_DIR = _REPO_ROOT / "reports" / "phase6_d_1_pinning"
+_G6D1_SELECTION_PATH = (
+    _REPO_ROOT / "reports" / "phase6_d_1_pinning" / "selection.json"
+)
+_REPORT_DIR = _REPO_ROOT / "reports" / "phase6_d_2_pinning"
 _SELECTION_PATH = _REPORT_DIR / "selection.json"
 _FEASIBILITY_PATH = _REPORT_DIR / "feasibility.json"
 
-_G6D1_CASE_IDS = {
-    "seed_003_pytest_dev_pytest_14420",
-    "seed_064_simonw_sqlite_utils_683",
-    "seed_066_simonw_sqlite_utils_681",
-    "seed_155_hynek_structlog_763",
+_G6D2_CASE_IDS = {
+    "seed_037_tiangolo_typer_1695",
+    "seed_075_simonw_sqlite_utils_653",
+    "seed_161_hynek_structlog_757",
+    "seed_162_hynek_structlog_756",
 }
-_FREEZE_AT = "2026-04-30T04:10:00Z"
+_FREEZE_AT = "2026-04-30T07:18:00Z"
 _AI_AUTHORED_LABEL = "ai_authored_public_diff_review"
 _FORBIDDEN_PRODUCT_VERDICT_PHRASES = (
     "merge-safe",
@@ -62,32 +59,36 @@ def _index_by_case_id() -> dict[str, dict[str, Any]]:
     return {record["case_id"]: record for record in _index_records()}
 
 
-def test_g6d1_historical_transition_counts() -> None:
-    adr70_plan = _json(_ADR70_PLAN_PATH)
-    adr70_pinned_ids = set(adr70_plan["current_corpus"]["pinned_case_ids"])
-    selected = _selection()["selected_cases"]
-
-    assert len(adr70_pinned_ids) == 6
-    assert {case["case_id"] for case in selected} == _G6D1_CASE_IDS
-    assert adr70_pinned_ids.isdisjoint(_G6D1_CASE_IDS)
-
-    train_added = sum(1 for case in selected if case["partition"] == "train")
-    holdout_added = sum(1 for case in selected if case["partition"] == "holdout")
-    assert train_added == 3
-    assert holdout_added == 1
-    assert adr70_plan["current_corpus"]["train_count"] + train_added == 7
-    assert adr70_plan["current_corpus"]["holdout_count"] + holdout_added == 3
-    assert adr70_plan["current_corpus"]["pinned_count"] + len(selected) == 10
+def _adr71_pinned_baseline() -> set[str]:
+    adr70_ids = set(_json(_ADR70_PLAN_PATH)["current_corpus"]["pinned_case_ids"])
+    g6d1_ids = {
+        case["case_id"]
+        for case in _json(_G6D1_SELECTION_PATH)["selected_cases"]
+    }
+    return adr70_ids | g6d1_ids
 
 
-def test_g6d1_selected_cases_are_exact_new_pins() -> None:
-    adr70_plan = _json(_ADR70_PLAN_PATH)
-    adr70_pinned_ids = set(adr70_plan["current_corpus"]["pinned_case_ids"])
+def test_live_index_counts_after_g6d2() -> None:
+    records = _index_records()
+    pinned = [r for r in records if r.get("partition") in {"train", "holdout"}]
+    train = [r for r in pinned if r.get("partition") == "train"]
+    holdout = [r for r in pinned if r.get("partition") == "holdout"]
+
+    assert len(records) == 46
+    assert len(pinned) == 14
+    assert len(train) == 10
+    assert len(holdout) == 4
+    assert len(holdout) / len(pinned) == 4 / 14
+
+
+def test_g6d2_selected_cases_are_exact_new_pins() -> None:
+    adr71_pinned_ids = _adr71_pinned_baseline()
     selection_cases = _selection()["selected_cases"]
     selected_ids = {case["case_id"] for case in selection_cases}
 
-    assert selected_ids == _G6D1_CASE_IDS
-    assert selected_ids.isdisjoint(adr70_pinned_ids)
+    assert len(adr71_pinned_ids) == 10
+    assert selected_ids == _G6D2_CASE_IDS
+    assert selected_ids.isdisjoint(adr71_pinned_ids)
 
     selected_partitions = {case["case_id"]: case["partition"] for case in selection_cases}
     assert sum(1 for v in selected_partitions.values() if v == "train") == 3
@@ -101,7 +102,7 @@ def test_g6d1_selected_cases_are_exact_new_pins() -> None:
 
 def test_selected_records_keep_ai_authored_open_review_provenance() -> None:
     index = _index_by_case_id()
-    for case_id in _G6D1_CASE_IDS:
+    for case_id in _G6D2_CASE_IDS:
         record = index[case_id]
         assert record["label_source"] == _AI_AUTHORED_LABEL
         assert record["human_review_required"] is True
@@ -120,19 +121,19 @@ def test_selected_records_keep_ai_authored_open_review_provenance() -> None:
         assert len(record["evidence_items"]) >= 2
 
 
-def test_deterministic_holdout_rule_selects_seed_066() -> None:
+def test_deterministic_holdout_rule_selects_seed_161() -> None:
     selected_ids = sorted(case["case_id"] for case in _selection()["selected_cases"])
     expected_hashes = {
-        case_id: hashlib.sha256(f"g6d1-holdout:{case_id}".encode()).hexdigest()
+        case_id: hashlib.sha256(f"g6d2-holdout:{case_id}".encode()).hexdigest()
         for case_id in selected_ids
     }
     rule = _selection()["deterministic_partition_rule"]
 
     assert rule["hashes"] == expected_hashes
     assert min(expected_hashes, key=expected_hashes.__getitem__) == (
-        "seed_066_simonw_sqlite_utils_681"
+        "seed_161_hynek_structlog_757"
     )
-    assert rule["holdout_case_id"] == "seed_066_simonw_sqlite_utils_681"
+    assert rule["holdout_case_id"] == "seed_161_hynek_structlog_757"
 
 
 def test_selection_artifact_records_pre_outcome_boundaries() -> None:
@@ -174,7 +175,7 @@ def test_feasibility_artifact_is_post_freeze_and_all_green() -> None:
         "failed": 0,
         "flaky": 0,
     }
-    assert {result["case_id"] for result in results} == _G6D1_CASE_IDS
+    assert {result["case_id"] for result in results} == _G6D2_CASE_IDS
 
     for result in results:
         assert result["clone_started_at"] > _FREEZE_AT
@@ -187,7 +188,7 @@ def test_feasibility_artifact_is_post_freeze_and_all_green() -> None:
         assert result["head_sha"]
 
 
-def test_g6d1_artifacts_do_not_create_replay_outputs_or_product_claims() -> None:
+def test_g6d2_artifacts_do_not_create_replay_outputs_or_product_claims() -> None:
     assert not (_REPORT_DIR / "round_trip_outputs").exists()
 
     combined = "\n".join(
@@ -205,11 +206,7 @@ def test_g6d1_artifacts_do_not_create_replay_outputs_or_product_claims() -> None
         assert phrase not in combined
 
 
-def test_adr70_snapshot_stays_historical_after_g6d1() -> None:
-    plan = _json(_ADR70_PLAN_PATH)
-    assert plan["current_corpus"]["pinned_count"] == 6
-    assert plan["current_corpus"]["train_count"] == 4
-    assert plan["current_corpus"]["holdout_count"] == 2
-    assert plan["next_empirical_tranche"]["resulting_pinned_count"] == 10
-    assert plan["next_empirical_tranche"]["resulting_train_count"] == 7
-    assert plan["next_empirical_tranche"]["resulting_holdout_count"] == 3
+def test_adr70_and_adr71_artifacts_stay_historical_after_g6d2() -> None:
+    assert _json(_ADR70_PLAN_PATH)["current_corpus"]["pinned_count"] == 6
+    assert len(_json(_G6D1_SELECTION_PATH)["selected_cases"]) == 4
+    assert len(_selection()["selected_cases"]) == 4

@@ -1,4 +1,4 @@
-# `oida-code` — project status (2026-04-30, post-ADR-71 G-6d.1 pinning)
+# `oida-code` — project status (2026-04-30, post-ADR-72 G-6d.2 pinning)
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when
@@ -35,13 +35,14 @@ what is out of scope, and what the next named phase is.
 > ADR-70 then added a planning-only G-6d.0 corpus expansion protocol:
 > no new pins, no partition changes, no provider calls, no GitHub
 > harvesting. ADR-71 / G-6d.1 then exercised that protocol on four
-> existing public records, moving the calibration_seed corpus to
-> N_pinned=10 (7 train + 3 holdout). G-6d remains open because the
-> documented target is still N>=20.
+> existing public records, and ADR-72 / G-6d.2 repeated the same
+> pinning-only pattern on four more. The calibration_seed corpus is
+> now N_pinned=14 (10 train + 4 holdout). G-6d remains open because
+> the documented target is still N>=20.
 >
 > **The project is not production-ready and does not claim to be.**
 > The empirical signal from the calibration_seed corpus is still thin
-> (N_pinned=10, with only the earlier 2 holdout replay outcomes
+> (N_pinned=14, with only the earlier 2 holdout replay outcomes
 > evaluated); the chain itself is best
 > read as "discipline validated end-to-end + bootstrap carve-out
 > bounded + 1 cleanly-counted holdout success" rather than "system
@@ -103,8 +104,8 @@ These capabilities are usable today by an external operator:
   ADR-55+57) emits 9 files (8 verifier-required + README) from a
   Tier-3-complete calibration_seed record.
 * **Calibration seed corpus** (`reports/calibration_seed/`):
-  46 inclusions across 13 public Python repos; 10 pinned cases
-  (7 train + 3 holdout). Four G-6d.1 pins are
+  46 inclusions across 13 public Python repos; 14 pinned cases
+  (10 train + 4 holdout). Eight G-6d.1/G-6d.2 pins are
   `ai_authored_public_diff_review` with `human_review_required=true`;
   they are not yet independent human-reviewed pins.
 * **Manual-lane scripts** (3):
@@ -338,6 +339,13 @@ commitment to dates.
   live corpus is now N=10 (7 train + 3 holdout, ratio 0.30). These
   pins use `label_source=ai_authored_public_diff_review` and keep
   `human_review_required=true`.
+* **G-6d.2 corpus pinning tranche** (PINNING SUB-BLOCK CLOSED,
+  ADR-72). Four more formerly unpinned records were selected after
+  public diff inspection, frozen before pytest, and checked with local
+  clone/scoped-pytest feasibility. The live corpus is now N=14
+  (10 train + 4 holdout, ratio 0.29). These pins also use
+  `label_source=ai_authored_public_diff_review` and keep
+  `human_review_required=true`.
 * **Phase 7 research moat — LongCoT / Simula** (deliberately
   off the critical path per project-rule 2).
 
@@ -345,17 +353,17 @@ commitment to dates.
 order per cgpro QA/A48/QA/A49/QA/A50/QA/A51):**
 
 1. **G-6d — Statistical thinness** (corpus expansion toward
-   N≥20). Currently N_pinned=10 with 3 holdouts, but only the
+   N≥20). Currently N_pinned=14 with 4 holdouts, but only the
    earlier archived replay set has been semantically reviewed.
-   G-6d.1 completed the first +4 pin tranche; the N>=20 target
-   remains open.
+   G-6d.1 and G-6d.2 completed the first two +4 pin tranches;
+   the N>=20 target remains open.
 2. **G-6e — Partial** (seed_018's success is causally
    independent of the bootstrap fixes; seed_065's success
    remains entangled with 6.1'f/g motivations).
 3. **G-6c — Partial** (seed_018 demonstrates audit-informed
    Tier-3 authoring; ADR-70 codifies the broader authoring
-   checklist; ADR-71 exercises it on four AI-authored public-diff
-   pins that still require independent human review).
+   checklist; ADR-71 and ADR-72 exercise it on eight AI-authored
+   public-diff pins that still require independent human review).
 
 Older BACKLOG items (Grok review, 2026-04-28): G-1 official
 OIDA fusion fields blocked, G-2 Python-first, G-3 large-scale
@@ -363,7 +371,7 @@ validation missing, G-4 docs/roadmap confusion (partially
 addressed by §4/§8 here + close-out reports), G-5
 plain-language explanation (partially addressed).
 
-After ADR-71: the next empirical G-6d step is another labelled
+After ADR-72: the next empirical G-6d step is another labelled
 corpus-quality tranche toward N>=20, still preserving public-diff
 evidence, freeze-before-outcome discipline, and human-review
 provenance. Phase 7 research moat work or official fusion-field
@@ -463,13 +471,13 @@ WITH these caveats.
   LLM-authored replay sets still need static-plus-manual review,
   and this does not validate product safety, predictive validity,
   broad generalisation, or future replay correctness.
-* **N=10 is still statistically thin for any generalisation
-  claim (G-6d).** At N_pinned=10 with 3 holdouts, ratio
-  3/10=0.30, the signal is still consistent with overfitting
+* **N=14 is still statistically thin for any generalisation
+  claim (G-6d).** At N_pinned=14 with 4 holdouts, ratio
+  4/14=0.29, the signal is still consistent with overfitting
   to pytest-runnable targets. The audit's recommended threshold
-  is N>=20. ADR-71 completed the first +4 pin tranche but did
-  not create replay outputs or larger-N validation; G-6d remains
-  open.
+  is N>=20. ADR-71 and ADR-72 completed two +4 pin tranches but
+  did not create replay outputs or larger-N validation; G-6d
+  remains open.
 * **ADR-56 spirit-tension on seed_065 — PARTIALLY ADDRESSED
   (G-6e).** seed_065's `verification_candidate` outcome is
   causally entangled with the 6.1'f/g bootstrap fixes that

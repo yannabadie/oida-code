@@ -2,7 +2,7 @@
 
 This protocol governs G-6d corpus expansion after ADR-69. It was authored
 as ADR-70 before G-6d.1. The baseline counts below are therefore historical
-pre-G-6d.1 counts; the live corpus after ADR-71 is N=10 (7 train + 3
+pre-G-6d.1 counts; the live corpus after ADR-72 is N=14 (10 train + 4
 holdout). The protocol still governs future pinning tranches so larger-N
 work does not dilute the lane separation, holdout discipline, or
 replay-review hard walls already established.
@@ -13,7 +13,7 @@ At ADR-70 time, the calibration seed index had 46 inclusion records. Six
 were pinned: four train cases and two holdout cases. The holdout ratio was
 0.33.
 
-G-6d remains open because N=10 is still too thin for any broad cross-target
+G-6d remains open because N=14 is still too thin for any broad cross-target
 claim. The target for the next larger-N milestone is at least 20 pinned cases while
 keeping holdout ratio inside the existing 0.20 to 0.40 band.
 
@@ -39,9 +39,9 @@ G-6d.0 must not:
 - claim product safety, predictive validity, broad generalisation, or future
   replay correctness.
 
-## Next empirical tranche
+## Historical first empirical tranche
 
-The next empirical block is G-6d.1:
+The first empirical block was G-6d.1:
 
 - pin four new cases from the existing 46-case index;
 - split them as three train and one holdout;
@@ -57,11 +57,11 @@ The full G-6d target from the ADR-70 baseline was +14 new pinned cases:
 - resulting holdout=6;
 - resulting holdout ratio 0.30.
 
-After ADR-71, the live corpus is N=10 and at least 10 more pins are still
-needed to reach N=20. Fresh GitHub harvesting is not part of G-6d.0 or
-G-6d.1. If the remaining existing unpinned records cannot supply enough
-high-quality cases, harvesting becomes a separate later block with its own
-consultation and report.
+After ADR-72, the live corpus is N=14 and at least 6 more pins are still
+needed to reach N=20. Fresh GitHub harvesting is not part of G-6d.0,
+G-6d.1, or G-6d.2. If the remaining existing unpinned records cannot
+supply enough high-quality cases, harvesting becomes a separate later block
+with its own consultation and report.
 
 ## Candidate policy
 

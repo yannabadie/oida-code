@@ -1,0 +1,111 @@
+{
+  "report_id": "phase6_d_2_pinning_feasibility",
+  "date": "2026-04-30",
+  "selection_report": "reports/phase6_d_2_pinning/selection.json",
+  "partition_freeze_at": "2026-04-30T07:18:00Z",
+  "post_freeze_started_at": "2026-04-30T07:18:30Z",
+  "scope": {
+    "phase": "G-6d.2",
+    "provider_calls": 0,
+    "pat_github_used": false,
+    "fresh_github_api_used": false,
+    "replay_outputs_created": 0,
+    "round_trip_outputs_created": 0,
+    "runtime_path_changed": false,
+    "clone_helper_flags_added": 0
+  },
+  "notes": [
+    "A first Typer clone attempt used the default .tmp/clones path and hit the preinspection no-checkout clone at the same target directory. The recorded feasibility run used the predeclared --clones-dir flag with .tmp/g6d2_clones for all four cases."
+  ],
+  "aggregate": {
+    "cases": 4,
+    "passed": 4,
+    "failed": 0,
+    "flaky": 0
+  },
+  "results": [
+    {
+      "case_id": "seed_037_tiangolo_typer_1695",
+      "partition": "train",
+      "repo_url": "https://github.com/tiangolo/typer",
+      "pr_number": 1695,
+      "base_sha": "c9554ec35640395a12af06547b75b2fed3bb6973",
+      "head_sha": "601e030b29a3961da0d89d6aa0cb2802d15dbec2",
+      "clone_started_at": "2026-04-30T07:18:30Z",
+      "pytest_completed_at": "2026-04-30T07:19:30Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/g6d2_clones/tiangolo_typer_601e030b",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo tiangolo/typer --head-sha 601e030b29a3961da0d89d6aa0cb2802d15dbec2 --manual-egress-ok --clones-dir .tmp/g6d2_clones --install-oida-code --install-group tests --import-smoke typer",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/g6d2_clones/tiangolo_typer_601e030b/.venv/Scripts/python.exe -m pytest tests/test_tracebacks.py::test_rich_exceptions_dont_truncate_code_on_wide_terminal -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e tiangolo/typer",
+        "pip install --group tests"
+      ],
+      "import_smoke": "import typer OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "1 passed in 0.66s"
+    },
+    {
+      "case_id": "seed_075_simonw_sqlite_utils_653",
+      "partition": "train",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 653,
+      "base_sha": "72f6c820f683ba4bd312679f5302d92e75254a53",
+      "head_sha": "79913af28a7a68eb98725df3343ccdcbe86a30fa",
+      "clone_started_at": "2026-04-30T07:19:30Z",
+      "pytest_completed_at": "2026-04-30T07:20:10Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/g6d2_clones/simonw_sqlite_utils_79913af2",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo simonw/sqlite-utils --head-sha 79913af28a7a68eb98725df3343ccdcbe86a30fa --manual-egress-ok --clones-dir .tmp/g6d2_clones --install-oida-code --install-extras test --import-smoke sqlite_utils",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/g6d2_clones/simonw_sqlite_utils_79913af2/.venv/Scripts/python.exe -m pytest tests/test_upsert.py::test_upsert -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e simonw/sqlite-utils[test]"
+      ],
+      "import_smoke": "import sqlite_utils OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "2 selected pytest invocations passed; pytest stdout rendered two progress dots and exit_code=0"
+    },
+    {
+      "case_id": "seed_161_hynek_structlog_757",
+      "partition": "holdout",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 757,
+      "base_sha": "509902ceb22bfeb6ee3e3085a8ccdb2859deaad3",
+      "head_sha": "f141b34801f5df372abeb79a15d7cc3b2bc64bc4",
+      "clone_started_at": "2026-04-30T07:20:10Z",
+      "pytest_completed_at": "2026-04-30T07:20:45Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/g6d2_clones/hynek_structlog_f141b348",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo hynek/structlog --head-sha f141b34801f5df372abeb79a15d7cc3b2bc64bc4 --manual-egress-ok --clones-dir .tmp/g6d2_clones --install-oida-code --scm-pretend-version structlog=25.5.0.dev0 --install-group tests --import-smoke structlog",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/g6d2_clones/hynek_structlog_f141b348/.venv/Scripts/python.exe -m pytest tests/test_dev.py::TestConsoleRenderer::test_columns_property -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e hynek/structlog",
+        "pip install --group tests"
+      ],
+      "import_smoke": "import structlog OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "1 passed in 0.07s"
+    },
+    {
+      "case_id": "seed_162_hynek_structlog_756",
+      "partition": "train",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 756,
+      "base_sha": "17f4023cfbe7e283be2265d361c1e5ba5c13585d",
+      "head_sha": "a868128e946abc276c4dfdefa8d8a5a5b1d8b880",
+      "clone_started_at": "2026-04-30T07:20:45Z",
+      "pytest_completed_at": "2026-04-30T07:21:15Z",
+      "clone_dir": "C:/Code/Unslop.ai/.tmp/g6d2_clones/hynek_structlog_a868128e",
+      "clone_command": "python scripts/clone_target_at_sha.py --repo hynek/structlog --head-sha a868128e946abc276c4dfdefa8d8a5a5b1d8b880 --manual-egress-ok --clones-dir .tmp/g6d2_clones --install-oida-code --scm-pretend-version structlog=25.5.0.dev0 --install-group tests --import-smoke structlog",
+      "pytest_command": "C:/Code/Unslop.ai/.tmp/g6d2_clones/hynek_structlog_a868128e/.venv/Scripts/python.exe -m pytest tests/test_dev.py::TestConsoleRenderer::test_sort_keys_property -q",
+      "install_notes": [
+        "pip install -e oida-code (local)",
+        "pip install -e hynek/structlog",
+        "pip install --group tests"
+      ],
+      "import_smoke": "import structlog OK",
+      "pytest_exit_code": 0,
+      "pytest_summary": "1 passed in 0.07s"
+    }
+  ]
+}

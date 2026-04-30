@@ -3087,3 +3087,34 @@ The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.
 **Outcome:** ADR-71 lands as one G-6d.1 pinning block touching `QA/A52.md`, `reports/calibration_seed/index.json`, `reports/calibration_seed/schema.md`, `reports/phase6_d_1_pinning/selection.{json,md}`, `reports/phase6_d_1_pinning/feasibility.{json,md}`, `scripts/plan_g6d_corpus_expansion.py`, `tests/test_phase6_d_corpus_expansion_plan.py`, `tests/test_phase6_d_1_pinning.py`, `tests/test_phase6_1_c_partition_discipline.py`, `BACKLOG.md`, `docs/project_status.md`, `memory-bank/decisionLog.md`, and `memory-bank/progress.md`. Live corpus state: 46 records, 10 pinned, 7 train, 3 holdout, holdout ratio 0.30. No runtime path code changed. No provider or GitHub call was used as evidence. No replay output was generated.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-04-30 07:30:00] - **ADR-72: G-6d.2 corpus pinning tranche - four additional AI-authored public-diff pins, post-freeze local feasibility, N=14.**
+**Why:** After ADR-71 was committed and pushed, the user directed Codex to report to cgpro and continue. cgpro QA/A53 recommended another pinning-only tranche rather than replay generation, human-review relabeling, Phase 7, or official fusion-field work. The target remains N>=20; this block advances the corpus from N=10 to N=14 while preserving the no-replay and freeze-before-outcome discipline.
+
+**Decision:**
+
+* Pin exactly four formerly unpinned existing records:
+  * `seed_037_tiangolo_typer_1695` - Typer #1695 rich traceback code line preservation, `capability_sufficient`, train.
+  * `seed_075_simonw_sqlite_utils_653` - sqlite-utils #653 ON CONFLICT upsert path, `capability_sufficient`, train.
+  * `seed_161_hynek_structlog_757` - structlog #757 mutable `ConsoleRenderer.columns`, `capability_sufficient`, holdout.
+  * `seed_162_hynek_structlog_756` - structlog #756 mutable `ConsoleRenderer.sort_keys`, `capability_sufficient`, train.
+* Freeze partitions at `2026-04-30T07:18:00Z`, before scoped pytest feasibility.
+* Deterministic holdout rule: sort selected case ids, compute `sha256('g6d2-holdout:' + case_id)`, and assign the lowest hash to holdout. Result: `seed_161_hynek_structlog_757`.
+* Record selection in `reports/phase6_d_2_pinning/selection.{json,md}` and post-freeze feasibility in `reports/phase6_d_2_pinning/feasibility.{json,md}`.
+* Keep all four new pins as `label_source=ai_authored_public_diff_review`, `human_review_required=true`, `llm_assist_used=true`.
+* Convert ADR-71 tests from live-N=10 guards into historical transition guards; add G-6d.2 tests for the new live N=14 state.
+
+**Post-freeze feasibility:** All four local clone/scoped-pytest checks passed without new clone-helper flags or runtime changes:
+
+* seed_037: `tests/test_tracebacks.py::test_rich_exceptions_dont_truncate_code_on_wide_terminal` -> `1 passed in 0.66s`.
+* seed_075: `tests/test_upsert.py::test_upsert` -> 2 parametrized invocations passed, pytest rc=0.
+* seed_161: `tests/test_dev.py::TestConsoleRenderer::test_columns_property` -> `1 passed in 0.07s`.
+* seed_162: `tests/test_dev.py::TestConsoleRenderer::test_sort_keys_property` -> `1 passed in 0.07s`.
+
+**Accepted:** Use the remaining existing public index first; no fresh GitHub harvesting. A dedicated `.tmp/g6d2_clones` directory was used via the predeclared `--clones-dir` flag to avoid collision with no-checkout diff-inspection clones. This is recorded in the feasibility artifact and did not add a clone-helper flag.
+
+**Rejected:** replay bundles, `round_trip_outputs`, verifier pass JSON, grounded reports, provider evidence, PAT_GITHUB/GitHub API use, runtime/provider/default-gateway edits, MCP changes, clone-helper flag additions, and any product/generalisation claim. Human-review provenance is not closed autonomously.
+
+**Outcome:** ADR-72 lands as one G-6d.2 pinning block touching `QA/A53.md`, `reports/calibration_seed/index.json`, `reports/phase6_d_2_pinning/selection.{json,md}`, `reports/phase6_d_2_pinning/feasibility.{json,md}`, `tests/test_phase6_d_1_pinning.py`, `tests/test_phase6_d_2_pinning.py`, `BACKLOG.md`, `docs/project_status.md`, `docs/calibration_seed_expansion_protocol.md`, `memory-bank/decisionLog.md`, and `memory-bank/progress.md`. Live corpus state: 46 records, 14 pinned, 10 train, 4 holdout, holdout ratio 0.29. G-6d remains OPEN toward N>=20. G-6c remains PARTIAL because the AI-authored pins still require independent human review.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

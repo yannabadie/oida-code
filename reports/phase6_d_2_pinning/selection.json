@@ -1,0 +1,202 @@
+{
+  "report_id": "phase6_d_2_pinning_selection",
+  "date": "2026-04-30",
+  "cgpro_decision": "QA/A53",
+  "pre_outcome_screened_at": "2026-04-30T07:17:00Z",
+  "partition_freeze_at": "2026-04-30T07:18:00Z",
+  "source_index": "reports/calibration_seed/index.json",
+  "scope": {
+    "phase": "G-6d.2",
+    "new_pins": 4,
+    "train": 3,
+    "holdout": 1,
+    "provider_calls": 0,
+    "pat_github_used": false,
+    "fresh_github_api_used": false,
+    "replay_outputs_created": 0,
+    "pytest_outcome_inspected_before_freeze": false
+  },
+  "authoring_provenance": {
+    "label_source": "ai_authored_public_diff_review",
+    "human_review_required": true,
+    "llm_assist_used": true,
+    "provenance_notes": [
+      "Codex inspected public base-to-head diffs and authored claim_id, claim_type, claim_text, test_scope, and evidence_items.",
+      "cgpro provided decision guidance only; cgpro/provider output is not non-LLM evidence.",
+      "Yann has not independently reviewed each selected case after diff inspection, so these records keep human_review_required=true."
+    ]
+  },
+  "deterministic_partition_rule": {
+    "rule": "sort selected case_ids lexicographically; compute sha256('g6d2-holdout:' + case_id); lowest hash becomes holdout, others train",
+    "hashes": {
+      "seed_037_tiangolo_typer_1695": "780fbbd773ba21fef2254e25fddb6d1ee663854fa34e21c3a8faff50a2b08203",
+      "seed_075_simonw_sqlite_utils_653": "e1a9a1f831fc5164abc94b3e83cf9bc2f617714ac1ea77b147638945c863cef6",
+      "seed_161_hynek_structlog_757": "0a8fa5b25c7aa5f53f79f701c2d71d9677f5d63803ab703dd2318b1068331490",
+      "seed_162_hynek_structlog_756": "ee3979b7e96e8b44b2c54ddc18edc80b444a011caec99ee8f32dc1d7da1f60b4"
+    },
+    "holdout_case_id": "seed_161_hynek_structlog_757"
+  },
+  "selected_cases": [
+    {
+      "case_id": "seed_037_tiangolo_typer_1695",
+      "repo_url": "https://github.com/tiangolo/typer",
+      "pr_number": 1695,
+      "base_sha": "c9554ec35640395a12af06547b75b2fed3bb6973",
+      "head_sha": "601e030b29a3961da0d89d6aa0cb2802d15dbec2",
+      "partition": "train",
+      "partition_pinned_at": "2026-04-30T07:18:00Z",
+      "holdout_hash": "780fbbd773ba21fef2254e25fddb6d1ee663854fa34e21c3a8faff50a2b08203",
+      "claim_id": "C.rich_traceback_code_width.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "claim_text": "After PR #1695 (Typer), Rich-formatted pretty exceptions no longer truncate long source-code lines. `typer.rich_utils.get_traceback()` passes `code_width=None` and `word_wrap=True` to Rich's Traceback, so a wide terminal can show the full source line while narrower terminals wrap it instead of cutting it off.",
+      "test_scope": "tests/test_tracebacks.py::test_rich_exceptions_dont_truncate_code_on_wide_terminal",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR typer#1695 changes typer/rich_utils.py so get_traceback() passes code_width=None and word_wrap=True into Rich Traceback.",
+        "New tests/test_tracebacks.py tests run tests/assets/type_error_rich.py through coverage with controlled TERMINAL_WIDTH values and assert long source lines are preserved or wrapped rather than truncated."
+      ]
+    },
+    {
+      "case_id": "seed_075_simonw_sqlite_utils_653",
+      "repo_url": "https://github.com/simonw/sqlite-utils",
+      "pr_number": 653,
+      "base_sha": "72f6c820f683ba4bd312679f5302d92e75254a53",
+      "head_sha": "79913af28a7a68eb98725df3343ccdcbe86a30fa",
+      "partition": "train",
+      "partition_pinned_at": "2026-04-30T07:18:00Z",
+      "holdout_hash": "e1a9a1f831fc5164abc94b3e83cf9bc2f617714ac1ea77b147638945c863cef6",
+      "claim_id": "C.upsert_on_conflict_sql.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "claim_text": "After PR #653 (sqlite-utils), upsert operations use SQLite ON CONFLICT syntax when supported, while preserving the older INSERT OR IGNORE plus UPDATE path behind `Database(..., use_old_upsert=True)`. The implementation probes `supports_on_conflict`, builds one ON CONFLICT statement for supported databases, and keeps the compatibility path for older SQLite.",
+      "test_scope": "tests/test_upsert.py::test_upsert",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR sqlite-utils#653 changes sqlite_utils/db.py to add supports_on_conflict probing, Database.use_old_upsert, and ON CONFLICT SQL generation for upserts.",
+        "tests/test_upsert.py::test_upsert is parametrized over use_old_upsert False/True and asserts table.upsert(..., alter=True) updates a row in both paths."
+      ]
+    },
+    {
+      "case_id": "seed_161_hynek_structlog_757",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 757,
+      "base_sha": "509902ceb22bfeb6ee3e3085a8ccdb2859deaad3",
+      "head_sha": "f141b34801f5df372abeb79a15d7cc3b2bc64bc4",
+      "partition": "holdout",
+      "partition_pinned_at": "2026-04-30T07:18:00Z",
+      "holdout_hash": "0a8fa5b25c7aa5f53f79f701c2d71d9677f5d63803ab703dd2318b1068331490",
+      "claim_id": "C.console_renderer_columns_property.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "claim_text": "After PR #757 (structlog), `ConsoleRenderer.columns` can be read and assigned after instantiation. The setter validates that exactly one default column formatter is present, stores non-default columns internally, and the getter reconstructs the default column plus configured columns.",
+      "test_scope": "tests/test_dev.py::TestConsoleRenderer::test_columns_property",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR structlog#757 changes ConsoleRenderer initialization to route custom columns through a new columns property and adds getter/setter validation in src/structlog/dev.py.",
+        "New test tests/test_dev.py::TestConsoleRenderer::test_columns_property assigns columns on an existing renderer and asserts the public property and internal formatter state align."
+      ]
+    },
+    {
+      "case_id": "seed_162_hynek_structlog_756",
+      "repo_url": "https://github.com/hynek/structlog",
+      "pr_number": 756,
+      "base_sha": "17f4023cfbe7e283be2265d361c1e5ba5c13585d",
+      "head_sha": "a868128e946abc276c4dfdefa8d8a5a5b1d8b880",
+      "partition": "train",
+      "partition_pinned_at": "2026-04-30T07:18:00Z",
+      "holdout_hash": "ee3979b7e96e8b44b2c54ddc18edc80b444a011caec99ee8f32dc1d7da1f60b4",
+      "claim_id": "C.console_renderer_sort_keys_property.capability_sufficient",
+      "claim_type": "capability_sufficient",
+      "claim_text": "After PR #756 (structlog), `ConsoleRenderer.sort_keys` is exposed as a mutable property. The getter returns `_sort_keys`, and the setter updates `_sort_keys`, allowing callers to toggle key sorting on an existing renderer without re-instantiating it.",
+      "test_scope": "tests/test_dev.py::TestConsoleRenderer::test_sort_keys_property",
+      "checklist": {
+        "public_only": true,
+        "merged": true,
+        "base_head_present": true,
+        "diff_inspected_before_freeze": true,
+        "narrow_claim": true,
+        "narrow_test_scope": true,
+        "implementation_or_diff_evidence": true,
+        "test_or_runnable_scope_evidence": true,
+        "provider_output_used_as_evidence": false,
+        "partition_frozen_before_pytest": true
+      },
+      "diff_notes": [
+        "PR structlog#756 changes src/structlog/dev.py to add a ConsoleRenderer.sort_keys getter and setter around existing _sort_keys state.",
+        "New test tests/test_dev.py::TestConsoleRenderer::test_sort_keys_property toggles sort_keys False and True and checks the public property and internal state stay aligned."
+      ]
+    }
+  ],
+  "deferred_diff_inspected_candidates": [
+    {
+      "case_id": "seed_074_simonw_sqlite_utils_658",
+      "reason": "Valid future candidate for db.table()/db.view() separation, but broader docs/API/tracer churn made it less narrow than the selected four-case tranche."
+    },
+    {
+      "case_id": "seed_159_hynek_structlog_759",
+      "reason": "Valid future candidate for colors/force_colors properties, but deferred to avoid over-selecting ConsoleRenderer property cases in this tranche."
+    },
+    {
+      "case_id": "seed_109_encode_httpx_3690",
+      "reason": "Implementation diff is narrow but changed_files_list has no test file; deferred until a narrow runnable upstream test scope can be established without inventing evidence."
+    }
+  ],
+  "metadata_reject_groups": [
+    {
+      "reason": "release/dependency/pre-commit only",
+      "examples": [
+        "seed_013_python_attrs_attrs_1538",
+        "seed_021_psf_black_4960",
+        "seed_028_pydantic_pydantic_13098",
+        "seed_114_pytest_dev_pluggy_662",
+        "seed_134_pytest_dev_pluggy_635"
+      ]
+    },
+    {
+      "reason": "non-Python-adapter-dependent or pydantic-core Rust surface",
+      "examples": [
+        "seed_029_pydantic_pydantic_13096",
+        "seed_030_pydantic_pydantic_13084",
+        "seed_031_pydantic_pydantic_13079",
+        "seed_034_pydantic_pydantic_13068"
+      ]
+    },
+    {
+      "reason": "requires known clone-helper carve-out or older requirements pattern",
+      "examples": [
+        "seed_058_pallets_itsdangerous_378"
+      ]
+    }
+  ]
+}

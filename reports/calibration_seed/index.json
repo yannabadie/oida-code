@@ -369,7 +369,7 @@
   },
   {
     "base_sha": "c9554ec35640395a12af06547b75b2fed3bb6973",
-    "candidate_reason": "automated initial selection: 5 files changed, 63 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 5 files changed, 61 lines, merge_status=merged; G-6d.2 AI-authored public-diff review pin at 2026-04-30T07:18:00Z. Reason: narrow traceback rendering behavior change; implementation adds Rich Traceback code_width/word_wrap arguments; new regression test asserts the long source line is preserved on wide terminal; selected as TRAIN before any scoped pytest feasibility run.",
     "case_id": "seed_037_tiangolo_typer_1695",
     "changed_files_list": [
       "pyproject.toml",
@@ -378,28 +378,44 @@
       "typer/rich_utils.py",
       "uv.lock"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.rich_traceback_code_width.capability_sufficient",
+    "claim_text": "After PR #1695 (Typer), Rich-formatted pretty exceptions no longer truncate long source-code lines. `typer.rich_utils.get_traceback()` passes `code_width=None` and `word_wrap=True` to Rich's Traceback, so a wide terminal can show the full source line while narrower terminals wrap it instead of cutting it off.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:41:07Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "601e030b29a3961da0d89d6aa0cb2802d15dbec2",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [
       "feature"
     ],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-30T07:18:00Z",
     "pr_number": 1695,
     "public_only": true,
     "repo_url": "https://github.com/tiangolo/typer",
     "script_version": "phase6_1_a_pre_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "\ud83d\udeb8 Don't truncate code lines in traceback when formatted with Rich"
+    "test_scope": "tests/test_tracebacks.py::test_rich_exceptions_dont_truncate_code_on_wide_terminal",
+    "title": "\ud83d\udeb8 Don't truncate code lines in traceback when formatted with Rich",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR typer#1695 changes typer/rich_utils.py so get_traceback() passes code_width=None and word_wrap=True into rich.traceback.Traceback, changing how long code lines are displayed in rich exceptions.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "New test tests/test_tracebacks.py::test_rich_exceptions_dont_truncate_code_on_wide_terminal runs tests/assets/type_error_rich.py through coverage with TERMINAL_WIDTH=120 and asserts the full long TypeError source comment appears in stderr.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "base_sha": "09a8e058a9cca4cae9fb993d936957278cbec151",
@@ -999,7 +1015,7 @@
   },
   {
     "base_sha": "72f6c820f683ba4bd312679f5302d92e75254a53",
-    "candidate_reason": "automated initial selection: 7 files changed, 319 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 7 files changed, 319 lines, merge_status=merged; G-6d.2 AI-authored public-diff review pin at 2026-04-30T07:18:00Z. Reason: clear Python API persistence behavior change; implementation adds supports_on_conflict/use_old_upsert and rewrites upsert SQL generation; parametrized regression test covers both new and old paths; selected as TRAIN before any scoped pytest feasibility run.",
     "case_id": "seed_075_simonw_sqlite_utils_653",
     "changed_files_list": [
       "docs/python-api.rst",
@@ -1010,28 +1026,44 @@
       "tests/test_tracer.py",
       "tests/test_upsert.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.upsert_on_conflict_sql.capability_sufficient",
+    "claim_text": "After PR #653 (sqlite-utils), upsert operations use SQLite ON CONFLICT syntax when supported, while preserving the older INSERT OR IGNORE plus UPDATE path behind `Database(..., use_old_upsert=True)`. The implementation probes `supports_on_conflict`, builds one ON CONFLICT statement for supported databases, and keeps the compatibility path for older SQLite.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:43:02Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "79913af28a7a68eb98725df3343ccdcbe86a30fa",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [
       "enhancement"
     ],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-30T07:18:00Z",
     "pr_number": 653,
     "public_only": true,
     "repo_url": "https://github.com/simonw/sqlite-utils",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "Use ON CONFLICT for upsert"
+    "test_scope": "tests/test_upsert.py::test_upsert",
+    "title": "Use ON CONFLICT for upsert",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR sqlite-utils#653 changes sqlite_utils/db.py to add Database.use_old_upsert, supports_on_conflict probing, and ON CONFLICT-based SQL generation for upsert=True when the SQLite runtime supports it.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "tests/test_upsert.py::test_upsert is changed to parametrize use_old_upsert over False and True, insert an initial row, call table.upsert(..., alter=True), and assert the row is updated with the new age field in both paths.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "base_sha": "88a83f0b7e1ab9260605426e2123584f5e16fd1b",
@@ -1639,7 +1671,7 @@
   },
   {
     "base_sha": "509902ceb22bfeb6ee3e3085a8ccdb2859deaad3",
-    "candidate_reason": "automated initial selection: 5 files changed, 84 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 5 files changed, 84 lines, merge_status=merged; G-6d.2 AI-authored public-diff review pin at 2026-04-30T07:18:00Z. Reason: narrow ConsoleRenderer configuration property; setter/getter implementation and one focused test; deterministic G-6d.2 holdout hash selected this case as the single HOLDOUT before any scoped pytest feasibility run.",
     "case_id": "seed_161_hynek_structlog_757",
     "changed_files_list": [
       "CHANGELOG.md",
@@ -1648,30 +1680,46 @@
       "src/structlog/dev.py",
       "tests/test_dev.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.console_renderer_columns_property.capability_sufficient",
+    "claim_text": "After PR #757 (structlog), `ConsoleRenderer.columns` can be read and assigned after instantiation. The setter validates that exactly one default column formatter is present, stores non-default columns internally, and the getter reconstructs the default column plus configured columns.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:43:51Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "f141b34801f5df372abeb79a15d7cc3b2bc64bc4",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "holdout",
+    "partition_pinned_at": "2026-04-30T07:18:00Z",
     "pr_number": 757,
     "public_only": true,
     "repo_url": "https://github.com/hynek/structlog",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "dev: allow columns to be got and set"
+    "test_scope": "tests/test_dev.py::TestConsoleRenderer::test_columns_property",
+    "title": "dev: allow columns to be got and set",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR structlog#757 changes src/structlog/dev.py so ConsoleRenderer initialization delegates custom columns through the new columns property; the property validates a single default column and stores non-default columns separately.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "New test tests/test_dev.py::TestConsoleRenderer::test_columns_property assigns a Column list through cr.columns, then asserts the getter returns that list, _columns is empty for default-only input, and _default_column_formatter matches the supplied formatter.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   },
   {
     "base_sha": "17f4023cfbe7e283be2265d361c1e5ba5c13585d",
-    "candidate_reason": "automated initial selection: 4 files changed, 36 lines, merge_status=merged; awaits manual claim assignment",
+    "candidate_reason": "automated initial selection: 4 files changed, 35 lines, merge_status=merged; G-6d.2 AI-authored public-diff review pin at 2026-04-30T07:18:00Z. Reason: narrow mutable property behavior; implementation adds sort_keys getter/setter and focused test toggles False/True; selected as TRAIN before any scoped pytest feasibility run.",
     "case_id": "seed_162_hynek_structlog_756",
     "changed_files_list": [
       "CHANGELOG.md",
@@ -1679,25 +1727,41 @@
       "src/structlog/dev.py",
       "tests/test_dev.py"
     ],
-    "claim_id": null,
-    "claim_text": null,
-    "claim_type": null,
+    "claim_id": "C.console_renderer_sort_keys_property.capability_sufficient",
+    "claim_text": "After PR #756 (structlog), `ConsoleRenderer.sort_keys` is exposed as a mutable property. The getter returns `_sort_keys`, and the setter updates `_sort_keys`, allowing callers to toggle key sorting on an existing renderer without re-instantiating it.",
+    "claim_type": "capability_sufficient",
     "collected_at": "2026-04-29T05:43:52Z",
-    "expected_grounding_outcome": "not_run",
+    "expected_grounding_outcome": "evidence_present",
     "head_sha": "a868128e946abc276c4dfdefa8d8a5a5b1d8b880",
     "human_review_required": true,
-    "label_source": "unknown_not_for_metrics",
+    "label_source": "ai_authored_public_diff_review",
     "labels_observed": [],
-    "llm_assist_used": false,
+    "llm_assist_used": true,
     "merge_status": "merged",
-    "partition": null,
-    "partition_pinned_at": null,
+    "partition": "train",
+    "partition_pinned_at": "2026-04-30T07:18:00Z",
     "pr_number": 756,
     "public_only": true,
     "repo_url": "https://github.com/hynek/structlog",
     "script_version": "phase6_1_c_v1",
     "selection_source": "manual",
-    "test_scope": null,
-    "title": "Allow setting sort_keys on current ConsoleRenderer"
+    "test_scope": "tests/test_dev.py::TestConsoleRenderer::test_sort_keys_property",
+    "title": "Allow setting sort_keys on current ConsoleRenderer",
+    "evidence_items": [
+      {
+        "id": "[E.event.1]",
+        "kind": "event",
+        "summary": "PR structlog#756 changes src/structlog/dev.py to add ConsoleRenderer.sort_keys getter and setter, both wired directly to the existing _sort_keys state.",
+        "source": "git",
+        "confidence": 0.9
+      },
+      {
+        "id": "[E.test_result.1]",
+        "kind": "test_result",
+        "summary": "New test tests/test_dev.py::TestConsoleRenderer::test_sort_keys_property asserts the default sort_keys state, toggles it to False and back to True, and checks the public property and _sort_keys stay aligned.",
+        "source": "ticket",
+        "confidence": 0.9
+      }
+    ]
   }
 ]
