@@ -1,31 +1,39 @@
-# `oida-code` — project status (2026-05-04, post-Phase 6.h root historical plan quarantine)
+# `oida-code` — project status (2026-05-04, post-Phase 6.i root MVP blueprint quarantine)
 
 ADR-76 update: G-6d.4 screened the existing pool under ADR-75 and stopped
 before freeze because only two clean candidates survived. No partial +2
 freeze is allowed; a G-6d.4-style tranche requires exactly four clean
 candidates split +3 train / +1 holdout. The live index remains N=14.
 
-ADR-77 / ADR-78 / ADR-79 / ADR-80 update: the active front doors and
-the root historical plan now use diagnostic-only language.
-`audit --format markdown` no longer presents legacy JSON verdict
-labels as product claims (ADR-77), `action.yml` no longer describes
-the reusable Action as an AI code verifier or as measuring guaranteed
-behavior (ADR-78), the Action's runtime `$GITHUB_STEP_SUMMARY`
-fallback now publishes `## OIDA-code diagnostic evidence` plus an
-explicit `Diagnostic only — not a merge decision or
-production-readiness assessment.` line instead of
-`## OIDA-code audit` (ADR-79), and the root `PLAN.md` historical
-document carries a strong "ARCHIVAL — READ THIS FIRST" banner plus
-per-section historical markers, a reframed §6 verdict-taxonomy table
-where the legacy `verified = "Proved enough to merge"` row reads as
-obsolete pre-ADR-74 wording, and a "Hard-wall reminder" block after
-the §12 report-contract JSON snippet (ADR-80). The audit excerpt
-itself, the Calibration metrics block, the `runs` shape, every
-input/default/output, every shell command, the SARIF upload behavior,
-the gateway behavior, the workflows, the calibration-seed
-corpus/index, the clone helper, the provider runtime, the MCP
-runtime, the gateway default, and every PLAN.md historical formula /
-vocabulary entry are all preserved.
+ADR-77 / ADR-78 / ADR-79 / ADR-80 / ADR-81 update: the active front
+doors and both root historical documents now use diagnostic-only
+language. `audit --format markdown` no longer presents legacy JSON
+verdict labels as product claims (ADR-77), `action.yml` no longer
+describes the reusable Action as an AI code verifier or as measuring
+guaranteed behavior (ADR-78), the Action's runtime
+`$GITHUB_STEP_SUMMARY` fallback now publishes
+`## OIDA-code diagnostic evidence` plus an explicit
+`Diagnostic only — not a merge decision or production-readiness
+assessment.` line instead of `## OIDA-code audit` (ADR-79), the root
+`PLAN.md` historical document carries a strong "ARCHIVAL — READ THIS
+FIRST" banner plus per-section historical markers, a reframed §6
+verdict-taxonomy table where the legacy
+`verified = "Proved enough to merge"` row reads as obsolete pre-ADR-74
+wording, and a "Hard-wall reminder" block after the §12
+report-contract JSON snippet (ADR-80), and the root
+`oida-code-mvp-blueprint.md` historical document carries a parallel
+"ARCHIVAL — READ THIS FIRST" banner, per-section historical markers
+on §1/§3 Pass 3/§4/§9/§10/§11/§12/§13, inline obsolete tags on every
+dangerous phrase (`AI code verifier`, `actually guarantees`,
+`Final verdict buckets`, `proved enough for merge`, `repair planner`,
+`GitHub App later`, `forward/backward verdict merge`), and a "Hard-wall
+reminder" block after the §9 report-contract JSON snippet (ADR-81).
+The audit excerpt itself, the Calibration metrics block, the `runs`
+shape, every input/default/output, every shell command, the SARIF
+upload behavior, the gateway behavior, the workflows, the
+calibration-seed corpus/index, the clone helper, the provider runtime,
+the MCP runtime, the gateway default, and every PLAN.md / blueprint
+historical formula / vocabulary entry are all preserved.
 
 This document is the one-page "where the project is right now"
 status page. It is updated at phase boundaries. Read this when

@@ -3453,3 +3453,85 @@ the active root-level historical document (PLAN.md) all carry
 diagnostic-only framing.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX + ADR-78 action metadata diagnostic quarantine + ADR-79 action step-summary fallback diagnostic quarantine + ADR-80 root historical PLAN.md diagnostic quarantine anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-05-04 15:30:00] - **ADR-81: Phase 6.i root MVP blueprint diagnostic quarantine.**
+**Why:** ADR-77 / ADR-78 / ADR-79 closed the runtime/metadata
+front-door surfaces and ADR-80 / Phase 6.h historicized the companion
+`PLAN.md`. The remaining root-level high-visibility document still
+read as an active normative MVP spec was
+`oida-code-mvp-blueprint.md`: §1 opened with `Ship it as an AI code
+verifier`, §1 core promise claimed `Measure the gap between what
+AI-written code appears to do and what it actually guarantees`, §3
+listed `Final verdict buckets` including `proved enough for merge`,
+§3 named `repair planner` as an active sub-agent, §4 deployment mode
+3 mentioned `GitHub App later for rich annotations and external
+SaaS`, §9 displayed the official-fusion JSON snippet (`verdict`,
+`total_v_net`, `debt_final`, `corrupt_success_ratio`) without an
+inline hard-wall reminder, §11 Day 9 mentioned
+`forward/backward verdict merge`, and §13 framed the wedge as an
+operational-debt verdict. cgpro `autonomous-protocol-20260430`
+selected this surface over README historicization (already
+partially aligned by ADR-74/77/78), over `docs/concepts/`
+quarantine (the plain-language doc is already explicitly
+diagnostic-only), over G-6d resume (blocked: ADR-76
+four-clean-candidate rule), G-6c step 1 (blocked: no independent
+reviewer in autonomous loop), and a broad G-4 audit cleanup (out of
+scope for one cycle).
+
+**Decision:** Historicize `oida-code-mvp-blueprint.md` without
+deleting historical content. Add a strong "ARCHIVAL — READ THIS
+FIRST" banner near the top that names ADR-81 + Phase 6.i, blocks
+`total_v_net`, `debt_final`, `corrupt_success`,
+`corrupt_success_ratio`, `verdict`, `V_net`, and `Debt` as non-public
+outputs, references ADR-22 / ADR-24 / ADR-25 / ADR-26 +
+`Literal[False]`, and explicitly tells readers not to quote sentences
+from this file as current product claims. Add per-section historical
+block-quotes immediately after the headers for §1, §3 Pass 3, §4
+Deployment modes, §9 Report contract, §10 LLM choice, §11 Days, §12
+Hard rules, and §13 Wedge. Add inline `*(historical 2026-04-23 —
+obsolete; …)*` tags on each dangerous active phrase. Add a "Hard-wall
+reminder" block after the §9 report-contract JSON snippet.
+
+**Accepted:**
+
+* `oida-code-mvp-blueprint.md` archival banner + 8 per-section
+  historical markers + inline obsolete tags on `AI code verifier`,
+  `actually guarantees`, `Final verdict buckets`,
+  `proved enough for merge`, `repair planner`, `GitHub App later`,
+  `verdict merge` + §9 hard-wall reminder.
+* Added `QA/A62.md`,
+  `reports/phase6_i_root_mvp_blueprint_quarantine/report.{json,md}`,
+  and `tests/test_phase6_i_root_mvp_blueprint_quarantine.py`.
+* Updated `docs/project_status.md`, `BACKLOG.md` (G-4 entry),
+  `memory-bank/codexContext.md`, and `memory-bank/progress.md`.
+* Preserved historical OIDA vocabulary (`v_net`, `debt`,
+  `grounding`, `double_loop_repair`, `Q_obs`), the four-bucket
+  verdict labels, the GitHub-App / SaaS / repair-planner trajectory,
+  the 10-day implementation plan, and the wedge framing so the
+  project's evolution stays auditable.
+
+**Rejected:**
+
+* Deletion of historical blueprint content.
+* Any `src/oida_code/**`, `src/oida_code/_vendor/**`, `action.yml`,
+  `.github/workflows/**`, `scripts/clone_target_at_sha.py`,
+  `reports/calibration_seed/index.json`, partition, pin, `PLAN.md`,
+  JSON/SARIF schema, CLI behavior, provider runtime, MCP runtime,
+  or gateway default change.
+* Broader README / `docs/concepts/` / older reports / ADR log
+  cleanup.
+* G-6d candidate screening / source-pool expansion / partition
+  freeze / pinning.
+* Fictive G-6c "independent" review.
+* Merge-readiness, production-readiness, bug-free,
+  security-verification, predictive-validity, public-benchmark,
+  verifier-final-judge, or autonomous-repair claim.
+
+**Outcome:** Phase 6.i closes the second root-level verdict-flavored
+historical document. Combined with the Phase 6.e/6.f/6.g/6.h
+quadruple and ADR-80, both root-level historical documents
+(`PLAN.md`, `oida-code-mvp-blueprint.md`) plus the three runtime/
+metadata Action and CLI front-door surfaces now carry
+diagnostic-only framing.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX + ADR-78 action metadata diagnostic quarantine + ADR-79 action step-summary fallback diagnostic quarantine + ADR-80 root historical PLAN.md diagnostic quarantine + ADR-81 root MVP blueprint diagnostic quarantine anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

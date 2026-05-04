@@ -101,14 +101,18 @@ addressed on the active CLI front door by ADR-77 / Phase 6.e, the
 reusable GitHub Action metadata by ADR-78 / Phase 6.f, the runtime
 `$GITHUB_STEP_SUMMARY` fallback by ADR-79 / Phase 6.g (the fallback
 now publishes `## OIDA-code diagnostic evidence` plus a non-claim
-disclaimer instead of `## OIDA-code audit`), and the root historical
+disclaimer instead of `## OIDA-code audit`), the root historical
 `PLAN.md` document by ADR-80 / Phase 6.h (strong archival banner +
 per-section historical markers + reframed §6 verdict-taxonomy table
-+ §12 hard-wall reminder; no historical content deleted). The older
-ADR log itself, the historical phase reports, and the
-`docs/concepts/` set remain future cleanup. Earliest re-evaluation is
-after actual reader feedback says whether the new front door is
-sufficient.
++ §12 hard-wall reminder; no historical content deleted), and the
+root historical `oida-code-mvp-blueprint.md` document by ADR-81 /
+Phase 6.i (parallel archival banner + per-section historical markers
+on §1/§3 Pass 3/§4/§9/§10/§11/§12/§13 + inline obsolete tags on every
+dangerous phrase + §9 hard-wall reminder; no historical content
+deleted). The older ADR log itself, the historical phase reports,
+the `docs/concepts/` set, and the README ledger sections remain
+future cleanup. Earliest re-evaluation is after actual reader
+feedback says whether the new front door is sufficient.
 
 ### G-5 — Simple conceptual explanation is needed
 
