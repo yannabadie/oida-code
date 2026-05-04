@@ -1,0 +1,97 @@
+{
+  "report_id": "phase6_h_root_historical_plan_quarantine",
+  "date": "2026-05-04",
+  "source_commit": "66b6098",
+  "cgpro": {
+    "thread": "autonomous-protocol-20260430",
+    "conversation_id": "69f3ba6f-60f0-838b-8028-a8af734b2d72",
+    "next_block_id": "Phase 6.h - Root Historical Plan Diagnostic Quarantine"
+  },
+  "plan_historicized": true,
+  "runtime_changed": false,
+  "json_schema_changed": false,
+  "sarif_schema_changed": false,
+  "action_yml_changed": false,
+  "workflow_changed": false,
+  "source_code_changed": false,
+  "clone_helper_changed": false,
+  "corpus_index_changed": false,
+  "provider_call_used": false,
+  "direct_provider_call": false,
+  "runtime_gateway_default_changed": false,
+  "mcp_runtime_changed": false,
+  "plan_md_changes": {
+    "archival_banner_added": true,
+    "blocked_fields_listed_in_banner": [
+      "total_v_net",
+      "debt_final",
+      "corrupt_success",
+      "corrupt_success_ratio",
+      "verdict",
+      "V_net",
+      "Debt"
+    ],
+    "section_historical_markers_added": [
+      "## 3. Pipeline architecture",
+      "## 6. Verdict taxonomy",
+      "## 7. OIDA scoring core",
+      "## 11. CLI contract",
+      "## 12. Report contract",
+      "## 14. Phased roadmap",
+      "## 15. Honesty rules",
+      "## 16. Wedge"
+    ],
+    "verdict_table_reframed": true,
+    "active_2026_05_04_reviewer_text_added": true,
+    "report_contract_hard_wall_reminder_added": true,
+    "proved_enough_to_merge_active_definition_removed": true,
+    "historical_phrasing_preserved_in_obsolete_context": true
+  },
+  "preserved_active_authority_pointers": [
+    "docs/product_strategy.md",
+    "docs/project_status.md",
+    "AGENTS.md",
+    "BACKLOG.md"
+  ],
+  "preserved_existing_test_assertions": {
+    "tests/test_product_strategy_reset.py::test_plan_md_aligned_post_adr74": [
+      "# OIDA Code Audit",
+      "Historical Plan",
+      "no longer the active source of truth",
+      "docs/product_strategy.md",
+      "Older statements in this file about GitHub App",
+      "wins on conflicts (NOT present)"
+    ]
+  },
+  "changed_surfaces": [
+    "PLAN.md",
+    "QA/A61.md",
+    "reports/phase6_h_root_historical_plan_quarantine/report.json",
+    "reports/phase6_h_root_historical_plan_quarantine/report.md",
+    "tests/test_phase6_h_root_historical_plan_quarantine.py",
+    "docs/project_status.md",
+    "BACKLOG.md",
+    "memory-bank/codexContext.md",
+    "memory-bank/decisionLog.md",
+    "memory-bank/progress.md"
+  ],
+  "hard_wall_check": {
+    "official_fusion_fields_unlocked": false,
+    "merge_decision_claim_added": false,
+    "production_readiness_claim_added": false,
+    "bug_free_claim_added": false,
+    "security_verification_claim_added": false,
+    "public_benchmark_claim_added": false,
+    "autonomous_repair_claim_added": false
+  },
+  "verification": [
+    "python -m json.tool reports\\phase6_h_root_historical_plan_quarantine\\report.json > $null",
+    "python -m pytest tests/test_phase6_h_root_historical_plan_quarantine.py -q",
+    "python -m pytest tests/test_phase6_h_root_historical_plan_quarantine.py tests/test_phase6_g_action_step_summary_diagnostic_fallback.py tests/test_phase6_f_action_metadata_diagnostic_quarantine.py tests/test_phase6_e_front_door_diagnostic_cli.py tests/test_product_strategy_reset.py tests/test_reports.py tests/test_self_audit_guard.py -q",
+    "git diff --exit-code -- reports\\calibration_seed\\index.json scripts\\clone_target_at_sha.py src\\oida_code action.yml .github\\workflows",
+    "python -m ruff check src/ tests/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m mypy src/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m pytest -q",
+    "git diff --check"
+  ]
+}

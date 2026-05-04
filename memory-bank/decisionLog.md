@@ -3379,3 +3379,77 @@ metadata, and the Action runtime Step Summary fallback under
 ADR-77 / ADR-78 / ADR-79.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX + ADR-78 action metadata diagnostic quarantine + ADR-79 action step-summary fallback diagnostic quarantine anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-05-04 13:30:00] - **ADR-80: Phase 6.h root historical PLAN.md diagnostic quarantine.**
+**Why:** ADR-77 / ADR-78 / ADR-79 closed the three runtime/metadata
+front-door surfaces (CLI Markdown, Action public metadata, Action
+runtime Step Summary fallback). The remaining root-level
+high-visibility document still containing the most dangerous active
+phrasing was `PLAN.md`: §6 listed `verified = "Proved enough to merge"`
+as an active human-prose definition, §12 displayed the official-fusion
+JSON snippet (`verdict`, `total_v_net`, `debt_final`,
+`corrupt_success_ratio`) without an inline hard-wall reminder, §14
+described the eight-phase roadmap including a "useful verdict inside a
+PR" exit criterion, and §3 / §7 / §11 / §15 / §16 contained other
+verdict / fusion / repair-planner phrasing. cgpro
+`autonomous-protocol-20260430` selected this surface over G-6d resume
+(blocked: ADR-76 four-clean-candidate rule), G-6c step 1 (blocked:
+no independent reviewer in autonomous loop), and a broad G-4 audit
+cleanup (out of scope for one cycle).
+
+**Decision:** Historicize PLAN.md without deleting historical content.
+Add a strong "ARCHIVAL — READ THIS FIRST" banner near the top that
+names ADR-80 + Phase 6.h, blocks `total_v_net`, `debt_final`,
+`corrupt_success`, `corrupt_success_ratio`, `verdict`, `V_net`, and
+`Debt` as non-public outputs, references ADR-22 / ADR-24 / ADR-25 /
+ADR-26 + `Literal[False]`, and explicitly tells readers not to quote
+sentences from this file as current product claims. Add per-section
+historical block-quotes immediately after the headers for §3, §6, §7,
+§11, §12, §14, §15, and §16. Reframe the §6 verdict-taxonomy
+human-prose table so the legacy `verified = "Proved enough to merge"`
+row reads as obsolete pre-ADR-74 wording and a new column shows the
+active 2026-05-04 reviewer text per ADR-77. Add a "Hard-wall
+reminder" block after the §12 report-contract JSON snippet.
+
+**Accepted:**
+
+* `PLAN.md` archival banner + 8 per-section historical markers + §6
+  table reframing + §12 hard-wall reminder.
+* Added `QA/A61.md`,
+  `reports/phase6_h_root_historical_plan_quarantine/report.{json,md}`,
+  and `tests/test_phase6_h_root_historical_plan_quarantine.py`.
+* Updated `docs/project_status.md`, `BACKLOG.md` (G-4 entry),
+  `memory-bank/codexContext.md`, and `memory-bank/progress.md`.
+* Preserved every existing assertion in
+  `tests/test_product_strategy_reset.py::test_plan_md_aligned_post_adr74`
+  (`# OIDA Code Audit`, `Historical Plan`, `no longer the active
+  source of truth`, `docs/product_strategy.md`, `Older statements in
+  this file about GitHub App`, `wins on conflicts` not present).
+
+**Rejected:**
+
+* Deletion of historical PLAN.md content (the OIDA scoring formulas,
+  verdict-token vocabulary, GitHub-App / SaaS / repair-planner
+  references, and the eight-phase roadmap stay visible so the
+  project's evolution stays auditable).
+* Any `src/oida_code/**`, `action.yml`, `.github/workflows/**`,
+  `scripts/clone_target_at_sha.py`, `reports/calibration_seed/index.json`,
+  partition, pin, JSON/SARIF schema, CLI behavior, provider runtime,
+  MCP runtime, or gateway default change.
+* Broader G-4 audit cleanup of older reports / ADR log /
+  `docs/concepts/`.
+* G-6d candidate screening / source-pool expansion / partition
+  freeze / pinning.
+* Fictive G-6c "independent" review.
+* Merge-readiness, production-readiness, bug-free,
+  security-verification, predictive-validity, public-benchmark, or
+  autonomous-repair claim.
+
+**Outcome:** Phase 6.h reduces the public-mispositioning risk on the
+last root-level verdict-flavored surface. Combined with the Phase
+6.e/6.f/6.g triple, the active runtime surfaces (CLI Markdown,
+Action public metadata, Action runtime Step Summary fallback) and
+the active root-level historical document (PLAN.md) all carry
+diagnostic-only framing.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX + ADR-78 action metadata diagnostic quarantine + ADR-79 action step-summary fallback diagnostic quarantine + ADR-80 root historical PLAN.md diagnostic quarantine anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

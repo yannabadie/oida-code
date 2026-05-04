@@ -2,6 +2,24 @@
 
 **Version 1.0 · 2026-04-24 · Supersedes `oida-code-mvp-blueprint.md` §11 and subsumes `docs/legacy/roadmap.md`.**
 
+> **ARCHIVAL — READ THIS FIRST (Phase 6.h / ADR-80, 2026-05-04).** Every
+> section below is the 2026-04-24 historical snapshot. **Do not quote
+> sentences from this file as current product claims.** The active
+> product positioning is diagnostic-only; the canonical surfaces are
+> `docs/product_strategy.md` (active direction) and
+> `docs/project_status.md` (verified current repo state). Specifically,
+> the fields `total_v_net`, `debt_final`, `corrupt_success`,
+> `corrupt_success_ratio`, `verdict`, `V_net`, and `Debt` shown anywhere
+> in this file are **not public outputs**; they remain blocked by the
+> ADR-22 / ADR-24 / ADR-25 / ADR-26 hard wall. Pydantic schemas pin them
+> with `Literal[False]` flags and runner guards reject them in raw
+> responses. Phrases such as "Proved enough to merge", "useful verdict",
+> "Verdict resolver", and "Repair planner" describe the 2026-04-24
+> blueprint shape, not the 2026-05-04 product. The active CLI Markdown
+> front door reframes the legacy `verified` token as `No contradiction
+> observed by configured deterministic checks (diagnostic only; not
+> proof of correctness)` per ADR-77 / Phase 6.e.
+
 This document preserves the merged blueprint and roadmap context from
 2026-04-24. It is no longer the active source of truth for product
 direction where it conflicts with the current diagnostic-only project
@@ -72,6 +90,14 @@ backlog concepts, not current product scope.
 
 ## 3. Pipeline architecture (merged: blueprint §3 + roadmap stack)
 
+> **Historical (2026-04-24, pre-ADR-74).** The pipeline shape below
+> includes the `[Verdict resolver]`, `[Repair planner]`, and
+> `[OIDA fusion]` boxes that are **not** active product surfaces in the
+> 2026-05-04 diagnostic-only product. The current active path stops at
+> deterministic facts + obligation extraction + behavioral
+> verification; the verdict and repair planner stages remain
+> historical. See `docs/project_status.md` for the active surfaces.
+
 ```
 repo / diff / ticket / intent
   │
@@ -125,7 +151,18 @@ Surfaces: CLI · JSON · SARIF · Markdown · GitHub Check Run · PR annotations
 
 ---
 
-## 6. Verdict taxonomy (final)
+## 6. Verdict taxonomy (historical 2026-04-24, superseded for the active product surface)
+
+> **Historical (pre-ADR-74 / pre-ADR-77).** The four-label taxonomy
+> below is the 2026-04-24 internal label vocabulary. It is **not** the
+> active human-facing product label set. Per ADR-77 / Phase 6.e, the
+> active CLI Markdown front door now reframes these tokens as
+> diagnostic-only reviewer text (e.g. legacy `verified` → "No
+> contradiction observed by configured deterministic checks
+> (diagnostic only; not proof of correctness)"). The legacy tokens
+> survive in the JSON schema for backward compatibility only; they are
+> not product verdicts. See `src/oida_code/report/markdown_report.py`
+> and `docs/diagnostic_cli_quickstart.md` for the active reframing.
 
 **Machine identifier** (Pydantic `Literal`):
 ```python
@@ -137,18 +174,33 @@ VerdictLabel = Literal[
 ]
 ```
 
-**Human prose** (for reports):
+**Human prose** — historical 2026-04-24 phrasing, **not active product
+labels**. The legacy phrasing "Proved enough to merge" associated with
+the `verified` token is obsolete pre-ADR-74 wording and is **not** an
+active product claim; ADR-77 / Phase 6.e replaced the active reviewer
+text with diagnostic-only phrasing per the table below.
 
-| Label | Meaning | Trigger condition |
-|---|---|---|
-| `verified` | "Proved enough to merge." | Formal proof of an explicit property OR (regression ∧ property ∧ mutation) all above `policy.min_*` thresholds with `grounding ≥ confirm_threshold`. |
-| `counterexample_found` | "Execution produced a failing case." | Any of: failing pytest, Hypothesis shrunk counterexample, surviving mutant, Semgrep high-severity hit on changed lines. |
-| `insufficient_evidence` | "Cannot confirm nor refute within policy budget." | Neither a positive proof nor a counterexample; grounding below threshold; tests didn't run or timed out. |
-| `corrupt_success` | "High apparent quality, negative net value." | `Q_obs ≥ corrupt_success_q_threshold` (default 0.80) AND `V_net < 0`. *The wedge.* |
+| Legacy token | Historical 2026-04-24 phrasing (NOT an active claim) | Trigger condition (historical) | Active 2026-05-04 reviewer text (per ADR-77) |
+|---|---|---|---|
+| `verified` | obsolete: "Proved enough to merge" — pre-ADR-74 wording, no longer used | Formal proof of an explicit property OR (regression ∧ property ∧ mutation) all above `policy.min_*` thresholds with `grounding ≥ confirm_threshold`. | "No contradiction observed by configured deterministic checks (diagnostic only; not proof of correctness)" |
+| `counterexample_found` | historical: "Execution produced a failing case." | Any of: failing pytest, Hypothesis shrunk counterexample, surviving mutant, Semgrep high-severity hit on changed lines. | "Contradicted by deterministic evidence (human review required)" |
+| `insufficient_evidence` | historical: "Cannot confirm nor refute within policy budget." | Neither a positive proof nor a counterexample; grounding below threshold; tests didn't run or timed out. | "Evidence gap remains (human review required)" |
+| `corrupt_success` | historical: "High apparent quality, negative net value." | `Q_obs ≥ corrupt_success_q_threshold` (default 0.80) AND `V_net < 0`. *The historical wedge framing.* | "Success evidence conflicts with critical findings (human review required)" |
 
 ---
 
-## 7. OIDA scoring core (blueprint §6 + paper §4, frozen)
+## 7. OIDA scoring core (blueprint §6 + paper §4, frozen — historical 2026-04-24)
+
+> **Historical (pre-ADR-22 hard wall enforcement).** The fusion
+> formulas below — `V_dur`, `H_sys`, `V_net`, `Debt`, `λ_{H→B}`,
+> `grounding_t`, `Q_obs` aggregate — describe the vendored OIDA v4.2
+> scorer that **runs internally** but whose fusion outputs
+> (`total_v_net`, `debt_final`, `corrupt_success`,
+> `corrupt_success_ratio`, `verdict`) are **not emitted** as public
+> outputs. The schemas use `Literal[False]` for `is_authoritative`,
+> the runners forbid the tokens in raw responses, and the action
+> manifest does not expose them. See ADR-22 / ADR-24 / ADR-25 / ADR-26
+> in `memory-bank/decisionLog.md`.
 
 All formulas owned by the vendored `oida_code._vendor.oida_framework.analyzer`. Phase 1+ code **never** reimplements them.
 
@@ -308,14 +360,25 @@ Legend: `✓` shipped · `⧖` stubbed (NotImplementedError, awaiting its phase)
 
 ---
 
-## 11. CLI contract (blueprint §8, extended)
+## 11. CLI contract (blueprint §8, extended — historical 2026-04-24)
+
+> **Historical (pre-ADR-77 / Phase 6.e).** The CLI shape below is the
+> 2026-04-24 design intent. The active CLI today is documented in
+> `docs/diagnostic_cli_quickstart.md` and `src/oida_code/cli.py`.
+> Notable differences: `repair` is shipped only as a compatibility
+> stub that **does not modify code**; `audit --format markdown` is
+> diagnostic-only per ADR-77; `prepare-gateway-bundle` /
+> `verify-grounded` / `validate-gateway-bundle` exist as Phase 5.6
+> opt-in paths not listed below; the LLM family commands
+> (`estimate-llm`, `verify-claims`) are diagnostic-only and do not
+> emit official fusion fields per ADR-22.
 
 ```bash
 oida-code inspect ./repo --base origin/main --out .oida/request.json        # ✓ P0
 oida-code normalize .oida/request.json --out .oida/scenario.json            # ⧖ P2 (needs obligation graph)
 oida-code verify .oida/scenario.json --out .oida/evidence.json              # ⧖ P1 (determinist); P4 (+agentic)
 oida-code audit ./repo --base origin/main --intent ticket.md                # ⧖ P1 (determinist); P4 (+agentic); P5 (+fusion)
-oida-code repair .oida/report.json --out .oida/repair.md                    # ⧖ P5
+oida-code repair .oida/report.json --out .oida/repair.md                    # ⧖ P5 (historical; current `repair` is a compatibility stub that does NOT modify code)
 ```
 
 Flags landing per phase:
@@ -325,7 +388,15 @@ Flags landing per phase:
 
 ---
 
-## 12. Report contract (blueprint §9, extended)
+## 12. Report contract (blueprint §9, extended — historical 2026-04-24)
+
+> **Historical (pre-ADR-22 hard wall enforcement).** The JSON snippet
+> below is the 2026-04-24 aspirational shape. **None of the
+> highlighted official fusion fields are public outputs in the
+> current product.** The active report contract is the diagnostic-only
+> `AuditReport` Pydantic model whose summary excludes
+> `total_v_net`, `debt_final`, `corrupt_success_ratio`, and the active
+> Markdown front door reframes `verdict` per ADR-77 / Phase 6.e.
 
 Minimum JSON stays as blueprint §9. Added in later phases:
 
@@ -351,6 +422,16 @@ Minimum JSON stays as blueprint §9. Added in later phases:
 }
 ```
 
+> **Hard-wall reminder (post-ADR-22 / ADR-24 / ADR-25 / ADR-26).** The
+> `verdict`, `total_v_net`, `debt_final`, `corrupt_success_ratio`, and
+> related official fusion fields shown above are **not emitted** as
+> public outputs. The Pydantic schemas pin them with `Literal[False]`
+> flags, runner guards reject the tokens in raw responses, and the
+> action manifest does not expose them as outputs. The JSON snippet
+> above is the 2026-04-24 historical shape; the active diagnostic-only
+> `AuditReport` schema lives in `src/oida_code/models/audit_report.py`
+> and excludes every field listed above.
+
 **Parallel outputs:**
 - `report.json` — canonical.
 - `report.sarif` — SARIF 2.1.0 for GitHub code-scanning (P1).
@@ -367,7 +448,22 @@ Minimum JSON stays as blueprint §9. Added in later phases:
 
 ---
 
-## 14. Phased roadmap (merged)
+## 14. Phased roadmap (merged — historical 2026-04-24)
+
+> **Historical (pre-ADR-74 / pre-Phase-6.0z).** The eight-phase
+> roadmap below is the 2026-04-24 plan as authored. The actual
+> shipped trajectory diverged: the active product is diagnostic-only
+> per ADR-74; Phase 6 shipped as a controlled-beta protocol (Phase
+> 6.0 documented as `not_run` because external operators were not
+> available); Phase 6.1' through 6.g shipped as discipline +
+> calibration-corpus + front-door quarantine work; the GitHub-App /
+> Check-Run path is **not active** (the reusable composite Action is
+> the active integration); SaaS / autonomous-repair / official
+> fusion-field surfaces remain blocked by the ADR-22 hard wall.
+> The "useful verdict inside a PR" exit criterion in row 6 is
+> historical phrasing and is **not** a current product claim. Phase
+> 7 (research moat) remains explicitly off the critical path per
+> rule 4.2.
 
 Eight phases. Phase 0 is complete. Phase 1 begins on "go phase 1" from user.
 
@@ -388,16 +484,38 @@ Eight phases. Phase 0 is complete. Phase 1 begins on "go phase 1" from user.
 
 ---
 
-## 15. Honesty rules (blueprint §12, verbatim)
+## 15. Honesty rules (blueprint §12, verbatim — historical 2026-04-24)
+
+> **Historical (pre-ADR-74 / pre-ADR-77 framing).** The four rules
+> below remain conceptually valid but their wording references active
+> verdict claims that are **not** part of the current diagnostic-only
+> product surface. The active honesty boundary is enforced
+> structurally: ADR-22 hard wall (no `total_v_net` / `debt_final` /
+> `corrupt_success` / `verdict` emitted), Phase 4.7+ anti-MCP locks,
+> Phase 6.e/6.f/6.g diagnostic-only front-door quarantines, and
+> Phase 4.0.1 prompt-injection fences. Rules 1 and 4 below remain
+> directly applicable; rule 2 applies to the legacy internal token
+> set only and not to the active product output.
 
 1. Do not claim "mathematical proof" for arbitrary code.
-2. Claim only one of the 4 verdict labels (§6).
+2. Claim only one of the 4 verdict labels (§6) — historical: applies
+   to the legacy internal token set; the active product output is
+   diagnostic-only and reframes the labels per ADR-77.
 3. Every verdict must carry its **evidence trail**: which tools ran, which tests passed/failed, which obligations were verified, which λ_bias pattern triggered the corrupt_success flag.
 4. When the LLM verifier is active (P4+), its output is weighed *alongside* deterministic evidence, never *above* it. If forward-verifier says "verified" but a mutation test kills a critical mutant, verdict is `counterexample_found`.
 
 ---
 
-## 16. Wedge (blueprint §13, anchored)
+## 16. Wedge (blueprint §13, anchored — historical 2026-04-24)
+
+> **Historical (pre-ADR-74).** The "wedge" framing is a 2026-04-24
+> internal positioning paragraph. The active 2026-05-04 product
+> positioning is **diagnostic evidence for AI-authored Python diffs**
+> per `docs/product_strategy.md`, not an operational-debt verdict.
+> The internal scorer still computes the OIDA quantities described
+> below, but the corresponding fusion fields (`V_net`, `Debt`, etc.)
+> are not public outputs — they remain blocked by the ADR-22 hard
+> wall.
 
 > **High apparent success, low grounding, hidden operational debt.**
 

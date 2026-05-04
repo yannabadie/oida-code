@@ -40,6 +40,27 @@ calibration-seed corpus/index, the clone helper, the provider
 runtime, the MCP runtime, and the gateway default are all
 unchanged.
 
+Current head before the Phase 6.h root historical PLAN.md
+quarantine block is `66b6098` (`docs(phase6g): quarantine action
+step summary fallback verdicts`). ADR-80 / Phase 6.h adds an
+"ARCHIVAL — READ THIS FIRST" banner near the top of `PLAN.md`,
+adds per-section historical block-quotes immediately after the
+headers for §3, §6, §7, §11, §12, §14, §15, and §16, reframes the
+§6 verdict-taxonomy human-prose table so the legacy
+`verified = "Proved enough to merge"` row reads as obsolete
+pre-ADR-74 wording with a new column showing the active 2026-05-04
+reviewer text per ADR-77, and adds a "Hard-wall reminder" block
+after the §12 report-contract JSON snippet. The block is
+documentation-only on the root historical plan; it does not
+modify `src/oida_code/**`, `action.yml`, `.github/workflows/**`,
+`scripts/clone_target_at_sha.py`, the calibration-seed corpus
+index, the partition pins, the gateway defaults, the provider
+runtime, the MCP runtime, the JSON/SARIF schemas, or the CLI
+behavior. No PLAN.md historical content is deleted; the OIDA
+scoring formulas, verdict-token vocabulary, GitHub-App / SaaS /
+repair-planner references, and the eight-phase roadmap stay
+visible so the project's evolution stays auditable.
+
 G-6a is closed for the current archived load-bearing replay set by
 ADR-68 plus ADR-69. G-6d remains open toward N>=20, but cgpro review
 `repo-product-vision-review` (`69f329be-0dd4-838f-8687-d68190f21e7d`)
