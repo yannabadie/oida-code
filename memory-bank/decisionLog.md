@@ -3318,3 +3318,64 @@ source code.
 mispositioning risk without changing runtime behavior or trust boundaries.
 
 The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX + ADR-78 action metadata diagnostic quarantine anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.
+
+[2026-05-04 11:00:00] - **ADR-79: Phase 6.g GitHub Action Step Summary diagnostic fallback quarantine.**
+**Why:** ADR-77 quarantined the CLI Markdown front door and ADR-78
+quarantined the reusable Action's public metadata. The remaining
+verdict-flavored runtime surface inside `action.yml` was the
+`$GITHUB_STEP_SUMMARY` fallback path used when the polished diagnostic
+Markdown is absent. That fallback rendered an `## OIDA-code audit`
+header without a non-claim disclaimer, and an internal comment still
+referred to a "legacy audit report excerpt", which conflicted with
+ADR-74 / ADR-77 / ADR-78. cgpro `autonomous-protocol-20260430`
+selected this surface over G-6d resume (blocked: ADR-76 requires four
+clean candidates, only two survive screening) and over G-6c step 1
+(blocked: independent human review is not available in the autonomous
+loop).
+
+**Decision:** Update `action.yml` step-summary fallback text only:
+change the header to `## OIDA-code diagnostic evidence`, add a
+non-claim disclaimer line (`Diagnostic only — not a merge decision or
+production-readiness assessment.`), drop the
+`legacy audit report excerpt` phrase from the leading bash comment,
+and reference Phase 6.g / ADR-77 / ADR-78 / ADR-79 in the new
+comment. Preserve every behavior-bearing surface: `runs` shape, input
+names, defaults, output names, shell commands, SARIF upload behavior,
+provider behavior, gateway behavior, workflows, source code, the
+audit excerpt itself (`head -n 80 "$OUTPUT_DIR/report.md"`), and the
+Calibration metrics block.
+
+**Accepted:**
+
+* `action.yml` step-summary fallback now publishes a diagnostic
+  header and a non-claim disclaimer instead of `## OIDA-code audit`.
+* The internal-comment phrase `legacy audit report excerpt` is
+  removed.
+* Added `QA/A60.md`,
+  `reports/phase6_g_action_step_summary_diagnostic_fallback/report.{json,md}`,
+  and `tests/test_phase6_g_action_step_summary_diagnostic_fallback.py`.
+* Updated `docs/project_status.md`, `BACKLOG.md` (G-4 entry),
+  `memory-bank/codexContext.md`, and `memory-bank/progress.md`.
+
+**Rejected:**
+
+* Any change to `action.yml` `runs`, defaults, input names, output
+  names, shell commands, SARIF upload behavior, gateway behavior,
+  fail-on behavior, or provider behavior.
+* Any change to the audit excerpt itself or to `audit --format
+  markdown`.
+* Any `.github/workflows/**` or `src/oida_code/**` change.
+* Corpus/index, clone-helper, provider runtime, MCP runtime, gateway
+  default, JSON/SARIF schema, public benchmark, official fusion-field,
+  predictive-validity, autonomous-repair, or product-verdict changes.
+* G-6d resume in this block.
+* Broader README / quickstart rewrite (the fallback is a runtime
+  surface, not a documentation surface).
+
+**Outcome:** Phase 6.g closes the last verdict-flavored surface inside
+the reusable Action without changing any behavior. The Phase 6.e /
+6.f / 6.g triple now covers the CLI front door, the Action public
+metadata, and the Action runtime Step Summary fallback under
+ADR-77 / ADR-78 / ADR-79.
+
+The Phase 4.7 + 5.0 + 5.1 + 5.2 + 5.3 + 5.4 + 5.5 + 5.6 + 5.7 + 5.8 + 5.8.x + 5.9 + 6.0 + 6.0.x + 6.0.y + 6.0.y' + 6.0.z + 6.1'a-pre + 6.1'a + 6.1'b + 6.1'c + 6.1'd + 6.1'e (steps 1-4) + 6.1'f + 6.1'g + 6.1'h + 6.2 + consolidation v1 + corpus-quality v1 + G-6b structural pin + consolidation v2 + Phase 6.a static audit + Phase 6.a.1 manual semantic review + G-6d.0 planning + G-6d.1 pinning + G-6d.2 pinning + G-6d.3 stop + product-strategy reset + ADR-75 dependency policy + ADR-76 pre-freeze stop + ADR-77 front-door diagnostic CLI UX + ADR-78 action metadata diagnostic quarantine + ADR-79 action step-summary fallback diagnostic quarantine anti-MCP / no-product-verdict / lane-separation / partition-discipline / holdout-discipline / freeze-rule / audit-as-block / corpus-quality-v1 / predeclared-bootstrap-pin locks remain ACTIVE.

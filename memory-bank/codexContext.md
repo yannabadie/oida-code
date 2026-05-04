@@ -25,6 +25,21 @@ existing `audit --format markdown` human output with the diagnostic-only
 product compass: no new alias, no JSON/SARIF schema migration, no corpus/index
 change, no provider call, no runtime/provider/MCP/default-gateway change.
 
+Current head before the Phase 6.g Action Step Summary fallback block is
+`1bf077a` (`docs(phase6f): quarantine action metadata claims`). ADR-79 /
+Phase 6.g rewrites the runtime fallback that the reusable Action writes
+into `$GITHUB_STEP_SUMMARY` when `$DIAGNOSTIC_MD` is absent: the header
+becomes `## OIDA-code diagnostic evidence`, an explicit non-claim line
+(`Diagnostic only — not a merge decision or production-readiness
+assessment.`) is added before the audit excerpt, and the leading
+bash comment drops the `legacy audit report excerpt` phrase. The
+audit excerpt itself, the Calibration metrics block, the `runs`
+shape, every input/default/output, every shell command, the SARIF
+upload behavior, the gateway behavior, the workflows, the
+calibration-seed corpus/index, the clone helper, the provider
+runtime, the MCP runtime, and the gateway default are all
+unchanged.
+
 G-6a is closed for the current archived load-bearing replay set by
 ADR-68 plus ADR-69. G-6d remains open toward N>=20, but cgpro review
 `repo-product-vision-review` (`69f329be-0dd4-838f-8687-d68190f21e7d`)

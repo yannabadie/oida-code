@@ -1,0 +1,101 @@
+{
+  "report_id": "phase6_g_action_step_summary_diagnostic_fallback",
+  "date": "2026-05-04",
+  "source_commit": "1bf077ad64f0d8460a40e7c6505bff7ee74d5c25",
+  "cgpro": {
+    "thread": "autonomous-protocol-20260430",
+    "conversation_id": "69f3ba6f-60f0-838b-8028-a8af734b2d72",
+    "next_block_id": "Phase 6.g - Action Step Summary Diagnostic Fallback Quarantine"
+  },
+  "action_runtime_behavior_changed": false,
+  "step_summary_fallback_text_changed": true,
+  "inputs_defaults_changed": false,
+  "outputs_changed": false,
+  "runs_shape_changed": false,
+  "workflow_changed": false,
+  "source_code_changed": false,
+  "provider_call_used": false,
+  "direct_provider_call": false,
+  "corpus_index_changed": false,
+  "clone_helper_changed": false,
+  "runtime_gateway_default_changed": false,
+  "mcp_runtime_changed": false,
+  "sarif_upload_behavior_changed": false,
+  "json_schema_changed": false,
+  "sarif_schema_changed": false,
+  "step_summary_fallback_changes": {
+    "title_before": "## OIDA-code audit",
+    "title_after": "## OIDA-code diagnostic evidence",
+    "non_claim_disclaimer_added": "Diagnostic only — not a merge decision or production-readiness assessment.",
+    "internal_comment_phrase_removed": "legacy audit report excerpt",
+    "calibration_block_preserved": true,
+    "audit_excerpt_preserved": true
+  },
+  "forbidden_public_phrases_removed": [
+    "AI code verifier",
+    "actually guarantees",
+    "guaranteed behavior",
+    "merge-safe",
+    "production-safe",
+    "bug-free",
+    "security-verified"
+  ],
+  "safe_defaults_pinned": {
+    "enable-tool-gateway": "false",
+    "upload-sarif": "false",
+    "fail-on": "none",
+    "llm-provider": "replay",
+    "gateway-fail-on-contract": "false"
+  },
+  "preserved_action_steps": [
+    "Set up Python",
+    "Install oida-code",
+    "Run audit",
+    "Upload artifacts",
+    "Upload SARIF (optional)",
+    "Phase 5.6 — gateway-grounded verifier (opt-in)",
+    "Phase 5.6 — upload gateway artifacts"
+  ],
+  "preserved_cli_commands": [
+    "python -m oida_code.cli inspect",
+    "python -m oida_code.cli audit",
+    "python -m oida_code.cli calibration-eval",
+    "python -m oida_code.cli render-artifacts",
+    "python -m oida_code.cli build-artifact-manifest",
+    "python -m oida_code.cli verify-grounded",
+    "python -m oida_code.cli render-gateway-summary",
+    "python -m oida_code.cli emit-gateway-status",
+    "python -m oida_code.cli validate-gateway-bundle"
+  ],
+  "changed_surfaces": [
+    "action.yml",
+    "QA/A60.md",
+    "reports/phase6_g_action_step_summary_diagnostic_fallback/report.json",
+    "reports/phase6_g_action_step_summary_diagnostic_fallback/report.md",
+    "tests/test_phase6_g_action_step_summary_diagnostic_fallback.py",
+    "docs/project_status.md",
+    "BACKLOG.md",
+    "memory-bank/codexContext.md",
+    "memory-bank/decisionLog.md",
+    "memory-bank/progress.md"
+  ],
+  "hard_wall_check": {
+    "official_fusion_fields_unlocked": false,
+    "merge_decision_claim_added": false,
+    "production_readiness_claim_added": false,
+    "bug_free_claim_added": false,
+    "security_verification_claim_added": false,
+    "public_benchmark_claim_added": false,
+    "autonomous_repair_claim_added": false
+  },
+  "verification": [
+    "python -m json.tool reports\\phase6_g_action_step_summary_diagnostic_fallback\\report.json > $null",
+    "python -m pytest tests/test_phase6_g_action_step_summary_diagnostic_fallback.py -q",
+    "python -m pytest tests/test_phase6_g_action_step_summary_diagnostic_fallback.py tests/test_phase6_f_action_metadata_diagnostic_quarantine.py tests/test_phase6_e_front_door_diagnostic_cli.py tests/test_product_strategy_reset.py tests/test_reports.py tests/test_self_audit_guard.py -q",
+    "git diff --exit-code -- reports\\calibration_seed\\index.json scripts\\clone_target_at_sha.py src\\oida_code .github\\workflows",
+    "python -m ruff check src/ tests/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m mypy src/ scripts/evaluate_shadow_formula.py scripts/real_repo_shadow_smoke.py",
+    "python -m pytest -q",
+    "git diff --check"
+  ]
+}

@@ -377,14 +377,19 @@ runs:
           echo "artifact-manifest=$OUTPUT_DIR/artifacts/manifest.json" >> "$GITHUB_OUTPUT"
         fi
 
-        # Phase 4.9-B — Step summary uses the polished diagnostic
-        # Markdown when available, falling back to the legacy audit
-        # report excerpt + calibration headline.
+        # Phase 4.9-B / Phase 6.g — Step summary uses the polished
+        # diagnostic Markdown when available, falling back to an
+        # audit report excerpt with an explicit non-claim header.
+        # Both surfaces are diagnostic-only per ADR-77 / ADR-78 /
+        # ADR-79; the fallback never renders a merge or
+        # production-readiness verdict.
         if [[ -f "$DIAGNOSTIC_MD" ]]; then
           cat "$DIAGNOSTIC_MD" >> "$GITHUB_STEP_SUMMARY"
         elif [[ -f "$OUTPUT_DIR/report.md" ]]; then
           {
-            echo "## OIDA-code audit"
+            echo "## OIDA-code diagnostic evidence"
+            echo
+            echo "Diagnostic only — not a merge decision or production-readiness assessment."
             echo
             head -n 80 "$OUTPUT_DIR/report.md"
           } >> "$GITHUB_STEP_SUMMARY"

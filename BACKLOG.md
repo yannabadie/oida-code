@@ -96,11 +96,15 @@ extends the addressing to project status overall through
 
 **Status in the backlog:** partially addressed in Phase 6.0
 (plain-language explainer + status doc), tightened again by ADR-74
-(`docs/product_strategy.md` + README / PLAN / AGENTS alignment), and
-addressed on the active CLI front door by ADR-77 / Phase 6.e and the reusable
-GitHub Action metadata by ADR-78 / Phase 6.f. The older ADR log and
-historical phase reports remain future cleanup. Earliest re-evaluation is
-after actual reader feedback says whether the new front door is sufficient.
+(`docs/product_strategy.md` + README / PLAN / AGENTS alignment),
+addressed on the active CLI front door by ADR-77 / Phase 6.e, the
+reusable GitHub Action metadata by ADR-78 / Phase 6.f, and the
+runtime `$GITHUB_STEP_SUMMARY` fallback by ADR-79 / Phase 6.g (the
+fallback now publishes `## OIDA-code diagnostic evidence` plus a
+non-claim disclaimer instead of `## OIDA-code audit`). The older
+ADR log and historical phase reports remain future cleanup.
+Earliest re-evaluation is after actual reader feedback says whether
+the new front door is sufficient.
 
 ### G-5 — Simple conceptual explanation is needed
 
